@@ -4,7 +4,14 @@ This project implements a **Snake Game** where an AI learns to play the game usi
 
 
 
-https://github.com/user-attachments/assets/0f655e48-5a52-434d-94db-5fdc76dbddf4
+https://github.com/user-attachments/assets/7dbb0ab6-90ae-4156-be62-b0765bf2e839
+
+
+
+
+
+
+
 
 
 ---
@@ -51,6 +58,4 @@ The AI is trained using Deep Q-Learning, which involves:
 - After sufficient training, the AI learns to consistently achieve high scores.
 - The training process is visualized with a real-time plot showing score progression.
 
-
 ![plot](https://github.com/user-attachments/assets/e120a1f6-720a-44e0-b2a1-d8703b9a443a)
-
