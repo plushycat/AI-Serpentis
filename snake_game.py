@@ -7,15 +7,16 @@ from utils import draw_gradient  # Import the correct draw_gradient function
 pygame.init()
 pygame.mixer.init()
 
-# colors
+# Colors
 WHITE = (255, 255, 255)
-RED = (200,0,0)
+RED = (200, 0, 0)
 BLUE = (0, 0, 255)
-BLACK = (0,0,0)
+BLACK = (0, 0, 0)
 GREEN = (0, 255, 0)
 
+# Game settings
 BLOCK_SIZE = 20
-SPEED = 100
+SPEED = 30  # Standardized speed
 
 # Directions
 RIGHT = 1
@@ -25,23 +26,12 @@ DOWN = 4
 
 Point = namedtuple('Point', 'x, y')
 
-font_path = "statics/game_over.ttf"  
-font = pygame.font.Font(font_path, 60)  
-
-
-
-# rgb colors
-WHITE = (255, 255, 255)
-RED = (200,0,0)
-BLUE1 = (0, 0, 255)
-BLUE2 = (0, 100, 255)
-BLACK = (0,0,0)
-
-BLOCK_SIZE = 20
-SPEED = 20
+# Font settings
+font_path = "statics/game_over.ttf"
+font = pygame.font.Font(font_path, 60)
 
 class SnakeGame:
-    def __init__(self, width=1280, height=720, record=0, avg=0, iteration=0):
+    def __init__(self, width=1280, height=720):
         self.width = width
         self.height = height
         self.score = 0
@@ -52,7 +42,7 @@ class SnakeGame:
         
         # Init display
         self.display = pygame.display.set_mode((self.width, self.height))
-        pygame.display.set_caption('Snake Game')
+        pygame.display.set_caption('Snake Game - Classic Mode')
         self.clock = pygame.time.Clock()
         
         # Init game state
@@ -61,29 +51,46 @@ class SnakeGame:
         self.snake = [self.head]
         self.food = None
         self._place_food()
+        # Add frame iteration for consistent tracking with AI version
+        self.frame_iteration = 0
 
     def _place_food(self):
-        x = random.randint(0, (self.width - BLOCK_SIZE ) // BLOCK_SIZE ) * BLOCK_SIZE 
-        y = random.randint(0, (self.height - BLOCK_SIZE ) // BLOCK_SIZE ) * BLOCK_SIZE
+        x = random.randint(0, (self.width - BLOCK_SIZE) // BLOCK_SIZE) * BLOCK_SIZE 
+        y = random.randint(0, (self.height - BLOCK_SIZE) // BLOCK_SIZE) * BLOCK_SIZE
         self.food = Point(x, y)
         if self.food in self.snake:
             self._place_food()
         
     def play_step(self):
+        self.frame_iteration += 1
+        
         # Handle user input
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
             if event.type == pygame.KEYDOWN:
-                if event.key in (pygame.K_LEFT, pygame.K_a):  # Left arrow or 'A'
-                    self.direction = LEFT
+                if event.key == pygame.K_p:  # Press 'P' to pause
+                    paused = True
+                    while paused:
+                        for pause_event in pygame.event.get():
+                            if pause_event.type == pygame.KEYDOWN and pause_event.key == pygame.K_p:
+                                paused = False
+                            elif pause_event.type == pygame.QUIT:
+                                pygame.quit()
+                                quit()
+                elif event.key in (pygame.K_LEFT, pygame.K_a):  # Left arrow or 'A'
+                    if self.direction != RIGHT:  # Prevent 180-degree turns
+                        self.direction = LEFT
                 elif event.key in (pygame.K_RIGHT, pygame.K_d):  # Right arrow or 'D'
-                    self.direction = RIGHT
+                    if self.direction != LEFT:  # Prevent 180-degree turns
+                        self.direction = RIGHT
                 elif event.key in (pygame.K_UP, pygame.K_w):  # Up arrow or 'W'
-                    self.direction = UP
+                    if self.direction != DOWN:  # Prevent 180-degree turns
+                        self.direction = UP
                 elif event.key in (pygame.K_DOWN, pygame.K_s):  # Down arrow or 'S'
-                    self.direction = DOWN
+                    if self.direction != UP:  # Prevent 180-degree turns
+                        self.direction = DOWN
 
         # Move the snake
         self._move(self.direction)
@@ -103,16 +110,16 @@ class SnakeGame:
 
         # Update UI and clock
         self._update_ui()
-        self.clock.tick(30)  # Fixed frame rate
+        self.clock.tick(SPEED)  # Use standardized frame rate
         return False, self.score
     
     def _is_collision(self):
         # Check if the snake hits itself
         if self.head in self.snake[1:]:
             self.game_over_sound.play()
+            print(f"Game Over: Snake collision")
             return True
         return False
-
         
     def _update_ui(self):
         if self.background_theme == "dark":
@@ -157,8 +164,6 @@ class SnakeGame:
 
         self.head = Point(x, y)
 
-            
-
 if __name__ == '__main__':
     game = SnakeGame()
     
@@ -166,10 +171,8 @@ if __name__ == '__main__':
     while True:
         game_over, score = game.play_step()
         
-        if game_over == True:
+        if game_over:
             break
         
     print('Final Score', game.score)
-        
-        
     pygame.quit()

@@ -2,7 +2,7 @@ import pygame, random, os
 from enum import Enum
 from collections import namedtuple
 import numpy as np
-from utils import draw_gradient 
+from utils import draw_gradient
 
 pygame.init()
 pygame.mixer.init()
@@ -13,10 +13,11 @@ RED = (200, 0, 0)
 BLUE = (0, 0, 255)
 BLUE2 = (0, 100, 255)
 BLACK = (0, 0, 0)
+GREEN = (0, 255, 0)
 
 # Define block size and game speed
 BLOCK_SIZE = 20
-SPEED = 40
+SPEED = 30  # Standardized speed
 
 # Direction constants
 RIGHT = 1
@@ -28,8 +29,8 @@ DOWN = 4
 Point = namedtuple('Point', 'x, y')
 
 # Load font for displaying text
-font_path = "statics/game_over.ttf"  
-font = pygame.font.Font(font_path, 60)  
+font_path = "statics/game_over.ttf"
+font = pygame.font.Font(font_path, 60)
 
 class SnakeGameAI:
     """
@@ -53,12 +54,14 @@ class SnakeGameAI:
         self.record = record
         self.avg = avg
         self.iteration = iteration
-        self.eat_sound = pygame.mixer.Sound('statics/eat-food.mp3')  # Sound for eating food
-        self.game_over_sound = pygame.mixer.Sound('statics/game-over.mp3')  # Sound for game over
+        self.eat_sound = pygame.mixer.Sound('statics/eat-food.mp3')
+        self.game_over_sound = pygame.mixer.Sound('statics/game-over.mp3')
+        self.snake_color = GREEN  # Default snake color
+        self.background_theme = "dark"  # Default background theme
         
         # Use the width and height parameters to set up the display
         self.display = pygame.display.set_mode((self.width, self.height))
-        pygame.display.set_caption('Snake Game')  # Set the game title
+        pygame.display.set_caption('Snake Game - AI Mode')
         self.clock = pygame.time.Clock()
         self.reset()
 
@@ -97,23 +100,23 @@ class SnakeGameAI:
         game_over: Boolean indicating if the game is over.
         score: Current score.
         """
-        # Pause functionality
+        self.frame_iteration += 1
+        
+        # Consolidated event handling
         for event in pygame.event.get():
-            if event.type == pygame.KEYDOWN:
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_p:  # Press 'P' to pause
                     paused = True
                     while paused:
                         for pause_event in pygame.event.get():
                             if pause_event.type == pygame.KEYDOWN and pause_event.key == pygame.K_p:
                                 paused = False
-
-        self.frame_iteration += 1
-
-        # Handle quitting the game
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
+                            elif pause_event.type == pygame.QUIT:
+                                pygame.quit()
+                                quit()
 
         # Move the snake
         self._move(action) 
@@ -122,10 +125,18 @@ class SnakeGameAI:
         reward = 0
         game_over = False
 
-        # Check for collisions or exceeding the frame limit
-        if self.is_collision() or self.frame_iteration > 100 * len(self.snake):
+        # Check for collisions - adding debug information
+        if self.is_collision():
             game_over = True
             reward = -10
+            print(f"AI Game Over: Collision detected")
+            return reward, game_over, self.score
+        
+        # Check for timeout - increasing to 200 frames per segment for more leniency
+        if self.frame_iteration > 200 * len(self.snake):
+            game_over = True
+            reward = -10
+            print(f"AI Game Over: Frame limit exceeded ({self.frame_iteration} > {200 * len(self.snake)})")
             return reward, game_over, self.score
 
         # Check if the snake eats food
@@ -134,8 +145,12 @@ class SnakeGameAI:
             reward = 10
             self._place_food()
             self.eat_sound.play()
+            # Reset frame iteration when food is eaten to prevent timeout
+            self.frame_iteration = 0
         else:
             self.snake.pop()
+            # Small negative reward for moving away from food to encourage efficiency
+            reward = -0.1
 
         # Update the display
         self._update_ui()
@@ -164,13 +179,19 @@ class SnakeGameAI:
         """
         Updates the game display with the current state.
         """
-        draw_gradient(self.display, (0, 0, 50), (0, 0, 0), self.width, self.height)  # Draw gradient background
+        # Select background based on theme
+        if self.background_theme == "dark":
+            draw_gradient(self.display, (0, 0, 50), (0, 0, 0), self.width, self.height)
+        else:
+            draw_gradient(self.display, (200, 200, 200), (255, 255, 255), self.width, self.height)
 
-        # Draw the snake with a gradient effect
+        # Draw the snake with a gradient effect based on snake_color
+        base_color = self.snake_color
         for i, point in enumerate(self.snake):
-            r = 0
-            g = max(0, min(255, 255 - i * 10))  
-            b = max(0, min(255, i * 10))        
+            # Calculate gradient color for each segment
+            r = max(0, min(255, base_color[0] - i * 10))
+            g = max(0, min(255, base_color[1] - i * 10))
+            b = max(0, min(255, base_color[2] - i * 10))
             color = (r, g, b)
             pygame.draw.rect(self.display, color, pygame.Rect(point.x, point.y, BLOCK_SIZE, BLOCK_SIZE))
 
