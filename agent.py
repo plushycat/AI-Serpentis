@@ -177,8 +177,8 @@ def train():
             game.iteration = agent.n_games
             plot_mean_scores.append(mean_score)
 
-            # Plot after 200 iterations
-            if game.iteration == 200:
+            # Plot every 10 iterations
+            if game.iteration % 10 == 0:
                 plot(plot_scores, plot_mean_scores)
 
 if __name__ == '__main__':

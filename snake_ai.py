@@ -2,6 +2,7 @@ import pygame, random, os
 from enum import Enum
 from collections import namedtuple
 import numpy as np
+from utils import draw_gradient 
 
 pygame.init()
 pygame.mixer.init()
@@ -30,22 +31,6 @@ Point = namedtuple('Point', 'x, y')
 font_path = "statics/game_over.ttf"  
 font = pygame.font.Font(font_path, 60)  
 
-# Function to draw a gradient background
-def draw_gradient(display, color1, color2):
-    """
-    Draws a vertical gradient on the display.
-
-    Args:
-    display: Pygame display object.
-    color1: Starting color of the gradient (RGB tuple).
-    color2: Ending color of the gradient (RGB tuple).
-    """
-    for i in range(600): 
-        r = color1[0] + (color2[0] - color1[0]) * i // 600
-        g = color1[1] + (color2[1] - color1[1]) * i // 600
-        b = color1[2] + (color2[2] - color1[2]) * i // 600
-        pygame.draw.line(display, (r, g, b), (0, i), (800, i))  
-
 class SnakeGameAI:
     """
     A class to represent the Snake Game with AI integration.
@@ -71,6 +56,7 @@ class SnakeGameAI:
         self.eat_sound = pygame.mixer.Sound('statics/eat-food.mp3')  # Sound for eating food
         self.game_over_sound = pygame.mixer.Sound('statics/game-over.mp3')  # Sound for game over
         
+        # Use the width and height parameters to set up the display
         self.display = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption('Snake Game')  # Set the game title
         self.clock = pygame.time.Clock()
@@ -178,7 +164,7 @@ class SnakeGameAI:
         """
         Updates the game display with the current state.
         """
-        draw_gradient(self.display, (0, 0, 50), (0, 0, 0))  # Draw gradient background
+        draw_gradient(self.display, (0, 0, 50), (0, 0, 0), self.width, self.height)  # Draw gradient background
 
         # Draw the snake with a gradient effect
         for i, point in enumerate(self.snake):

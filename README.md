@@ -59,3 +59,8 @@ The AI is trained using Deep Q-Learning, which involves:
 - The training process is visualized with a real-time plot showing score progression.
 
 ![plot](https://github.com/user-attachments/assets/e120a1f6-720a-44e0-b2a1-d8703b9a443a)
+
+---
+## Credits:
+BGM: Music by Nicholas Panek from Pixabay
+Source repository: armin2080/Snake-Game-AI

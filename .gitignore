@@ -4,3 +4,6 @@ venv/
 # Ignore Python cache files and folders
 __pycache__/
 *.pyc
+
+#ignore model_snapshots as it is for local use
+model_snapshots/
