@@ -303,13 +303,14 @@ def play_classic_game():
     game = SnakeGame()
     
     # Initialize with current customization settings
+    # If using random theme, the snake theme is freshly chosen each game
     game.snake_theme = customization.get_current_snake_theme()
     game.food_theme = customization.get_current_food_theme()
-    game.background_theme = background_theme
+    game.set_theme(background_theme)  # Use the theme setter method
     
     # For compatibility with older code
     game.snake_color = game.snake_theme.head_color
-
+    
     while True:
         over, score = game.play_step()
         if over:
@@ -425,8 +426,14 @@ def watch_ai_play():
     
     # Initialize game with customized settings
     game = SnakeGameAI(width=1280, height=720)
-    game.snake_color = snake_color
-    game.background_theme = background_theme
+    
+    # Get a fresh random theme if random is selected
+    game.snake_theme = customization.get_current_snake_theme()
+    game.food_theme = customization.get_current_food_theme()
+    game.set_theme(background_theme)
+    
+    # For compatibility
+    game.snake_color = game.snake_theme.head_color
     
     # Get the record from training data
     record = 0

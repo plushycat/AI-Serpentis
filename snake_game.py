@@ -152,7 +152,7 @@ class SnakeGame:
         if self.head == self.food:
             self.eat_sound.play()
             self.score += 1
-            self._place_food()
+            self._place_food()  # This will generate a new random color if needed
             
             # Play level up sound every 10 points
             if self.score % 10 == 0 and self.score > 0:
@@ -176,6 +176,11 @@ class SnakeGame:
                     pygame.time.delay(500)
         else:
             self.snake.pop()
+            
+            # Update food color if it's a rainbow theme
+            # This is the key fix - update the food color even when not eating
+            if self.food_theme.random_colors and self.frame_iteration % 60 == 0:
+                self.food_theme.new_random_color()
 
         # Update UI and clock
         self._update_ui()
