@@ -7,8 +7,7 @@ This project implements a Snake Game with both manual and AI gameplay modes. The
 ---
 # Demo Video 🎥
 
-[![Demo Video](https://raw.githubusercontent.com/plushycat/AI-Serpentis/main/assets/demo_video/demo_serpentis.png)](  https://raw.githubusercontent.com/plushycat/AI-Serpentis/main/assets/demo_video/demo_serpentis.mp4)
-
+https://github.com/user-attachments/assets/1b68bf50-60f1-4c06-9df4-b9c3b067056d
 
 ---
 
