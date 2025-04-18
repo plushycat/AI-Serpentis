@@ -2,8 +2,8 @@ import pygame
 import random
 from enum import Enum
 from collections import namedtuple
-from customization import customization
-from utils import draw_gradient  # Import the correct draw_gradient function
+from src.game.customization import customization
+from utils import draw_gradient 
 import os
 import json
 
@@ -31,7 +31,7 @@ DOWN = 4
 Point = namedtuple('Point', 'x, y')
 
 # Font settings
-font_path = "statics/game_over.ttf"
+font_path = "assets/fonts/game_over.ttf"
 font = pygame.font.Font(font_path, 60)
 
 class SnakeGame:
@@ -39,11 +39,11 @@ class SnakeGame:
         self.width = width
         self.height = height
         self.score = 0
-        self.eat_sound = pygame.mixer.Sound('statics/eat-food.mp3')
-        self.game_over_sound = pygame.mixer.Sound('statics/game-over.mp3')
+        self.eat_sound = pygame.mixer.Sound('assets/sounds/eat-food.mp3')
+        self.game_over_sound = pygame.mixer.Sound('assets/sounds/game-over.mp3')
         # Add level up sound
         try:
-            self.level_up_sound = pygame.mixer.Sound('statics/level_up.mp3')
+            self.level_up_sound = pygame.mixer.Sound('assets/sounds/level_up.mp3')
         except:
             print("Warning: Level up sound file not found")
             self.level_up_sound = None
@@ -64,9 +64,9 @@ class SnakeGame:
         
         # Add standardized fonts with proper error handling
         try:
-            self.main_font = pygame.font.Font("statics/game_over.ttf", 60)  # Main font for score display
-            self.sub_font = pygame.font.Font("statics/game_over.ttf", 48)   # Smaller font for other displays
-            self.small_font = pygame.font.Font("statics/game_over.ttf", 36) # Small font for debug info
+            self.main_font = pygame.font.Font("assets/fonts/game_over.ttf", 60)  # Main font for score display
+            self.sub_font = pygame.font.Font("assets/fonts/game_over.ttf", 48)   # Smaller font for other displays
+            self.small_font = pygame.font.Font("assets/fonts/game_over.ttf", 36) # Small font for debug info
         except FileNotFoundError:
             print("Warning: Main font file not found. Using system fonts.")
             self.main_font = pygame.font.SysFont("Arial", 60)
@@ -226,7 +226,7 @@ class SnakeGame:
         
         # Try to load and display high score with dynamic color
         try:
-            high_score_file = "statics/highscores.json"
+            high_score_file = "data/stats/highscores.json"
             if os.path.exists(high_score_file):
                 with open(high_score_file, 'r') as f:
                     high_scores = json.load(f)

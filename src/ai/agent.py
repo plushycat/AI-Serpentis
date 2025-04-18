@@ -6,9 +6,9 @@ import pygame
 import json
 import datetime
 from collections import deque
-from snake_ai import SnakeGameAI, Point, RIGHT, LEFT, UP, DOWN
-from model import Linear_QNet, QTrainer
-from plotter import plot
+from src.game.snake_ai import SnakeGameAI, Point, RIGHT, LEFT, UP, DOWN
+from src.ai.model import Linear_QNet, QTrainer
+from src.utils.plotter import plot
 
 # Hyperparameters
 MAX_MEMORY = 100_000  # Maximum size of replay memory
@@ -16,7 +16,7 @@ BATCH_SIZE = 1000  # Size of mini-batches for training
 LR = 0.001  # Learning rate for the Q-learning model
 
 # Checkpoint directory
-CHECKPOINT_DIR = "training_checkpoints"
+CHECKPOINT_DIR = "data/checkpoints"
 if not os.path.exists(CHECKPOINT_DIR):
     os.makedirs(CHECKPOINT_DIR)
 
@@ -245,9 +245,9 @@ def train():
     
     # Create fonts with proper error handling
     try:
-        main_font = pygame.font.Font("statics/game_over.ttf", 60) 
-        sub_font = pygame.font.Font("statics/game_over.ttf", 36)
-        small_font = pygame.font.Font("statics/game_over.ttf", 24)
+        main_font = pygame.font.Font("assets/fonts/game_over.ttf", 60) 
+        sub_font = pygame.font.Font("assets/fonts/game_over.ttf", 36)
+        small_font = pygame.font.Font("assets/fonts/game_over.ttf", 24)
     except FileNotFoundError:
         print("Warning: Font file not found. Using system fonts.")
         main_font = pygame.font.SysFont("Arial", 60)

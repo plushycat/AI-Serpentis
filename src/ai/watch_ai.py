@@ -1,15 +1,15 @@
 import torch
 import pygame
-from snake_ai import SnakeGameAI
-from model import Linear_QNet
-from agent import Agent
+from src.game.snake_ai import SnakeGameAI
+from src.ai.model import Linear_QNet
+from src.ai.agent import Agent
 
 def watch_ai_play():
     """Launches the AI-controlled Snake game using the pre-trained model."""
     # Load the trained model
     model = Linear_QNet(11, 256, 3)
     try:
-        model.load_state_dict(torch.load("model/model.pth"))
+        model.load_state_dict(torch.load("data/models/model.pth"))
         model.eval()
     except FileNotFoundError:
         print("Error: Pre-trained model file not found. Using a fresh model.")

@@ -1,56 +1,123 @@
-# Snake Game AI
+# 🐍 AI Serpentis
 
-This project implements a **Snake Game** where an AI learns to play the game using **Deep Q-Learning**. The AI trains over multiple iterations, improving its performance and strategy. The game is implemented in Python using **Pygame** for the visuals and **PyTorch** for the AI model.
+This project implements a Snake Game with both manual and AI gameplay modes. The AI learns to play the game using **Deep Q-Learning**, training over multiple iterations to improve its performance. Built with **Pygame** for visuals and **PyTorch** for the AI model.
 
----
-
-## Features
-- **AI-Powered Gameplay**: The AI uses reinforcement learning to master the Snake Game.
-- **Gradient-based Visuals**: The game board features modern gradient effects.
-- **Live Metrics Display**: Real-time display of score, record, average score, and iteration count during training.
-- **Pause/Resume Feature**: Pause the game anytime with the `P` key.
-- **Customizable Settings**: Easily modify game speed, block size, and learning parameters.
-- **AI Performance Visualization**: A dynamic plot displays the AI's learning progress over time.
+> **Note**: This project is a fork of [`armin2080/Snake-Game-AI`](https://github.com/armin2080/Snake-Game-AI) with significant enhancements and extensions.
 
 ---
 
-## Prerequisites
-Before running the code, ensure you have the following installed:
-- Python 3.8+
+## ✨ Features
+
+### 🎮 Game Features
+- **Classic Mode**: Play the snake game manually with keyboard controls  
+- **AI Mode**: Watch a trained neural network play the game  
+- **Modern UI**: Sleek gradient backgrounds, custom animations, and particle effects  
+- **Customization Options**: Choose from various snake and food themes  
+- **Responsive Controls**: WASD/Arrow keys for movement and pause functionality  
+
+### 🧠 AI Implementation
+- **Deep Q-Learning**: Neural network with 11-dimensional state and 3 outputs  
+- **Training System**: Train the AI from scratch or continue from checkpoints  
+- **Performance Visualization**: Real-time plots of scores and training progress  
+- **Save/Load System**: Maintains high scores and AI training progress  
+
+---
+
+## 📁 Project Structure
+
+```
+AI-Serpentis/
+├── src/                    # Source code
+│   ├── ai/                 # AI implementation
+│   │   ├── agent.py        # Reinforcement learning agent
+│   │   ├── model.py        # Neural network architecture
+│   │   └── watch_ai.py     # AI visualization script
+│   ├── game/               # Game implementation
+│   │   ├── snake_game.py   # Classic snake game
+│   │   ├── snake_ai.py     # AI-compatible game environment
+│   │   └── customization.py # Theme management
+│   ├── ui/                 # User interface
+│   │   └── main.py         # UI implementation and menu system
+│   └── utils/              # Utility functions
+│       ├── plotter.py      # Training progress visualization
+│       └── __init__.py     # Common utilities
+├── assets/                 # Game assets (fonts, sounds, images)
+├── data/                   # Data storage
+│   ├── models/             # Trained AI models
+│   ├── plots/              # Plots showing NN training over time
+│   ├── checkpoints/        # Training checkpoints
+│   └── stats/              # Game statistics
+├── utils/                  # Global utilities
+└── main.py                 # Main entry point
+```
+
+---
+
+## 💠 Prerequisites
+
+Make sure you have the following installed:
+
+- Python 3.10+
 - Pygame
 - PyTorch
 - Matplotlib
 
-You can install the required dependencies using:
+Install dependencies with:
+
 ```bash
 pip install -r requirements.txt
 ```
----
-
-## Game Logic
-The game features a classic Snake environment:
-- The snake collects food to grow and score points.
-- The snake wraps around the screen edges.
-- The game ends if the snake collides with itself.
-
-## AI Logic
-The AI is trained using Deep Q-Learning, which involves:
-- **State Representation**: The AI observes the environment (snake's position, direction, and food location).
-- **Action Selection**: The AI chooses actions using an epsilon-greedy policy.
-- **Reward System**: Positive rewards for eating food, negative rewards for collisions.
-- **Neural Network**: A feedforward network predicts Q-values for actions, guiding the AI's decisions.
 
 ---
 
-## Results
-- After sufficient training, the AI learns to consistently achieve high scores.
-- The training process is visualized with a real-time plot showing score progression.
+## 🎯 Game Logic
 
-![plot](https://github.com/user-attachments/assets/e120a1f6-720a-44e0-b2a1-d8703b9a443a)
+### 🐍 Classic Snake Game
+- Control the snake to eat food and grow longer  
+- Avoid colliding with yourself  
+- The snake wraps around the screen edges  
+- Score increases as you collect more food  
+
+### 🧠 AI Logic
+- **State Representation**: 11-dimensional vector including:
+  - Danger detection (left, front, right, bottom)
+  - Current movement direction
+  - Food location relative to snake head
+- **Action Selection**: One of `[Straight, Right Turn, Left Turn]`
+- **Reward System**:
+  - `+10` for eating food  
+  - `-10` for collisions  
+  - Small positive reward for moving toward food
+- **Neural Network**:  
+  `11 → 256 → 3` feedforward network with ReLU activations  
 
 ---
-## Credits:
-BGM: Music by Nicholas Panek from Pixabay
-Level Up Sound: Magic Game Key Picked Up by Epic Stock Media from Upbeat
-UI Click Sound: Arcade Game Bling by Epic Stock Media from Upbeat
-Source repository: armin2080/Snake-Game-AI
+
+## 🎨 Customization Options
+
+- **Snake Themes**:  
+  Classic Green, Cool Blue, Fire, Royal Purple, Sky Blue, or Random  
+- **Food Themes**:  
+  Red Apple, Blueberry, Rainbow (dynamic), or Golden  
+- **Background Themes**:  
+  Light or Dark mode  
+- **Debug Mode**:  
+  Enables real-time AI debug information overlay  
+
+---
+
+## 📈 Results
+
+After sufficient training (minimum of 200 cycles), the AI consistently achieves high scores by developing strategies to efficiently collect food while avoiding collisions.
+
+---
+
+## 🎵 Credits
+
+- **BGM**: *Music by Nicholas Panek* from [Pixabay](https://pixabay.com)  
+- **Level Up Sound**: *Magic Game Key Picked Up* by Epic Stock Media from [Upbeat](https://www.upbeat.io)  
+- **UI Click Sound**: *Arcade Game Bling* by Epic Stock Media from [Upbeat](https://www.upbeat.io)  
+- **Mute and Unmute Buttons:**  [Freepik](https://freepik.com)  
+
+- **Source Repository:** [armin2080/Snake-Game-AI](https://github.com/armin2080/Snake-Game-AI)
+
