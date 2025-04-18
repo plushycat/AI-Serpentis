@@ -210,9 +210,9 @@ def home_page():
     
     buttons = {
         "Play Classic": pygame.Rect((SCREEN_WIDTH - button_width)//2, start_y,                 button_width, button_height),
-        "Watch AI":     pygame.Rect((SCREEN_WIDTH - button_width)//2, start_y + button_spacing, button_width, button_height),
-        "Settings":     pygame.Rect((SCREEN_WIDTH - button_width)//2, start_y + 2*button_spacing, button_width, button_height),
-        "Quit":         pygame.Rect((SCREEN_WIDTH - button_width)//2, start_y + 3*button_spacing, button_width, button_height),
+        "Watch AI": pygame.Rect((SCREEN_WIDTH - button_width)//2, start_y + button_spacing, button_width, button_height),
+        "Settings": pygame.Rect((SCREEN_WIDTH - button_width)//2, start_y + 2*button_spacing, button_width, button_height),
+        "Quit":     pygame.Rect((SCREEN_WIDTH - button_width)//2, start_y + 3*button_spacing, button_width, button_height),
     }
     music_rect = pygame.Rect(SCREEN_WIDTH - 60, 20, 40, 40)
     
@@ -289,8 +289,6 @@ def home_page():
         
         step += 1
         clock.tick(30)
-
-# Update play_classic_game to correctly apply customizations
 
 def play_classic_game():
     global snake_color, background_theme, screen, game_speed
@@ -435,18 +433,25 @@ def watch_ai_play():
     # For compatibility
     game.snake_color = game.snake_theme.head_color
     
-    # Get the record from training data
-    record = 0
+    # Get the historical record from the training data (READ ONLY)
+    training_record = 0
     try:
         checkpoint_file = os.path.join("training_checkpoints", "training_state.json")
         if os.path.exists(checkpoint_file):
             with open(checkpoint_file, 'r') as f:
                 state = json.load(f)
-                record = state.get('record', 0)
-    except:
-        pass
+                training_record = state.get('record', 0)
+    except Exception as e:
+        print(f"Error loading training record: {e}")
     
-    game.record = record  # Set the record to show
+    # Load the AI gameplay high score (separate from training data)
+    high_scores = load_high_scores()
+    ai_high_score = high_scores.get("ai", 0)
+    
+    # Use the higher of the two values for display purposes only
+    display_record = max(training_record, ai_high_score)
+    game.record = display_record  # Set the record to show
+    
     game.viewing_mode = True  # Set a new flag to indicate viewer mode
     
     # Increase frame limit to prevent premature endings
@@ -509,14 +514,23 @@ def watch_ai_play():
         
         if done:
             print(f"AI Game Over! Final Score: {score}")
-            # Show game over screen with score - using consistent fonts
+            
+            # Check if this is a new high score for AI gameplay (not training)
+            is_new_high = False
+            if score > ai_high_score:
+                is_new_high = save_high_score("ai", score)
+                ai_high_score = score
+            
+            # Show game over screen with score
             try:
                 font_large = pygame.font.Font("statics/game_over.ttf", 72)
                 font_small = pygame.font.Font("statics/game_over.ttf", 36)
+                font_medal = pygame.font.Font("statics/game_over.ttf", 48)  # For high score celebration
             except FileNotFoundError:
                 print("Warning: Font file not found. Using system fonts.")
                 font_large = pygame.font.SysFont("Arial", 72)
                 font_small = pygame.font.SysFont("Arial", 36)
+                font_medal = pygame.font.SysFont("Arial", 48)
             
             # Dynamic colors based on theme
             if game.background_theme == "dark":
@@ -528,7 +542,10 @@ def watch_ai_play():
             
             game_over_text = font_large.render("GAME OVER", True, (255, 50, 50))  # Always red
             score_text = font_small.render(f"AI Score: {score}", True, text_color)
-            record_text = font_small.render(f"Record: {max(record, score)}", True, text_color)
+            
+            # Use the updated ai_high_score for display
+            best_record = max(training_record, ai_high_score)
+            record_text = font_small.render(f"Record: {best_record}", True, text_color)
             continue_text = font_small.render("Press any key to continue", True, secondary_color)
             
             # Position texts
@@ -547,12 +564,36 @@ def watch_ai_play():
             game.display.blit(game_over_text, game_over_rect)
             game.display.blit(score_text, score_rect)
             game.display.blit(record_text, record_rect)
+            
+            # Add celebration if this is a new viewer high score
+            if is_new_high:
+                new_record_text = font_medal.render("NEW VIEWER HIGH SCORE!", True, (255, 215, 0))  # Gold color
+                new_record_rect = new_record_text.get_rect(center=(game.width//2, game.height//2 + 85))
+                game.display.blit(new_record_text, new_record_rect)
+            
             game.display.blit(continue_text, continue_rect)
             pygame.display.update()
             
             # Wait for key press
             waiting = True
+            animation_step = 0
             while waiting:
+                animation_step += 1
+                
+                # Animate high score text if it's a new record
+                if is_new_high and animation_step % 10 == 0:
+                    # Redraw just the high score with pulsing effect
+                    overlay_rect = pygame.Rect(new_record_rect.left - 20, new_record_rect.top - 10, 
+                                            new_record_rect.width + 40, new_record_rect.height + 20)
+                    pygame.draw.rect(game.display, overlay_color[:3] + (180,), overlay_rect)
+                    
+                    # Pulsing effect using sine wave
+                    pulse = abs(math.sin(animation_step / 10)) * 50
+                    glow_color = (255, 215, 0 + pulse)  # Pulsing gold
+                    new_record_text = font_medal.render("NEW VIEWER HIGH SCORE!", True, glow_color)
+                    game.display.blit(new_record_text, new_record_rect)
+                    pygame.display.update(overlay_rect)
+                
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         pygame.quit()
@@ -567,10 +608,10 @@ def watch_ai_play():
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("AI Serpentis")
 
-# Fix the settings page's responsiveness
-
 def settings_page():
-    global snake_color, background_theme, screen, game_speed, debug_mode
+    global snake_color, background_theme, screen, debug_mode
+    import math  # Add math import for ceil function
+    
     clock = pygame.time.Clock()
     step = 0
     button_width = 300
@@ -579,7 +620,8 @@ def settings_page():
     
     # Create a scroll area for all options
     scroll_y = 0
-    max_scroll_y = 0  # Will be calculated based on content
+    scroll_velocity = 0  # For smoother scrolling
+    max_scroll_y = 0
     
     # Keep track of current page (0 = general, 1 = snake themes, 2 = food themes)
     current_page = 0
@@ -587,6 +629,10 @@ def settings_page():
     # Get all available themes
     snake_themes = customization.get_all_snake_themes()
     food_themes = customization.get_all_food_themes()
+    
+    # Debug print to check the number of themes
+    print(f"Number of snake themes: {len(snake_themes)}")
+    print(f"Number of food themes: {len(food_themes)}")
     
     # Create buttons for all pages
     general_button = pygame.Rect((SCREEN_WIDTH//2 - button_width*1.5)//1, 120, button_width, button_height)
@@ -602,10 +648,14 @@ def settings_page():
     back_button = pygame.Rect((SCREEN_WIDTH-button_width)//2, SCREEN_HEIGHT - 100, button_width, button_height)
     
     # Create theme preview rects
-    preview_size = 180
-    preview_margin = 20
+    preview_size = 180  
+    preview_margin = 20 
     preview_cols = 3
     preview_width = preview_cols * (preview_size + preview_margin) - preview_margin
+    
+    # Create a clipping mask for the content area
+    content_area = pygame.Rect(0, 200, SCREEN_WIDTH, SCREEN_HEIGHT - 320)
+    content_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT - 320), pygame.SRCALPHA)
     
     # Track button and mouse states
     mouse_pressed = False
@@ -615,7 +665,6 @@ def settings_page():
         # Mouse state tracking for responsive clicks
         prev_mouse_pressed = mouse_pressed
         mouse_pressed = pygame.mouse.get_pressed()[0]
-        mouse_released = prev_mouse_pressed and not mouse_pressed
         mouse_pos = pygame.mouse.get_pos()
         
         draw_smooth_gradient()
@@ -632,23 +681,23 @@ def settings_page():
         inactive_tab_color = (40, 40, 80)
         
         draw_button(screen, general_button, "General", menu_font, 
-                   active_tab_color if current_page == 0 else inactive_tab_color, 
-                   (100, 150, 255), mouse_pos)
-        draw_button(screen, snake_button, "Snake Theme", menu_font,
-                   active_tab_color if current_page == 1 else inactive_tab_color, 
-                   (100, 150, 255), mouse_pos)
+                    active_tab_color if current_page == 0 else inactive_tab_color, (100, 150, 255), mouse_pos)
+        draw_button(screen, snake_button, "Snake Theme", menu_font, 
+                    active_tab_color if current_page == 1 else inactive_tab_color, (100, 150, 255), mouse_pos)
         draw_button(screen, food_button, "Food Theme", menu_font,
-                   active_tab_color if current_page == 2 else inactive_tab_color, 
-                   (100, 150, 255), mouse_pos)
-                   
-        # Content area
-        content_area = pygame.Rect(0, 200, SCREEN_WIDTH, SCREEN_HEIGHT - 320)
+                    active_tab_color if current_page == 2 else inactive_tab_color, (100, 150, 255), mouse_pos)
         
-        # Process mouse wheel events for scrolling
-        mouse_wheel_up = False
-        mouse_wheel_down = False
+        # Apply smooth scroll with velocity and damping
+        if abs(scroll_velocity) > 0.5:
+            scroll_y += scroll_velocity
+            scroll_velocity *= 0.9  # Damping factor
+        else:
+            scroll_velocity = 0
         
-        # Event handling - do this at the beginning of each frame
+        # Clamp scroll position to valid range
+        scroll_y = max(0, min(max_scroll_y, scroll_y))
+        
+        # Process mouse wheel events and handle events
         for e in pygame.event.get():
             if e.type == pygame.QUIT:
                 pygame.quit()
@@ -660,14 +709,17 @@ def settings_page():
                         if click_sound: click_sound.play()
                         current_page = 0
                         scroll_y = 0
+                        scroll_velocity = 0
                     elif snake_button.collidepoint(e.pos):
                         if click_sound: click_sound.play()
                         current_page = 1
                         scroll_y = 0
+                        scroll_velocity = 0
                     elif food_button.collidepoint(e.pos):
                         if click_sound: click_sound.play()
                         current_page = 2
                         scroll_y = 0
+                        scroll_velocity = 0
                     
                     # General page buttons
                     if current_page == 0:
@@ -686,11 +738,11 @@ def settings_page():
                         if click_sound: click_sound.play()
                         return
                 
-                # Mouse wheel scrolling
+                # Mouse wheel scrolling with smoother velocity
                 elif e.button == 4:  # Scroll up
-                    mouse_wheel_up = True
+                    scroll_velocity -= 15
                 elif e.button == 5:  # Scroll down
-                    mouse_wheel_down = True
+                    scroll_velocity += 15
             
             if e.type == pygame.KEYDOWN and e.key == pygame.K_ESCAPE:
                 return
@@ -698,97 +750,94 @@ def settings_page():
         # Draw content based on current page
         if current_page == 0:
             # General settings page
+            # Add border around the selected theme button
+            selected_border = pygame.Rect(0, 0, button_width + 8, button_height + 8)
+            if background_theme == "dark":
+                selected_border.center = dark_button.center
+                pygame.draw.rect(screen, (80, 200, 120), selected_border, 3, border_radius=14)
+            else:
+                selected_border.center = light_button.center
+                pygame.draw.rect(screen, (80, 200, 120), selected_border, 3, border_radius=14)
+                
             draw_button(screen, dark_button, "Theme: Dark", menu_font,
-                      (50,50,80) if background_theme == "dark" else (30,30,50),
-                      (80,80,120), mouse_pos)
+                    (50,50,80) if background_theme == "dark" else (30,30,50),
+                    (80,80,120), mouse_pos)
             draw_button(screen, light_button, "Theme: Light", menu_font,
-                      (200,200,220) if background_theme == "light" else (150,150,170),
-                      (230,230,250), mouse_pos)
-                      
+                    (200,200,220) if background_theme == "light" else (150,150,170),
+                    (230,230,250), mouse_pos)
+                    
             # Debug mode toggle button
             debug_label = "Debug: ON" if debug_mode else "Debug: OFF"
             debug_color = (100, 200, 100) if debug_mode else (200, 100, 100)
             draw_button(screen, debug_button, debug_label, menu_font, debug_color, (150, 150, 150), mouse_pos)
             
-            # Speed slider UI
-            speed_txt = menu_font.render(f"Game Speed: {game_speed}", True, WHITE)
-            speed_rect = speed_txt.get_rect(center=(SCREEN_WIDTH//2, 460))
-            screen.blit(speed_txt, speed_rect)
+            # Add some instructions about the settings
+            info_text1 = footer_font.render("Choose light or dark theme to change game appearance", True, WHITE)
+            info_text2 = footer_font.render("Debug mode shows additional information in AI mode", True, WHITE)
             
-            # Draw slider
-            slider_x = (SCREEN_WIDTH-button_width)//2
-            slider_w = button_width
-            min_s, max_s = 10, 60
-            slider_y = 500
-            slider_pos = slider_x + int((game_speed - min_s) / (max_s - min_s) * slider_w)
-            
-            pygame.draw.line(screen, GRAY, (slider_x, slider_y), (slider_x + slider_w, slider_y), 5)
-            pygame.draw.circle(screen, WHITE, (slider_pos, slider_y), 10)
-            
-            # Handle slider drag
-            if pygame.mouse.get_pressed()[0]:  # Left mouse button pressed
-                if abs(mouse_pos[0] - slider_pos) < 20 and abs(mouse_pos[1] - slider_y) < 20:
-                    ratio = max(0, min(1, (mouse_pos[0] - slider_x) / slider_w))
-                    game_speed = int(min_s + ratio * (max_s - min_s))
+            screen.blit(info_text1, [(SCREEN_WIDTH - info_text1.get_width()) // 2, 450])
+            screen.blit(info_text2, [(SCREEN_WIDTH - info_text2.get_width()) // 2, 490])
             
         elif current_page == 1:
+            # Clear the content surface for proper clipping
+            content_surface.fill((0,0,0,0))
+            
             # Snake themes page
             current_snake = customization.current_snake_theme
             
             # Calculate how many theme previews we need to show
-            preview_rows = (len(snake_themes) + preview_cols - 1) // preview_cols
+            preview_rows = math.ceil(len(snake_themes) / preview_cols)
             content_height = preview_rows * (preview_size + preview_margin) - preview_margin
             max_scroll_y = max(0, content_height - content_area.height)
-            
-            # Adjust scroll with mouse wheel
-            if mouse_wheel_up:
-                scroll_y = max(0, scroll_y - 30)
-            elif mouse_wheel_down:
-                scroll_y = min(max_scroll_y, scroll_y + 30)
-            
-            # Draw snake theme previews
-            y_pos = 220 - scroll_y
+        
+            # Draw snake theme previews onto content_surface
+            y_pos = 0  # Relative to content surface
             x_pos = (SCREEN_WIDTH - preview_width) // 2
+            
+            # Calculate the adjusted mouse position once for the entire content area
+            content_mouse_pos = (
+                mouse_pos[0], 
+                mouse_pos[1] - content_area.top + scroll_y
+            )
             
             for i, (key, theme) in enumerate(snake_themes.items()):
                 row = i // preview_cols
                 col = i % preview_cols
                 
                 theme_x = x_pos + col * (preview_size + preview_margin)
-                theme_y = y_pos + row * (preview_size + preview_margin)
+                theme_y = y_pos + row * (preview_size + preview_margin) - scroll_y
                 
                 # Only draw if visible in the content area
-                if (theme_y < content_area.bottom and 
-                    theme_y + preview_size > content_area.top):
-                    
+                if (theme_y + preview_size > 0 and theme_y < content_area.height):
                     # Create preview rect
                     preview_rect = pygame.Rect(theme_x, theme_y, preview_size, preview_size)
                     
                     # Draw theme preview
-                    pygame.draw.rect(screen, (30, 30, 60), preview_rect, border_radius=10)
+                    pygame.draw.rect(content_surface, (30, 30, 60), preview_rect, border_radius=10)
                     
                     # Draw selection indicator if this is the current theme
                     if key == current_snake:
-                        pygame.draw.rect(screen, (80, 200, 120), preview_rect, 4, border_radius=10)
-                    elif preview_rect.collidepoint(mouse_pos):
-                        pygame.draw.rect(screen, (150, 150, 180), preview_rect, 2, border_radius=10)
+                        pygame.draw.rect(content_surface, (80, 200, 120), preview_rect, 4, border_radius=10)
+                    
+                    # Check hover using the content_mouse_pos - this is fixed now
+                    if preview_rect.collidepoint(content_mouse_pos):
+                        pygame.draw.rect(content_surface, (150, 150, 180), preview_rect, 2, border_radius=10)
                     
                     # Draw theme name
                     name_text = menu_font.render(theme.name, True, WHITE)
                     name_rect = name_text.get_rect(center=(preview_rect.centerx, preview_rect.top + 30))
-                    screen.blit(name_text, name_rect)
+                    content_surface.blit(name_text, name_rect)
                     
                     # Draw snake preview
                     snake_segments = [(
-                        preview_rect.centerx + (i-5) * 15, 
+                        preview_rect.centerx + (j-5) * 15, 
                         preview_rect.centery
-                    ) for i in range(10)]
+                    ) for j in range(10)]
                     
                     for j, pos in enumerate(snake_segments):
                         color = theme.get_segment_color(j)
-                        pygame.draw.rect(screen, color, 
-                                       (pos[0]-7, pos[1]-7, 15, 15))
-                                       
+                        pygame.draw.rect(content_surface, color, (pos[0]-7, pos[1]-7, 15, 15))
+                        
                     # Add select button if not selected
                     if key != current_snake:
                         select_button = pygame.Rect(
@@ -796,78 +845,101 @@ def settings_page():
                             preview_rect.bottom - 40, 
                             120, 30
                         )
-                        draw_button(screen, select_button, "Select", footer_font, 
-                                  (60, 120, 60), (80, 180, 80), mouse_pos)
                         
-                        # Handle click on select button - improved responsiveness
-                        if mouse_pressed and not prev_mouse_pressed and select_button.collidepoint(mouse_pos):
+                        # Fix the coordinate conversion for screen_button
+                        screen_button = pygame.Rect(
+                            select_button.left,
+                            select_button.top + content_area.top - scroll_y,  # Correct adjustment for scroll position
+                            select_button.width,
+                            select_button.height
+                        )
+                        
+                        # Draw button on content surface with hover effect
+                        # Use content_mouse_pos for hover detection
+                        base_color = (60, 120, 60)
+                        hover_color = (80, 180, 80)
+                        button_color = hover_color if select_button.collidepoint(content_mouse_pos) else base_color
+                        pygame.draw.rect(content_surface, button_color, select_button, border_radius=8)
+                        
+                        text_surface = footer_font.render("Select", True, WHITE)
+                        text_rect = text_surface.get_rect(center=select_button.center)
+                        content_surface.blit(text_surface, text_rect)
+                        
+                        # Handle click on select button
+                        if mouse_pressed and not prev_mouse_pressed and screen_button.collidepoint(mouse_pos):
                             if click_sound: click_sound.play()
                             customization.set_snake_theme(key)
                             # Also update the snake_color for compatibility
                             snake_color = theme.head_color
+            
+            # Blit the content surface to the screen with proper clipping
+            screen.blit(content_surface, (0, content_area.top))
 
         elif current_page == 2:
+            # Clear the content surface for proper clipping
+            content_surface.fill((0,0,0,0))
+            
             # Food themes page
             current_food = customization.current_food_theme
             
             # Calculate how many theme previews we need to show
-            preview_rows = (len(food_themes) + preview_cols - 1) // preview_cols
+            preview_rows = math.ceil(len(food_themes) / preview_cols)
             content_height = preview_rows * (preview_size + preview_margin) - preview_margin
             max_scroll_y = max(0, content_height - content_area.height)
             
-            # Adjust scroll with mouse wheel
-            if mouse_wheel_up:
-                scroll_y = max(0, scroll_y - 30)
-            elif mouse_wheel_down:
-                scroll_y = min(max_scroll_y, scroll_y + 30)
-            
-            # Draw food theme previews
-            y_pos = 220 - scroll_y
+            # Draw food theme previews onto content_surface
+            y_pos = 0  # Relative to content surface
             x_pos = (SCREEN_WIDTH - preview_width) // 2
+            
+            # Calculate the adjusted mouse position once for the entire content area
+            content_mouse_pos = (
+                mouse_pos[0],
+                mouse_pos[1] - content_area.top + scroll_y
+            )
             
             for i, (key, theme) in enumerate(food_themes.items()):
                 row = i // preview_cols
                 col = i % preview_cols
                 
                 theme_x = x_pos + col * (preview_size + preview_margin)
-                theme_y = y_pos + row * (preview_size + preview_margin)
+                theme_y = y_pos + row * (preview_size + preview_margin) - scroll_y
                 
                 # Only draw if visible in the content area
-                if (theme_y < content_area.bottom and 
-                    theme_y + preview_size > content_area.top):
-                    
+                if (theme_y + preview_size > 0 and theme_y < content_area.height):
                     # Create preview rect
                     preview_rect = pygame.Rect(theme_x, theme_y, preview_size, preview_size)
                     
                     # Draw theme preview
-                    pygame.draw.rect(screen, (30, 30, 60), preview_rect, border_radius=10)
+                    pygame.draw.rect(content_surface, (30, 30, 60), preview_rect, border_radius=10)
                     
                     # Draw selection indicator if this is the current theme
                     if key == current_food:
-                        pygame.draw.rect(screen, (80, 200, 120), preview_rect, 4, border_radius=10)
-                    elif preview_rect.collidepoint(mouse_pos):
-                        pygame.draw.rect(screen, (150, 150, 180), preview_rect, 2, border_radius=10)
+                        pygame.draw.rect(content_surface, (80, 200, 120), preview_rect, 4, border_radius=10)
+                    
+                    # Check hover using the adjusted content_mouse_pos
+                    if preview_rect.collidepoint(content_mouse_pos):
+                        pygame.draw.rect(content_surface, (150, 150, 180), preview_rect, 2, border_radius=10)
                     
                     # Draw theme name
                     name_text = menu_font.render(theme.name, True, WHITE)
                     name_rect = name_text.get_rect(center=(preview_rect.centerx, preview_rect.top + 30))
-                    screen.blit(name_text, name_rect)
+                    content_surface.blit(name_text, name_rect)
                     
                     # Draw food preview
                     food_color = theme.get_food_color(step)
                     food_radius = 25
-                    pygame.draw.circle(screen, food_color, 
-                                     (preview_rect.centerx, preview_rect.centery), food_radius)
+                    pygame.draw.circle(content_surface, food_color, 
+                                    (preview_rect.centerx, preview_rect.centery), food_radius)
                     
                     # If it's a random color theme, draw some samples
                     if theme.random_colors:
                         for j, color in enumerate(theme.color_options[:5]):
                             small_radius = 10
                             x_offset = (j - 2) * 25
-                            pygame.draw.circle(screen, color,
+                            pygame.draw.circle(content_surface, color,
                                             (preview_rect.centerx + x_offset, 
-                                             preview_rect.centery + 50), small_radius)
-                                             
+                                            preview_rect.centery + 50), small_radius)
+                                        
                     # Add select button if not selected
                     if key != current_food:
                         select_button = pygame.Rect(
@@ -875,20 +947,50 @@ def settings_page():
                             preview_rect.bottom - 40, 
                             120, 30
                         )
-                        draw_button(screen, select_button, "Select", footer_font, 
-                                (60, 120, 60), (80, 180, 80), mouse_pos)
                         
-                        # Handle click on select button - improved responsiveness
-                        if mouse_pressed and not prev_mouse_pressed and select_button.collidepoint(mouse_pos):
+                        # Fix the coordinate conversion for screen_button
+                        screen_button = pygame.Rect(
+                            select_button.left,
+                            select_button.top + content_area.top - scroll_y,  # Correct adjustment for scroll position
+                            select_button.width,
+                            select_button.height
+                        )
+                        
+                        # Draw button on content surface with hover effect
+                        base_color = (60, 120, 60)
+                        hover_color = (80, 180, 80)
+                        button_color = hover_color if select_button.collidepoint(content_mouse_pos) else base_color
+                        pygame.draw.rect(content_surface, button_color, select_button, border_radius=8)
+                        
+                        text_surface = footer_font.render("Select", True, WHITE)
+                        text_rect = text_surface.get_rect(center=select_button.center)
+                        content_surface.blit(text_surface, text_rect)
+                        
+                        # Handle click on select button
+                        if mouse_pressed and not prev_mouse_pressed and screen_button.collidepoint(mouse_pos):
                             if click_sound: click_sound.play()
                             customization.set_food_theme(key)
+            
+            # Blit the content surface to the screen with proper clipping
+            screen.blit(content_surface, (0, content_area.top))
         
         # Back button
         draw_fancy_button(screen, back_button, "Back to Menu", menu_font, (100,100,100), (150,150,150), mouse_pos, step)
         
+        # Draw scrollbar for pages that need it
+        if current_page in (1, 2) and max_scroll_y > 0:
+            scrollbar_height = max(30, int(content_area.height * content_area.height / (content_area.height + max_scroll_y)))
+            scrollbar_y = content_area.top + int((content_area.height - scrollbar_height) * (scroll_y / max_scroll_y))
+            pygame.draw.rect(screen, (80, 80, 100), 
+                            (SCREEN_WIDTH - 15, content_area.top, 10, content_area.height), 
+                            border_radius=5)
+            pygame.draw.rect(screen, (150, 150, 200), 
+                            (SCREEN_WIDTH - 15, scrollbar_y, 10, scrollbar_height), 
+                            border_radius=5)
+        
         pygame.display.update()
         step += 1
-        clock.tick(30)
+        clock.tick(60)  # Higher framerate for smoother scrolling
 
 if __name__ == "__main__":
     home_page()

@@ -106,11 +106,6 @@ class GameCustomization:
             "blue": SnakeTheme("Cool Blue", (0, 100, 255), (0, 0, 150)),
             "fire": SnakeTheme("Fire", (255, 100, 0), (200, 0, 0)),
             "purple": SnakeTheme("Royal Purple", PURPLE, (100, 0, 100)),
-            "neon": SnakeTheme("Neon", CYAN, (0, 150, 150)),
-            "gold": SnakeTheme("Golden", GOLD, ORANGE),
-            "lime": SnakeTheme("Lime", LIME, (0, 100, 0)),
-            "tropical": SnakeTheme("Tropical", (0, 255, 200), TEAL),
-            "rose": SnakeTheme("Rose", PINK, (150, 50, 100)),
             "sky": SnakeTheme("Sky Blue", (135, 206, 250), BLUE),
         }
         
