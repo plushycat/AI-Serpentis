@@ -64,6 +64,7 @@ music_on         = True
 game_speed       = 30
 snake_color      = (100, 200, 100)
 background_theme = "dark"
+debug_mode       = False
 
 # Dark gradient palettes
 dark_gradients = [
@@ -255,27 +256,57 @@ def play_classic_game():
     pygame.display.set_caption("AI Serpentis")
 
 def watch_ai_play():
-    global snake_color, background_theme, screen
+    global snake_color, background_theme, screen, debug_mode
     model = Linear_QNet(11, 256, 3)
+    
+    # Try multiple model loading paths with better error handling
     try:
-        model.load_state_dict(torch.load("model/model.pth"))
-        model.eval()
+        # Look in different possible locations for the model
+        model_paths = ["model/model.pth", "model_snapshots/model.pth"]
+        model_loaded = False
+        
+        for path in model_paths:
+            if os.path.exists(path):
+                model.load_state_dict(torch.load(path))
+                model_loaded = True
+                print(f"Model loaded successfully from {path}")
+                break
+                
+        if not model_loaded:
+            print("Warning: No pre-trained model found. Using untrained model.")
+        
+        model.eval()  # Set model to evaluation mode
     except Exception as e:
         print(f"Error loading model: {e}")
         return
-    game  = SnakeGameAI(width=1280, height=720)
-    game.snake_color      = snake_color
+    
+    # Initialize game with customized settings
+    game = SnakeGameAI(width=1280, height=720)
+    game.snake_color = snake_color
     game.background_theme = background_theme
+    game.debug_mode = debug_mode  # Pass debug mode to the game
+    
+    # Increase frame limit to prevent premature endings
+    game.frame_limit_multiplier = 500  # Much more lenient frame limit
+    
+    # Initialize agent with the model
     agent = Agent()
-    agent.model   = model
-    agent.epsilon = 0
+    agent.model = model
+    agent.epsilon = 0  # No exploration, pure exploitation
+    
+    # Game loop
     while True:
         state = agent.get_state(game)
-        move  = agent.get_action(state)
-        _, done, score = game.play_step(move)  # capture the score return value
+        move = agent.get_action(state)
+        
+        # Process the move with added anti-loop detection
+        reward, done, score = game.play_step(move)
+        
         if done:
-            print(f"AI Game Over! Final Score: {score}")  # Print the final score
+            print(f"AI Game Over! Final Score: {score}")
             break
+    
+    # Return to menu
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("AI Serpentis")
 

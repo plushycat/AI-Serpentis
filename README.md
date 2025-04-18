@@ -2,18 +2,6 @@
 
 This project implements a **Snake Game** where an AI learns to play the game using **Deep Q-Learning**. The AI trains over multiple iterations, improving its performance and strategy. The game is implemented in Python using **Pygame** for the visuals and **PyTorch** for the AI model.
 
-
-
-https://github.com/user-attachments/assets/7dbb0ab6-90ae-4156-be62-b0765bf2e839
-
-
-
-
-
-
-
-
-
 ---
 
 ## Features

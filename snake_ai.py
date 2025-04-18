@@ -58,6 +58,10 @@ class SnakeGameAI:
         self.game_over_sound = pygame.mixer.Sound('statics/game-over.mp3')
         self.snake_color = GREEN  # Default snake color
         self.background_theme = "dark"  # Default background theme
+        self.frame_limit_multiplier = 500  # Increased frame limit - customizable parameter
+        self.recent_positions = []  # Track recent positions to detect loops
+        self.loop_detection_length = 20  # How many recent positions to check for loops
+        self.debug_mode = False  # Add debug mode flag
         
         # Use the width and height parameters to set up the display
         self.display = pygame.display.set_mode((self.width, self.height))
@@ -122,6 +126,11 @@ class SnakeGameAI:
         self._move(action) 
         self.snake.insert(0, self.head)  # Update the snake's position
         
+        # Keep track of recent head positions for loop detection
+        self.recent_positions.append((self.head.x, self.head.y))
+        if len(self.recent_positions) > self.loop_detection_length:
+            self.recent_positions.pop(0)
+        
         reward = 0
         game_over = False
 
@@ -129,14 +138,17 @@ class SnakeGameAI:
         if self.is_collision():
             game_over = True
             reward = -10
+            self.game_over_sound.play()
             print(f"AI Game Over: Collision detected")
             return reward, game_over, self.score
         
-        # Check for timeout - increasing to 200 frames per segment for more leniency
-        if self.frame_iteration > 200 * len(self.snake):
+        # Check for timeout - using customizable frame limit multiplier
+        # Only applies this strict timeout if the snake is not growing
+        # when it has score > 10 (established snake)
+        if self.score > 10 and self.frame_iteration > self.frame_limit_multiplier * len(self.snake):
             game_over = True
             reward = -10
-            print(f"AI Game Over: Frame limit exceeded ({self.frame_iteration} > {200 * len(self.snake)})")
+            print(f"AI Game Over: Frame limit exceeded ({self.frame_iteration} > {self.frame_limit_multiplier * len(self.snake)})")
             return reward, game_over, self.score
 
         # Check if the snake eats food
@@ -149,8 +161,18 @@ class SnakeGameAI:
             self.frame_iteration = 0
         else:
             self.snake.pop()
-            # Small negative reward for moving away from food to encourage efficiency
-            reward = -0.1
+            
+            # Calculate distance-based reward to guide the AI toward food
+            # Only calculate if we have at least 2 positions in the history
+            if len(self.recent_positions) >= 2:
+                prev_distance = abs(self.recent_positions[-2][0] - self.food.x) + abs(self.recent_positions[-2][1] - self.food.y)
+                curr_distance = abs(self.head.x - self.food.x) + abs(self.head.y - self.food.y)
+                
+                # Reward moving closer to food, penalize moving away
+                if curr_distance < prev_distance:
+                    reward = 0.1  # Small positive reward for moving closer to food
+                else:
+                    reward = -0.1  # Small negative reward for moving away from food
 
         # Update the display
         self._update_ui()
@@ -210,6 +232,19 @@ class SnakeGameAI:
 
         iter_text = font.render(f"Iteration: {self.iteration}", True, WHITE)
         self.display.blit(iter_text, [self.width - iter_text.get_width(), 25])
+
+        # If debug mode is on, show additional information
+        if self.debug_mode:
+            # Show frame count and frame limit
+            frame_limit = self.frame_limit_multiplier * len(self.snake)
+            debug_text = font.render(f"Frames: {self.frame_iteration}/{frame_limit}", True, WHITE)
+            self.display.blit(debug_text, [0, 120])
+            
+            # Mark the target food with a flashing indicator
+            if self.frame_iteration % 30 < 15:  # Flashing effect
+                pygame.draw.circle(self.display, (255, 255, 0), 
+                                  (self.food.x + BLOCK_SIZE // 2, self.food.y + BLOCK_SIZE // 2), 
+                                  20, 2)
 
         pygame.display.flip()
 
