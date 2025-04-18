@@ -3,6 +3,8 @@ import random
 from enum import Enum
 from collections import namedtuple
 from utils import draw_gradient  # Import the correct draw_gradient function
+import os
+import json
 
 pygame.init()
 pygame.mixer.init()
@@ -13,6 +15,7 @@ RED = (200, 0, 0)
 BLUE = (0, 0, 255)
 BLACK = (0, 0, 0)
 GREEN = (0, 255, 0)
+YELLOW = (255, 255, 0)
 
 # Game settings
 BLOCK_SIZE = 20
@@ -63,13 +66,13 @@ class SnakeGame:
         # Add standardized fonts with proper error handling
         try:
             self.main_font = pygame.font.Font("statics/game_over.ttf", 60)  # Main font for score display
-            self.sub_font = pygame.font.Font("statics/game_over.ttf", 36)   # Smaller font for other displays
-            self.small_font = pygame.font.Font("statics/game_over.ttf", 24) # Small font for debug info
+            self.sub_font = pygame.font.Font("statics/game_over.ttf", 48)   # Smaller font for other displays
+            self.small_font = pygame.font.Font("statics/game_over.ttf", 36) # Small font for debug info
         except FileNotFoundError:
             print("Warning: Main font file not found. Using system fonts.")
             self.main_font = pygame.font.SysFont("Arial", 60)
-            self.sub_font = pygame.font.SysFont("Arial", 36)
-            self.small_font = pygame.font.SysFont("Arial", 24)
+            self.sub_font = pygame.font.SysFont("Arial", 48)
+            self.small_font = pygame.font.SysFont("Arial", 36)
 
     def _place_food(self):
         x = random.randint(0, (self.width - BLOCK_SIZE) // BLOCK_SIZE) * BLOCK_SIZE 
@@ -96,9 +99,13 @@ class SnakeGame:
                         for pause_event in pygame.event.get():
                             if pause_event.type == pygame.KEYDOWN and pause_event.key == pygame.K_p:
                                 paused = False
+                            elif pause_event.type == pygame.KEYDOWN and pause_event.key == pygame.K_ESCAPE:
+                                pygame.quit()
+                                quit()
                             elif pause_event.type == pygame.QUIT:
                                 pygame.quit()
                                 quit()
+                        pygame.time.wait(100)
                 elif event.key in (pygame.K_LEFT, pygame.K_a):  # Left arrow or 'A'
                     if self.direction != RIGHT:  # Prevent 180-degree turns
                         self.direction = LEFT
@@ -111,6 +118,8 @@ class SnakeGame:
                 elif event.key in (pygame.K_DOWN, pygame.K_s):  # Down arrow or 'S'
                     if self.direction != UP:  # Prevent 180-degree turns
                         self.direction = DOWN
+                elif event.key == pygame.K_ESCAPE:  # Escape key to quit
+                    return True, self.score
 
         # Move the snake
         self._move(self.direction)
@@ -175,6 +184,22 @@ class SnakeGame:
         # Display score with consistent font
         score_text = self.main_font.render("Score: " + str(self.score), True, WHITE)
         self.display.blit(score_text, [0, 0])
+        
+        # Try to load and display high score
+        try:
+            high_score_file = "statics/highscores.json"
+            if os.path.exists(high_score_file):
+                with open(high_score_file, 'r') as f:
+                    high_scores = json.load(f)
+                    classic_high = high_scores.get('classic', 0)
+                    high_score_text = self.sub_font.render(f"High Score: {classic_high}", True, YELLOW)
+                    self.display.blit(high_score_text, [self.width - high_score_text.get_width() - 10, 10])
+        except:
+            pass  # Skip if there's an issue loading the high score
+        
+        # Add controls help text at bottom left (same as in AI mode)
+        controls_text = self.small_font.render("ESC: Back to Menu | P: Pause | Arrow Keys: Move", True, (180, 180, 180))
+        self.display.blit(controls_text, [10, self.height - 30])
 
         pygame.display.flip()
         

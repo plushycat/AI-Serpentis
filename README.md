@@ -51,4 +51,6 @@ The AI is trained using Deep Q-Learning, which involves:
 ---
 ## Credits:
 BGM: Music by Nicholas Panek from Pixabay
+Level Up Sound: Magic Game Key Picked Up by Epic Stock Media from Upbeat
+UI Click Sound: Arcade Game Bling by Epic Stock Media from Upbeat
 Source repository: armin2080/Snake-Game-AI

@@ -78,13 +78,13 @@ class SnakeGameAI:
         # Add standardized fonts with proper error handling
         try:
             self.main_font = pygame.font.Font("statics/game_over.ttf", 60)  # Main font for score display
-            self.sub_font = pygame.font.Font("statics/game_over.ttf", 36)   # Smaller font for other displays
-            self.small_font = pygame.font.Font("statics/game_over.ttf", 24) # Small font for debug info
+            self.sub_font = pygame.font.Font("statics/game_over.ttf", 48)   # Smaller font for other displays
+            self.small_font = pygame.font.Font("statics/game_over.ttf", 36) # Small font for debug info
         except FileNotFoundError:
             print("Warning: Main font file not found. Using system fonts.")
             self.main_font = pygame.font.SysFont("Arial", 60)
-            self.sub_font = pygame.font.SysFont("Arial", 36)
-            self.small_font = pygame.font.SysFont("Arial", 24)
+            self.sub_font = pygame.font.SysFont("Arial", 48)
+            self.small_font = pygame.font.SysFont("Arial", 36)
 
         self.reset()
 
