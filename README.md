@@ -105,10 +105,44 @@ pip install -r requirements.txt
   Enables real-time AI debug information overlay  
 
 ---
+## 🚀 Running the Project
+
+### Main Game
+To start the game with both manual and AI modes:
+
+```bash
+python main.py
+```
+
+This launches the game interface where you can select your preferred mode and customization options.
+
+### Training Mode
+To train the AI from scratch or continue training:
+
+```bash
+python src/ai/agent.py
+```
+
+Training options:
+- Training will save checkpoints to `data/checkpoints/` automatically
+- Press `Esc` during training to save and exit
+- Training visualization will be saved to `data/plots/`
+
+You can adjust training parameters by modifying the constants in `agent.py`:
+- `MAX_MEMORY`: Memory buffer size
+- `BATCH_SIZE`: Sample size for learning
+- `LR`: Learning rate
+- `GAMMA`: Discount factor
+
+---
 
 ## 📈 Results
 
 After sufficient training (minimum of 200 cycles), the AI consistently achieves high scores by developing strategies to efficiently collect food while avoiding collisions.
+
+Here is a sample graph after training for 200 Iterations:
+
+![Training Progress Graph](./training_plot.png)
 
 ---
 
