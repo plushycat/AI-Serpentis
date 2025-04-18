@@ -56,17 +56,36 @@ class SnakeGameAI:
         self.iteration = iteration
         self.eat_sound = pygame.mixer.Sound('statics/eat-food.mp3')
         self.game_over_sound = pygame.mixer.Sound('statics/game-over.mp3')
+        # Add level up sound
+        try:
+            self.level_up_sound = pygame.mixer.Sound('statics/level_up.mp3')
+        except:
+            print("Warning: Level up sound file not found")
+            self.level_up_sound = None
         self.snake_color = GREEN  # Default snake color
         self.background_theme = "dark"  # Default background theme
         self.frame_limit_multiplier = 500  # Increased frame limit - customizable parameter
         self.recent_positions = []  # Track recent positions to detect loops
         self.loop_detection_length = 20  # How many recent positions to check for loops
         self.debug_mode = False  # Add debug mode flag
+        self.viewing_mode = False  # Add a new flag to indicate if we're in viewing mode (spectating AI)
         
         # Use the width and height parameters to set up the display
         self.display = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption('Snake Game - AI Mode')
         self.clock = pygame.time.Clock()
+        
+        # Add standardized fonts with proper error handling
+        try:
+            self.main_font = pygame.font.Font("statics/game_over.ttf", 60)  # Main font for score display
+            self.sub_font = pygame.font.Font("statics/game_over.ttf", 36)   # Smaller font for other displays
+            self.small_font = pygame.font.Font("statics/game_over.ttf", 24) # Small font for debug info
+        except FileNotFoundError:
+            print("Warning: Main font file not found. Using system fonts.")
+            self.main_font = pygame.font.SysFont("Arial", 60)
+            self.sub_font = pygame.font.SysFont("Arial", 36)
+            self.small_font = pygame.font.SysFont("Arial", 24)
+
         self.reset()
 
     def reset(self):
@@ -114,6 +133,10 @@ class SnakeGameAI:
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_p:  # Press 'P' to pause
                     paused = True
+                    pause_text = self.sub_font.render('PAUSED - Press P to continue', True, (255, 255, 255))
+                    self.display.blit(pause_text, (self.width//2 - pause_text.get_width()//2, self.height//2))
+                    pygame.display.update()
+                    
                     while paused:
                         for pause_event in pygame.event.get():
                             if pause_event.type == pygame.KEYDOWN and pause_event.key == pygame.K_p:
@@ -157,6 +180,19 @@ class SnakeGameAI:
             reward = 10
             self._place_food()
             self.eat_sound.play()
+            
+            # Play level up sound every 10 points
+            if self.score % 10 == 0 and self.score > 0:
+                if hasattr(self, 'level_up_sound') and self.level_up_sound:
+                    self.level_up_sound.play()
+                    # Also show a level up message if in viewing mode
+                    if self.viewing_mode:
+                        level_text = self.main_font.render(f"LEVEL UP!", True, (255, 255, 0))
+                        self.display.blit(level_text, 
+                                        (self.width//2 - level_text.get_width()//2, 
+                                        self.height//2 - level_text.get_height()//2))
+                        pygame.display.update()
+            
             # Reset frame iteration when food is eaten to prevent timeout
             self.frame_iteration = 0
         else:
@@ -220,25 +256,42 @@ class SnakeGameAI:
         # Draw the food
         pygame.draw.circle(self.display, (255, 0, 0), (self.food.x + BLOCK_SIZE // 2, self.food.y + BLOCK_SIZE // 2), 10)
 
-        # Display score, record, average, and iteration
-        score_text = font.render("Score: " + str(self.score), True, WHITE)
-        self.display.blit(score_text, [0, 0])
+        # Different UI for viewer mode vs training mode
+        if self.viewing_mode:
+            # Simpler UI for viewers - just show Score and Record
+            score_text = self.main_font.render(f"AI Score: {self.score}", True, WHITE)
+            record_text = self.main_font.render(f"Record: {self.record}", True, WHITE)
+            
+            # Center the score at the top
+            score_rect = score_text.get_rect(center=(self.width//2, 30))
+            self.display.blit(score_text, score_rect)
+            
+            # Show record in the top right
+            self.display.blit(record_text, [self.width - record_text.get_width() - 10, 10])
+            
+            # Add controls help text
+            controls_text = self.small_font.render("ESC: Back to Menu | P: Pause", True, (180, 180, 180))
+            self.display.blit(controls_text, [10, self.height - 30])
+        else:
+            # Full UI for training mode
+            score_text = self.main_font.render("Score: " + str(self.score), True, WHITE)
+            self.display.blit(score_text, [0, 0])
 
-        record_text = font.render(f"Record: {self.record}", True, WHITE)
-        self.display.blit(record_text, [self.width - record_text.get_width(), 0])
+            record_text = self.main_font.render(f"Record: {self.record}", True, WHITE)
+            self.display.blit(record_text, [self.width - record_text.get_width(), 0])
 
-        avg_text = font.render(f"Average: {self.avg}", True, WHITE)
-        self.display.blit(avg_text, [0, 25])
+            avg_text = self.sub_font.render(f"Average: {self.avg}", True, WHITE)
+            self.display.blit(avg_text, [0, 70])  # Adjusted position to accommodate larger font
 
-        iter_text = font.render(f"Iteration: {self.iteration}", True, WHITE)
-        self.display.blit(iter_text, [self.width - iter_text.get_width(), 25])
+            iter_text = self.sub_font.render(f"Iteration: {self.iteration}", True, WHITE)
+            self.display.blit(iter_text, [self.width - iter_text.get_width(), 70])  # Adjusted position
 
         # If debug mode is on, show additional information
         if self.debug_mode:
             # Show frame count and frame limit
             frame_limit = self.frame_limit_multiplier * len(self.snake)
-            debug_text = font.render(f"Frames: {self.frame_iteration}/{frame_limit}", True, WHITE)
-            self.display.blit(debug_text, [0, 120])
+            debug_text = self.small_font.render(f"Frames: {self.frame_iteration}/{frame_limit}", True, WHITE)
+            self.display.blit(debug_text, [0, 120])  # Positioned below other UI elements
             
             # Mark the target food with a flashing indicator
             if self.frame_iteration % 30 < 15:  # Flashing effect

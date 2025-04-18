@@ -243,6 +243,17 @@ def train():
     last_save_time = datetime.datetime.now()
     save_interval = datetime.timedelta(minutes=10)  # Save every 10 minutes
     
+    # Create fonts with proper error handling
+    try:
+        main_font = pygame.font.Font("statics/game_over.ttf", 60) 
+        sub_font = pygame.font.Font("statics/game_over.ttf", 36)
+        small_font = pygame.font.Font("statics/game_over.ttf", 24)
+    except FileNotFoundError:
+        print("Warning: Font file not found. Using system fonts.")
+        main_font = pygame.font.SysFont("Arial", 60)
+        sub_font = pygame.font.SysFont("Arial", 36)
+        small_font = pygame.font.SysFont("Arial", 24)
+    
     print(f"Starting training session. Will train until {MAX_GAMES} games or manual interruption.")
     print(f"Current progress: {agent.n_games}/{MAX_GAMES} games completed")
     
@@ -283,17 +294,15 @@ def train():
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_s:  # Press 'S' to save
                         agent.save_checkpoint()
-                        # Add visual feedback when save is triggered
-                        font = pygame.font.SysFont('arial', 30)
-                        save_text = font.render('SAVED! Training progress stored.', True, (255, 255, 0))
+                        # Add visual feedback when save is triggered with proper font
+                        save_text = sub_font.render('SAVED! Training progress stored.', True, (255, 255, 0))
                         game.display.blit(save_text, (game.width//2 - save_text.get_width()//2, game.height - 50))
                         pygame.display.update()
                         # Wait briefly so the message is visible
                         pygame.time.wait(1000)
                     elif event.key == pygame.K_p:  # Press 'P' to pause
                         paused = True
-                        font = pygame.font.SysFont('arial', 30)
-                        pause_text = font.render('PAUSED - Press P to continue', True, (255, 255, 255))
+                        pause_text = sub_font.render('PAUSED - Press P to continue', True, (255, 255, 255))
                         game.display.blit(pause_text, (game.width//2 - pause_text.get_width()//2, game.height//2))
                         pygame.display.update()
                         

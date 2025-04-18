@@ -262,7 +262,8 @@ def watch_ai_play():
     # Try multiple model loading paths with better error handling
     try:
         # Look in different possible locations for the model
-        model_paths = ["model/model.pth", "model_snapshots/model.pth"]
+        model_paths = ["model/model.pth", "model_snapshots/model.pth", 
+                        "training_checkpoints/checkpoint_model.pth"]
         model_loaded = False
         
         for path in model_paths:
@@ -284,10 +285,24 @@ def watch_ai_play():
     game = SnakeGameAI(width=1280, height=720)
     game.snake_color = snake_color
     game.background_theme = background_theme
-    game.debug_mode = debug_mode  # Pass debug mode to the game
+    
+    # Get the record from training data
+    record = 0
+    try:
+        checkpoint_file = os.path.join("training_checkpoints", "training_state.json")
+        if os.path.exists(checkpoint_file):
+            with open(checkpoint_file, 'r') as f:
+                state = json.load(f)
+                record = state.get('record', 0)
+    except:
+        pass
+    
+    game.record = record  # Set the record to show
+    game.viewing_mode = True  # Set a new flag to indicate viewer mode
     
     # Increase frame limit to prevent premature endings
-    game.frame_limit_multiplier = 500  # Much more lenient frame limit
+    game.frame_limit_multiplier = 1000  # Very lenient frame limit for viewing
+    game.debug_mode = debug_mode  # Pass debug mode to the game
     
     # Initialize agent with the model
     agent = Agent()
@@ -299,11 +314,80 @@ def watch_ai_play():
         state = agent.get_state(game)
         move = agent.get_action(state)
         
-        # Process the move with added anti-loop detection
+        # Process the move
         reward, done, score = game.play_step(move)
+        
+        # Handle events
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    done = True  # Exit on escape key
+                elif event.key == pygame.K_p:  # Pause
+                    paused = True
+                    font = pygame.font.SysFont('arial', 30)
+                    pause_text = font.render('PAUSED - Press P to continue', True, (255, 255, 255))
+                    game.display.blit(pause_text, (game.width//2 - pause_text.get_width()//2, game.height//2))
+                    pygame.display.update()
+                    
+                    while paused:
+                        for pause_event in pygame.event.get():
+                            if pause_event.type == pygame.KEYDOWN and pause_event.key == pygame.K_p:
+                                paused = False
+                            elif pause_event.type == pygame.KEYDOWN and pause_event.key == pygame.K_ESCAPE:
+                                done = True
+                                paused = False
+                            elif pause_event.type == pygame.QUIT:
+                                pygame.quit()
+                                sys.exit()
+                        pygame.time.wait(100)
         
         if done:
             print(f"AI Game Over! Final Score: {score}")
+            # Show game over screen with score - using consistent fonts
+            try:
+                font_large = pygame.font.Font("statics/game_over.ttf", 72)
+                font_small = pygame.font.Font("statics/game_over.ttf", 36)
+            except FileNotFoundError:
+                print("Warning: Font file not found. Using system fonts.")
+                font_large = pygame.font.SysFont("Arial", 72)
+                font_small = pygame.font.SysFont("Arial", 36)
+            
+            game_over_text = font_large.render("GAME OVER", True, (255, 50, 50))
+            score_text = font_small.render(f"AI Score: {score}", True, WHITE)
+            record_text = font_small.render(f"Record: {max(record, score)}", True, WHITE)
+            continue_text = font_small.render("Press any key to continue", True, (200, 200, 200))
+            
+            # Position texts
+            game_over_rect = game_over_text.get_rect(center=(game.width//2, game.height//2 - 80))
+            score_rect = score_text.get_rect(center=(game.width//2, game.height//2))
+            record_rect = record_text.get_rect(center=(game.width//2, game.height//2 + 50))
+            continue_rect = continue_text.get_rect(center=(game.width//2, game.height//2 + 120))
+            
+            # Create dark overlay
+            overlay = pygame.Surface((game.width, game.height), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 180))  # Semi-transparent black
+            game.display.blit(overlay, (0, 0))
+            
+            # Draw texts
+            game.display.blit(game_over_text, game_over_rect)
+            game.display.blit(score_text, score_rect)
+            game.display.blit(record_text, record_rect)
+            game.display.blit(continue_text, continue_rect)
+            pygame.display.update()
+            
+            # Wait for key press
+            waiting = True
+            while waiting:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        pygame.quit()
+                        sys.exit()
+                    if event.type == pygame.KEYDOWN:
+                        waiting = False
+                pygame.time.wait(100)
             break
     
     # Return to menu
