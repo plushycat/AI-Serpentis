@@ -198,7 +198,7 @@ class SnakeGame:
             pass  # Skip if there's an issue loading the high score
         
         # Add controls help text at bottom left (same as in AI mode)
-        controls_text = self.small_font.render("ESC: Back to Menu | P: Pause | Arrow Keys: Move", True, (180, 180, 180))
+        controls_text = self.small_font.render("ESC - Back to Menu | P - Pause | Arrow Keys/WASD - Move", True, (180, 180, 180))
         self.display.blit(controls_text, [10, self.height - 30])
 
         pygame.display.flip()

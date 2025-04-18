@@ -270,7 +270,7 @@ class SnakeGameAI:
             self.display.blit(record_text, [self.width - record_text.get_width() - 10, 10])
             
             # Add controls help text
-            controls_text = self.small_font.render("ESC: Back to Menu | P: Pause", True, (180, 180, 180))
+            controls_text = self.small_font.render("ESC - Back to Menu | P - Pause", True, (180, 180, 180))
             self.display.blit(controls_text, [10, self.height - 30])
         else:
             # Full UI for training mode
