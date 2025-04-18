@@ -3,7 +3,7 @@ from enum import Enum
 from collections import namedtuple
 import numpy as np
 from utils import draw_gradient
-from customization import customization
+from src.game.customization import customization
 
 pygame.init()
 pygame.mixer.init()
@@ -31,7 +31,7 @@ DOWN = 4
 Point = namedtuple('Point', 'x, y')
 
 # Load font for displaying text
-font_path = "statics/game_over.ttf"
+font_path = "assets/fonts/game_over.ttf"
 font = pygame.font.Font(font_path, 60)
 
 class SnakeGameAI:
@@ -56,11 +56,11 @@ class SnakeGameAI:
         self.record = record
         self.avg = avg
         self.iteration = iteration
-        self.eat_sound = pygame.mixer.Sound('statics/eat-food.mp3')
-        self.game_over_sound = pygame.mixer.Sound('statics/game-over.mp3')
+        self.eat_sound = pygame.mixer.Sound('assets/sounds/eat-food.mp3')
+        self.game_over_sound = pygame.mixer.Sound('assets/sounds/game-over.mp3')
         # Add level up sound
         try:
-            self.level_up_sound = pygame.mixer.Sound('statics/level_up.mp3')
+            self.level_up_sound = pygame.mixer.Sound('assets/sounds/level_up.mp3')
         except:
             print("Warning: Level up sound file not found")
             self.level_up_sound = None
@@ -86,9 +86,9 @@ class SnakeGameAI:
         
         # Add standardized fonts with proper error handling
         try:
-            self.main_font = pygame.font.Font("statics/game_over.ttf", 60)  # Main font for score display
-            self.sub_font = pygame.font.Font("statics/game_over.ttf", 48)   # Smaller font for other displays
-            self.small_font = pygame.font.Font("statics/game_over.ttf", 36) # Small font for debug info
+            self.main_font = pygame.font.Font("assets/fonts/game_over.ttf", 60)  # Main font for score display
+            self.sub_font = pygame.font.Font("assets/fonts/game_over.ttf", 48)   # Smaller font for other displays
+            self.small_font = pygame.font.Font("assets/fonts/game_over.ttf", 36) # Small font for debug info
         except FileNotFoundError:
             print("Warning: Main font file not found. Using system fonts.")
             self.main_font = pygame.font.SysFont("Arial", 60)

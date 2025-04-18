@@ -44,7 +44,7 @@ class Linear_QNet(nn.Module):
         Args:
         - file_name (str): Name of the file where the model will be saved.
         """
-        model_folder_path = './model'  # Directory to save the model
+        model_folder_path = './data/models'  # Directory to save the model
         if not os.path.exists(model_folder_path):
             os.makedirs(model_folder_path)  # Create the directory if it doesn't exist
 

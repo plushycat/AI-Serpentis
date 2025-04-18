@@ -8,7 +8,7 @@ import matplotlib
 matplotlib.use('Agg')  # Use Agg backend which doesn't require a GUI
 
 # Create a directory for saved plots
-PLOTS_DIR = "training_plots"
+PLOTS_DIR = "data/plots"
 if not os.path.exists(PLOTS_DIR):
     os.makedirs(PLOTS_DIR)
 
