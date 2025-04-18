@@ -3,6 +3,7 @@ from enum import Enum
 from collections import namedtuple
 import numpy as np
 from utils import draw_gradient
+from customization import customization
 
 pygame.init()
 pygame.mixer.init()
@@ -14,6 +15,7 @@ BLUE = (0, 0, 255)
 BLUE2 = (0, 100, 255)
 BLACK = (0, 0, 0)
 GREEN = (0, 255, 0)
+YELLOW = (255, 255, 0)  # Add this line to define the missing YELLOW constant
 
 # Define block size and game speed
 BLOCK_SIZE = 20
@@ -62,8 +64,15 @@ class SnakeGameAI:
         except:
             print("Warning: Level up sound file not found")
             self.level_up_sound = None
-        self.snake_color = GREEN  # Default snake color
+        
+        # Using customization for snake appearance
+        self.snake_theme = customization.get_current_snake_theme()
+        self.food_theme = customization.get_current_food_theme()
+        
+        # Keep for compatibility
+        self.snake_color = self.snake_theme.head_color
         self.background_theme = "dark"  # Default background theme
+        
         self.frame_limit_multiplier = 500  # Increased frame limit - customizable parameter
         self.recent_positions = []  # Track recent positions to detect loops
         self.loop_detection_length = 20  # How many recent positions to check for loops
@@ -108,6 +117,11 @@ class SnakeGameAI:
         x = random.randint(0, (self.width-BLOCK_SIZE)//BLOCK_SIZE) * BLOCK_SIZE
         y = random.randint(0, (self.height-BLOCK_SIZE)//BLOCK_SIZE) * BLOCK_SIZE
         self.food = Point(x, y)
+        
+        # Generate a new random food color if that feature is enabled
+        if self.food_theme.random_colors:
+            self.food_theme.new_random_color()
+            
         if self.food in self.snake:  # Prevent food spawning on the snake
             self._place_food()
 
@@ -133,7 +147,16 @@ class SnakeGameAI:
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_p:  # Press 'P' to pause
                     paused = True
-                    pause_text = self.sub_font.render('PAUSED - Press P to continue', True, (255, 255, 255))
+                    
+                    # Create semi-transparent overlay for better contrast
+                    overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+                    overlay.fill((0, 0, 0, 120) if self.background_theme == "dark" else (255, 255, 255, 120))
+                    self.display.blit(overlay, (0, 0))
+                    
+                    # Dynamic text color based on theme
+                    pause_color = WHITE if self.background_theme == "dark" else (0, 0, 100)
+                    
+                    pause_text = self.sub_font.render('PAUSED - Press P to continue', True, pause_color)
                     self.display.blit(pause_text, (self.width//2 - pause_text.get_width()//2, self.height//2))
                     pygame.display.update()
                     
@@ -187,11 +210,20 @@ class SnakeGameAI:
                     self.level_up_sound.play()
                     # Also show a level up message if in viewing mode
                     if self.viewing_mode:
-                        level_text = self.main_font.render(f"LEVEL UP!", True, (255, 255, 0))
+                        # Create semi-transparent overlay for better visibility
+                        overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+                        overlay_color = (0, 0, 0, 100) if self.background_theme == "dark" else (255, 255, 255, 100)
+                        overlay.fill(overlay_color)
+                        self.display.blit(overlay, (0, 0))
+                        
+                        # Level up message with dynamic color based on theme
+                        level_color = (255, 255, 0) if self.background_theme == "dark" else (0, 100, 0)  # Yellow for dark mode, dark green for light mode
+                        level_text = self.main_font.render(f"LEVEL UP!", True, level_color)
                         self.display.blit(level_text, 
                                         (self.width//2 - level_text.get_width()//2, 
                                         self.height//2 - level_text.get_height()//2))
                         pygame.display.update()
+                        pygame.time.delay(500)  # Brief pause to notice the message
             
             # Reset frame iteration when food is eaten to prevent timeout
             self.frame_iteration = 0
@@ -237,30 +269,37 @@ class SnakeGameAI:
         """
         Updates the game display with the current state.
         """
-        # Select background based on theme
+        # Select background and text colors based on theme
         if self.background_theme == "dark":
             draw_gradient(self.display, (0, 0, 50), (0, 0, 0), self.width, self.height)
+            # Dark theme colors
+            main_text_color = WHITE
+            high_score_color = YELLOW
+            controls_color = (180, 180, 180)  # Light gray
+            secondary_text_color = (200, 200, 200)  # Light gray for secondary text
         else:
             draw_gradient(self.display, (200, 200, 200), (255, 255, 255), self.width, self.height)
+            # Light theme colors
+            main_text_color = (20, 20, 100)  # Dark blue
+            high_score_color = (180, 100, 0)  # Dark orange
+            controls_color = (80, 80, 80)  # Dark gray
+            secondary_text_color = (100, 100, 100)  # Medium gray for secondary text
 
-        # Draw the snake with a gradient effect based on snake_color
-        base_color = self.snake_color
+        # Draw the snake with custom theme
         for i, point in enumerate(self.snake):
-            # Calculate gradient color for each segment
-            r = max(0, min(255, base_color[0] - i * 10))
-            g = max(0, min(255, base_color[1] - i * 10))
-            b = max(0, min(255, base_color[2] - i * 10))
-            color = (r, g, b)
-            pygame.draw.rect(self.display, color, pygame.Rect(point.x, point.y, BLOCK_SIZE, BLOCK_SIZE))
+            segment_color = self.snake_theme.get_segment_color(i)
+            pygame.draw.rect(self.display, segment_color, pygame.Rect(point.x, point.y, BLOCK_SIZE, BLOCK_SIZE))
 
-        # Draw the food
-        pygame.draw.circle(self.display, (255, 0, 0), (self.food.x + BLOCK_SIZE // 2, self.food.y + BLOCK_SIZE // 2), 10)
+        # Draw the food with custom theme
+        food_color = self.food_theme.get_food_color(self.frame_iteration)
+        pygame.draw.circle(self.display, food_color, 
+                          (self.food.x + BLOCK_SIZE // 2, self.food.y + BLOCK_SIZE // 2), 10)
 
         # Different UI for viewer mode vs training mode
         if self.viewing_mode:
             # Simpler UI for viewers - just show Score and Record
-            score_text = self.main_font.render(f"AI Score: {self.score}", True, WHITE)
-            record_text = self.main_font.render(f"Record: {self.record}", True, WHITE)
+            score_text = self.main_font.render(f"AI Score: {self.score}", True, main_text_color)
+            record_text = self.main_font.render(f"Record: {self.record}", True, main_text_color)
             
             # Center the score at the top
             score_rect = score_text.get_rect(center=(self.width//2, 30))
@@ -270,20 +309,20 @@ class SnakeGameAI:
             self.display.blit(record_text, [self.width - record_text.get_width() - 10, 10])
             
             # Add controls help text
-            controls_text = self.small_font.render("ESC - Back to Menu | P - Pause", True, (180, 180, 180))
+            controls_text = self.small_font.render("ESC - Back to Menu | P - Pause", True, controls_color)
             self.display.blit(controls_text, [10, self.height - 30])
         else:
             # Full UI for training mode
-            score_text = self.main_font.render("Score: " + str(self.score), True, WHITE)
+            score_text = self.main_font.render("Score: " + str(self.score), True, main_text_color)
             self.display.blit(score_text, [0, 0])
 
-            record_text = self.main_font.render(f"Record: {self.record}", True, WHITE)
+            record_text = self.main_font.render(f"Record: {self.record}", True, main_text_color)
             self.display.blit(record_text, [self.width - record_text.get_width(), 0])
 
-            avg_text = self.sub_font.render(f"Average: {self.avg}", True, WHITE)
+            avg_text = self.sub_font.render(f"Average: {self.avg}", True, main_text_color)
             self.display.blit(avg_text, [0, 70])  # Adjusted position to accommodate larger font
 
-            iter_text = self.sub_font.render(f"Iteration: {self.iteration}", True, WHITE)
+            iter_text = self.sub_font.render(f"Iteration: {self.iteration}", True, main_text_color)
             self.display.blit(iter_text, [self.width - iter_text.get_width(), 70])  # Adjusted position
 
         # If debug mode is on, show additional information
@@ -296,8 +335,7 @@ class SnakeGameAI:
             # Mark the target food with a flashing indicator
             if self.frame_iteration % 30 < 15:  # Flashing effect
                 pygame.draw.circle(self.display, (255, 255, 0), 
-                                  (self.food.x + BLOCK_SIZE // 2, self.food.y + BLOCK_SIZE // 2), 
-                                  20, 2)
+                                  (self.food.x + BLOCK_SIZE // 2, self.food.y + BLOCK_SIZE // 2), 20, 2)
 
         pygame.display.flip()
 
@@ -340,3 +378,11 @@ class SnakeGameAI:
         y %= self.height
 
         self.head = Point(x, y)
+
+    def set_theme(self, theme):
+        """
+        Updates the background theme.
+        Args:
+        theme: String indicating the theme ("dark" or "light").
+        """
+        self.background_theme = theme

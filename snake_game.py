@@ -2,6 +2,7 @@ import pygame
 import random
 from enum import Enum
 from collections import namedtuple
+from customization import customization
 from utils import draw_gradient  # Import the correct draw_gradient function
 import os
 import json
@@ -46,23 +47,21 @@ class SnakeGame:
         except:
             print("Warning: Level up sound file not found")
             self.level_up_sound = None
-        self.snake_color = GREEN  # Default snake color
+        
+        # Using customization for snake appearance
+        self.snake_theme = customization.get_current_snake_theme()
+        self.food_theme = customization.get_current_food_theme()
+        
+        # Keep for compatibility
+        self.snake_color = self.snake_theme.head_color
         self.background_theme = "dark"  # Default background theme
         
         # Init display
         self.display = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption('Snake Game - Classic Mode')
         self.clock = pygame.time.Clock()
+        self.frame_iteration = 0  # Track frame count for animations
         
-        # Init game state
-        self.direction = RIGHT
-        self.head = Point(self.width / 2, self.height / 2)
-        self.snake = [self.head]
-        self.food = None
-        self._place_food()
-        # Add frame iteration for consistent tracking with AI version
-        self.frame_iteration = 0
-
         # Add standardized fonts with proper error handling
         try:
             self.main_font = pygame.font.Font("statics/game_over.ttf", 60)  # Main font for score display
@@ -73,6 +72,17 @@ class SnakeGame:
             self.main_font = pygame.font.SysFont("Arial", 60)
             self.sub_font = pygame.font.SysFont("Arial", 48)
             self.small_font = pygame.font.SysFont("Arial", 36)
+        
+        # Initialize snake position and direction
+        self.direction = RIGHT
+        self.head = Point(self.width // 2, self.height // 2)
+        self.snake = [
+            self.head,
+            Point(self.head.x - BLOCK_SIZE, self.head.y),
+            Point(self.head.x - (2 * BLOCK_SIZE), self.head.y)
+        ]
+        self.food = None
+        self._place_food()
 
     def _place_food(self):
         x = random.randint(0, (self.width - BLOCK_SIZE) // BLOCK_SIZE) * BLOCK_SIZE 
@@ -92,7 +102,16 @@ class SnakeGame:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_p:  # Press 'P' to pause
                     paused = True
-                    pause_text = self.sub_font.render('PAUSED - Press P to continue', True, (255, 255, 255))
+                    
+                    # Create semi-transparent overlay for better contrast
+                    overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+                    overlay.fill((0, 0, 0, 120) if self.background_theme == "dark" else (255, 255, 255, 120))
+                    self.display.blit(overlay, (0, 0))
+                    
+                    # Dynamic text color based on theme
+                    pause_color = WHITE if self.background_theme == "dark" else (0, 0, 100)
+                    
+                    pause_text = self.sub_font.render('PAUSED - Press P to continue', True, pause_color)
                     self.display.blit(pause_text, (self.width//2 - pause_text.get_width()//2, self.height//2))
                     pygame.display.update()
                     while paused:
@@ -139,8 +158,16 @@ class SnakeGame:
             if self.score % 10 == 0 and self.score > 0:
                 if hasattr(self, 'level_up_sound') and self.level_up_sound:
                     self.level_up_sound.play()
-                    # Also show a level up message
-                    level_text = self.main_font.render(f"LEVEL UP!", True, (255, 255, 0))
+                    
+                    # Create semi-transparent overlay for better visibility
+                    overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+                    overlay_color = (0, 0, 0, 100) if self.background_theme == "dark" else (255, 255, 255, 100)
+                    overlay.fill(overlay_color)
+                    self.display.blit(overlay, (0, 0))
+                    
+                    # Level up message with dynamic color based on theme
+                    level_color = YELLOW if self.background_theme == "dark" else (0, 100, 0)  # Yellow for dark mode, dark green for light mode
+                    level_text = self.main_font.render(f"LEVEL UP!", True, level_color)
                     self.display.blit(level_text, 
                                     (self.width//2 - level_text.get_width()//2, 
                                     self.height//2 - level_text.get_height()//2))
@@ -164,41 +191,48 @@ class SnakeGame:
         return False
         
     def _update_ui(self):
+        # Apply background based on theme
         if self.background_theme == "dark":
             draw_gradient(self.display, (0, 0, 50), (0, 0, 0), self.width, self.height)
+            # Dark theme colors
+            main_text_color = WHITE
+            high_score_color = YELLOW
+            controls_color = (180, 180, 180)  # Light gray
         else:
             draw_gradient(self.display, (200, 200, 200), (255, 255, 255), self.width, self.height)
+            # Light theme colors
+            main_text_color = (0, 0, 100)  # Dark blue
+            high_score_color = (180, 100, 0)  # Dark orange
+            controls_color = (80, 80, 80)  # Dark gray
 
-        # Draw snake with gradient effect
+        # Draw snake with custom theme
         for i, point in enumerate(self.snake):
-            # Calculate gradient color for each segment
-            r = max(0, min(255, self.snake_color[0] - i * 10))
-            g = max(0, min(255, self.snake_color[1] - i * 10))
-            b = max(0, min(255, self.snake_color[2] - i * 10))
-            segment_color = (r, g, b)
+            segment_color = self.snake_theme.get_segment_color(i)
             pygame.draw.rect(self.display, segment_color, pygame.Rect(point.x, point.y, BLOCK_SIZE, BLOCK_SIZE))
 
-        # Draw food
-        pygame.draw.circle(self.display, (255, 0, 0), (self.food.x + BLOCK_SIZE // 2, self.food.y + BLOCK_SIZE // 2), 10)
+        # Draw food with custom theme
+        food_color = self.food_theme.get_food_color(self.frame_iteration)
+        pygame.draw.circle(self.display, food_color, 
+                          (self.food.x + BLOCK_SIZE // 2, self.food.y + BLOCK_SIZE // 2), 10)
 
-        # Display score with consistent font
-        score_text = self.main_font.render("Score: " + str(self.score), True, WHITE)
+        # Display score with consistent font and dynamic color
+        score_text = self.main_font.render("Score: " + str(self.score), True, main_text_color)
         self.display.blit(score_text, [0, 0])
         
-        # Try to load and display high score
+        # Try to load and display high score with dynamic color
         try:
             high_score_file = "statics/highscores.json"
             if os.path.exists(high_score_file):
                 with open(high_score_file, 'r') as f:
                     high_scores = json.load(f)
                     classic_high = high_scores.get('classic', 0)
-                    high_score_text = self.sub_font.render(f"High Score: {classic_high}", True, YELLOW)
+                    high_score_text = self.sub_font.render(f"High Score: {classic_high}", True, high_score_color)
                     self.display.blit(high_score_text, [self.width - high_score_text.get_width() - 10, 10])
         except:
             pass  # Skip if there's an issue loading the high score
         
-        # Add controls help text at bottom left (same as in AI mode)
-        controls_text = self.small_font.render("ESC - Back to Menu | P - Pause | Arrow Keys/WASD - Move", True, (180, 180, 180))
+        # Add controls help text at bottom left with dynamic color
+        controls_text = self.small_font.render("ESC - Back to Menu | P - Pause | Arrow Keys/WASD - Move", True, controls_color)
         self.display.blit(controls_text, [10, self.height - 30])
 
         pygame.display.flip()
@@ -221,6 +255,14 @@ class SnakeGame:
         y %= self.height
 
         self.head = Point(x, y)
+
+    def set_theme(self, theme):
+        """
+        Updates the background theme.
+        Args:
+        theme: String indicating the theme ("dark" or "light").
+        """
+        self.background_theme = theme
 
 if __name__ == '__main__':
     game = SnakeGame()
