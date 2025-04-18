@@ -220,6 +220,12 @@ def home_page():
     particles = [Particle() for _ in range(80)]
     step = 0
 
+    # New button gradient colors as specified
+    BUTTON_BASE_LEFT = (0, 241, 143)  # #00F18F - Left side of gradient 
+    BUTTON_BASE_RIGHT = (0, 161, 250)  # #00A1FA - Right side of gradient
+    BUTTON_HOVER_LEFT = (50, 255, 170)  # Slightly lighter version for hover
+    BUTTON_HOVER_RIGHT = (50, 180, 255)  # Slightly lighter version for hover
+
     while True:
         mouse_pos = pygame.mouse.get_pos()
         
@@ -236,11 +242,51 @@ def home_page():
         title_x = (SCREEN_WIDTH - title_surface.get_width()) // 2
         glowing_text(screen, title_text, title_font, title_x, 80, YELLOW, step)
         
-        # Draw fancy buttons (all same base and hover colors)
-        BUTTON_BASE  = (0, 150, 0)
-        BUTTON_HOVER = GREEN
+        # Draw fancy buttons with new gradient colors
         for name, rect in buttons.items():
-            draw_fancy_button(screen, rect, name, menu_font, BUTTON_BASE, BUTTON_HOVER, mouse_pos, step)
+            # Create gradient button surfaces
+            is_hovered = rect.collidepoint(mouse_pos)
+            
+            # Choose gradient colors based on hover state
+            left_color = BUTTON_HOVER_LEFT if is_hovered else BUTTON_BASE_LEFT
+            right_color = BUTTON_HOVER_RIGHT if is_hovered else BUTTON_BASE_RIGHT
+            
+            # Create button surface with gradient
+            button_surface = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
+            
+            # Draw horizontal gradient
+            for x in range(rect.width):
+                ratio = x / rect.width
+                r = int(left_color[0] * (1 - ratio) + right_color[0] * ratio)
+                g = int(left_color[1] * (1 - ratio) + right_color[1] * ratio)
+                b = int(left_color[2] * (1 - ratio) + right_color[2] * ratio)
+                pygame.draw.line(button_surface, (r, g, b), (x, 0), (x, rect.height))
+            
+            # Apply rounded corners using a mask
+            rounded_rect = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
+            pygame.draw.rect(rounded_rect, (255, 255, 255), (0, 0, rect.width, rect.height), border_radius=12)
+            button_surface.blit(rounded_rect, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+            
+            # Add a slight shadow for depth
+            shadow = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
+            shadow.fill((0, 0, 0, 30))
+            shadow_rect = shadow.get_rect(topleft=(rect.x + 2, rect.y + 2))
+            screen.blit(shadow, shadow_rect)
+            
+            # Draw the gradient button
+            screen.blit(button_surface, rect)
+            
+            # Add pulsing glow effect when hovered
+            if is_hovered:
+                glow_width = int(abs(math.sin(step / 15)) * 4) + 1
+                glow_rect = rect.inflate(10, 10)
+                # Use a gradient for the glow as well
+                pygame.draw.rect(screen, BUTTON_HOVER_RIGHT, glow_rect, glow_width, border_radius=12)
+            
+            # Add button text
+            text_surface = menu_font.render(name, True, WHITE)
+            text_rect = text_surface.get_rect(center=rect.center)
+            screen.blit(text_surface, text_rect)
         
         # Music toggle icon
         screen.blit(music_on_icon if music_on else music_off_icon, music_rect.topleft)
