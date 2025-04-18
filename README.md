@@ -5,6 +5,12 @@ This project implements a Snake Game with both manual and AI gameplay modes. The
 > **Note**: This project is a fork of [`armin2080/Snake-Game-AI`](https://github.com/armin2080/Snake-Game-AI) with significant enhancements and extensions.
 
 ---
+# Demo Video 🎥
+
+[![Demo Video](https://raw.githubusercontent.com/plushycat/AI-Serpentis/main/assets/demo_video/demo_serpentis.png)](  https://raw.githubusercontent.com/plushycat/AI-Serpentis/main/assets/demo_video/demo_serpentis.mp4)
+
+
+---
 
 ## ✨ Features
 
