@@ -13,6 +13,7 @@ from src.game.player_vs_ai import get_player_position, save_player_position
 from src.game.customization import customization
 import datetime
 from typing import Dict, List, Any, Tuple
+import atexit
 
 title_font = pygame.font.Font("assets/fonts/game_over.ttf", 96)
 click_sound = pygame.mixer.Sound("assets/sounds/ui_click.mp3")
@@ -290,7 +291,7 @@ def high_scores_page():
             draw_button(screen, rect, display_name, footer_font, base_color, hover_color, mouse_pos)
         
         # Draw scores for the current mode
-        if current_mode in ["classic", "ai"]:
+        if (current_mode in ["classic", "ai"]):
             # Regular modes display unchanged
             scores = high_scores.get(current_mode, {}).get("scores", [])
             dates = high_scores.get(current_mode, {}).get("dates", [])
@@ -1110,8 +1111,51 @@ def watch_ai_play():
 def settings_page():
     global snake_color, background_theme, screen, debug_mode, enhanced_effects
     
-    # Load the current config
-    config = load_config()
+    # Load the current config at the start
+    config_file = "statics/game_settings.json"
+    try:
+        if os.path.exists(config_file):
+            with open(config_file, 'r') as f:
+                config = json.load(f)
+        else:
+            # Create default config if it doesn't exist
+            config = {
+                "appearance": {
+                    "background_theme": background_theme,
+                    "enhanced_effects": enhanced_effects
+                },
+                "gameplay": {
+                    "player_position": get_player_position(),
+                    "debug_mode": debug_mode
+                },
+                "audio": {
+                    "music_on": music_on
+                }
+            }
+            os.makedirs(os.path.dirname(config_file), exist_ok=True)
+    except:
+        # Default config if there's an error
+        config = {
+            "appearance": {"background_theme": "dark", "enhanced_effects": True},
+            "gameplay": {"player_position": "left", "debug_mode": False},
+            "audio": {"music_on": True}
+        }
+    
+    # Function to save settings immediately when they're changed
+    def save_settings_immediately():
+        # Update config with current settings
+        config["appearance"]["background_theme"] = background_theme
+        config["appearance"]["enhanced_effects"] = enhanced_effects
+        config["gameplay"]["debug_mode"] = debug_mode
+        config["gameplay"]["player_position"] = get_player_position()
+        
+        # Save to file
+        try:
+            with open(config_file, 'w') as f:
+                json.dump(config, f, indent=2)
+            print("Settings saved successfully")
+        except Exception as e:
+            print(f"Error saving settings: {e}")
     
     import math  # Add math import for ceil function
     
@@ -1227,26 +1271,29 @@ def settings_page():
                         if dark_button.collidepoint(e.pos):
                             if click_sound: click_sound.play()
                             background_theme = "dark"
-                            config["appearance"]["background_theme"] = "dark"
+                            save_settings_immediately()  # Save immediately after change
+                            
                         elif light_button.collidepoint(e.pos):
                             if click_sound: click_sound.play()
                             background_theme = "light"
-                            config["appearance"]["background_theme"] = "light"
+                            save_settings_immediately()  # Save immediately after change
+                            
                         elif debug_button.collidepoint(e.pos):
                             if click_sound: click_sound.play()
                             debug_mode = not debug_mode
-                            config["gameplay"]["debug_mode"] = debug_mode
+                            save_settings_immediately()  # Save immediately after change
+                            
                         elif vs_position_button.collidepoint(e.pos):
                             if click_sound: click_sound.play()
                             # Toggle position between left and right
-                            new_position = "left" if vs_position == "right" else "right"
+                            new_position = "left" if get_player_position() == "right" else "right"
                             save_player_position(new_position)
-                            vs_position = new_position
-                            config["gameplay"]["player_position"] = new_position
+                            save_settings_immediately()  # Save immediately after change
+                            
                         elif enhanced_effects_button.collidepoint(e.pos):
                             if click_sound: click_sound.play()
                             enhanced_effects = not enhanced_effects
-                            config["appearance"]["enhanced_effects"] = enhanced_effects
+                            save_settings_immediately()  # Save immediately after change
                     
                     # Back button
                     if back_button.collidepoint(e.pos):
@@ -1261,6 +1308,8 @@ def settings_page():
                     scroll_velocity += 15
             
             if e.type == pygame.KEYDOWN and e.key == pygame.K_ESCAPE:
+                # Save settings before exiting with ESC key
+                save_config(config)
                 return
                 
         # Draw content based on current page
@@ -1519,6 +1568,25 @@ def settings_page():
         pygame.display.update()
         step += 1
         clock.tick(60)  # Higher framerate for smoother scrolling
+
+# Add this function after your other global functions
+def save_all_settings():
+    """Save all settings when program exits"""
+    global music_on, background_theme, debug_mode, enhanced_effects
+    
+    try:
+        config = load_config()
+        config["appearance"]["background_theme"] = background_theme
+        config["appearance"]["enhanced_effects"] = enhanced_effects
+        config["gameplay"]["debug_mode"] = debug_mode
+        config["audio"]["music_on"] = music_on
+        save_config(config)
+        print("All settings saved successfully")
+    except Exception as e:
+        print(f"Error saving settings: {e}")
+
+# Register the exit handler
+atexit.register(save_all_settings)
 
 if __name__ == "__main__":
     home_page()
