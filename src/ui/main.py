@@ -617,7 +617,7 @@ def watch_ai_play():
             
             # Add celebration if this is a new viewer high score
             if is_new_high:
-                new_record_text = font_medal.render("NEW VIEWER HIGH SCORE!", True, (255, 215, 0))  # Gold color
+                new_record_text = font_medal.render("NEW AI HIGH SCORE!", True, (255, 215, 0))  # Gold color
                 new_record_rect = new_record_text.get_rect(center=(game.width//2, game.height//2 + 85))
                 game.display.blit(new_record_text, new_record_rect)
             

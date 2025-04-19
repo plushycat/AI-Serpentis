@@ -8,7 +8,7 @@ from src.game.snake_ai import SnakeGameAI
 from src.game.customization import customization
 
 # Import all functions from the original main.py
-# This maintains existing functionality while using the new structure
+# This maintains existing functionality while using the newer file structure
 from src.ui.main import (
     home_page, 
     play_classic_game,
