@@ -83,11 +83,8 @@ def load_high_scores():
             with open(HIGHSCORE_FILE, 'r') as f:
                 old_scores = json.load(f)
                 
-                # Check if this is the old format (directly storing integers)
+                # Convert from old format if needed
                 if isinstance(old_scores.get("classic"), int) or isinstance(old_scores.get("ai"), int):
-                    print("Converting high scores from old format to new format...")
-                    
-                    # Convert old format to new format
                     today = datetime.datetime.now().strftime("%Y-%m-%d")
                     new_scores = {
                         "classic": {
@@ -99,21 +96,12 @@ def load_high_scores():
                             "dates": [today] if old_scores.get("ai", 0) > 0 else []
                         },
                         "vs": {
-                            "player": {
-                                "scores": [old_scores.get("vs", {}).get("player", 0)] if old_scores.get("vs", {}).get("player", 0) > 0 else [],
-                                "dates": [today] if old_scores.get("vs", {}).get("player", 0) > 0 else []
-                            },
-                            "ai": {
-                                "scores": [old_scores.get("vs", {}).get("ai", 0)] if old_scores.get("vs", {}).get("ai", 0) > 0 else [],
-                                "dates": [today] if old_scores.get("vs", {}).get("ai", 0) > 0 else []
-                            }
+                            "player": {"scores": [], "dates": []},
+                            "ai": {"scores": [], "dates": []}
                         }
                     }
-                    
-                    # Save the new format back to the file
                     with open(HIGHSCORE_FILE, 'w') as f2:
                         json.dump(new_scores, f2, indent=2)
-                    
                     return new_scores
                 else:
                     # Already in new format
@@ -121,33 +109,13 @@ def load_high_scores():
         else:
             # Create default new format
             high_scores = {
-                "classic": {
-                    "scores": [],
-                    "dates": []
-                },
-                "ai": {
-                    "scores": [],
-                    "dates": []
-                },
-                "vs": {
-                    "player": {
-                        "scores": [],
-                        "dates": []
-                    },
-                    "ai": {
-                        "scores": [],
-                        "dates": []
-                    }
-                }
+                "classic": {"scores": [], "dates": []},
+                "ai": {"scores": [], "dates": []},
+                "vs": {"player": {"scores": [], "dates": []}, "ai": {"scores": [], "dates": []}}
             }
-            
-            # Create the directory if it doesn't exist
             os.makedirs(os.path.dirname(HIGHSCORE_FILE), exist_ok=True)
-            
-            # Create the file with default scores
             with open(HIGHSCORE_FILE, 'w') as f:
                 json.dump(high_scores, f, indent=2)
-            
             return high_scores
     except Exception as e:
         print(f"Error loading high scores: {e}")
@@ -913,22 +881,45 @@ def play_classic_game():
     # Load high scores 
     high_scores = load_high_scores()
     
-    # Handle new format correctly
-    if isinstance(high_scores.get("classic"), dict):
-        classic_scores = high_scores.get("classic", {}).get("scores", [])
-        classic_high_score = max(classic_scores) if classic_scores else 0
-    else:
-        # Legacy format fallback
-        classic_high_score = high_scores.get("classic", 0)
+    # DEBUG: Print what we loaded to see the issue
+    print("Loaded high scores:", high_scores)
     
-    # Initialize game with customized settings
-    game = SnakeGame()
+    # Make absolutely sure we get a numeric value
+    classic_high_score = 0  # Default as fallback
+    
+    # Extra defensive code to ensure we get just an integer
+    try:
+        if isinstance(high_scores, dict) and "classic" in high_scores:
+            if isinstance(high_scores["classic"], dict) and "scores" in high_scores["classic"]:
+                scores_list = high_scores["classic"]["scores"]
+                if scores_list and isinstance(scores_list, list):
+                    # Find the highest number in the list
+                    highest = 0
+                    for s in scores_list:
+                        try:
+                            if isinstance(s, (int, float)) and s > highest:
+                                highest = s
+                        except:
+                            pass
+                    classic_high_score = highest
+            elif isinstance(high_scores["classic"], (int, float)):
+                classic_high_score = high_scores["classic"]
+    except Exception as e:
+        print(f"Error processing high scores: {e}")
+        classic_high_score = 0
+    
+    # Force it to be an integer no matter what
+    classic_high_score = int(classic_high_score)
+    
+    print(f"Final classic_high_score: {classic_high_score} (type: {type(classic_high_score)})")
+    
+    # Set the record in the game object
+    game.record = classic_high_score
     
     # Initialize with current customization settings
-    # If using random theme, the snake theme is freshly chosen each game
     game.snake_theme = customization.get_current_snake_theme()
     game.food_theme = customization.get_current_food_theme()
-    game.set_theme(background_theme)  # Use the theme setter method
+    game.set_theme(background_theme)
     
     # For compatibility with older code
     game.snake_color = game.snake_theme.head_color
@@ -948,13 +939,12 @@ def play_classic_game():
                 font_medal = pygame.font.Font("assets/fonts/game_over.ttf", 48)  # Font for high score celebration
             except FileNotFoundError:
                 print("Warning: Font file not found. Using system fonts.")
-                font_large = pygame.font.SysFont("Arial", 72)
-                font_small = pygame.font.SysFont("Arial", 36)
-                font_medal = pygame.font.SysFont("Arial", 48)
+                font_large = pygame.SysFont("Arial", 72)
+                font_small = pygame.SysFont("Arial", 36)
+                font_medal = pygame.SysFont("Arial", 48)
             
             game_over_text = font_large.render("GAME OVER", True, (255, 50, 50))
             score_text = font_small.render(f"Your Score: {score}", True, WHITE)
-            high_score_text = font_small.render(f"High Score: {max(classic_high_score, score)}", True, YELLOW)
             continue_text = font_small.render("Press any key to continue", True, (200, 200, 200))
             
             # Prepare new high score celebration if applicable
@@ -964,7 +954,11 @@ def play_classic_game():
             # Position texts
             game_over_rect = game_over_text.get_rect(center=(game.width//2, game.height//2 - 100))
             score_rect = score_text.get_rect(center=(game.width//2, game.height//2))
-            high_score_rect = high_score_text.get_rect(center=(game.width//2, game.height//2 + 50))
+            
+            # Use a simple integer for the high score display
+            highest_score = max(classic_high_score, score)
+            record_text = font_small.render(f"High Score: {highest_score}", True, YELLOW)
+            record_rect = record_text.get_rect(center=(game.width//2, game.height//2 + 50))
             continue_rect = continue_text.get_rect(center=(game.width//2, game.height//2 + 150))
             
             if is_new_high:
@@ -979,7 +973,7 @@ def play_classic_game():
             # Draw texts
             game.display.blit(game_over_text, game_over_rect)
             game.display.blit(score_text, score_rect)
-            game.display.blit(high_score_text, high_score_rect)
+            game.display.blit(record_text, record_rect)
             if is_new_high:
                 game.display.blit(new_record_text, new_record_rect)
             game.display.blit(continue_text, continue_rect)
@@ -1166,9 +1160,9 @@ def watch_ai_play():
                 font_medal = pygame.font.Font("assets/fonts/game_over.ttf", 48)  # For high score celebration
             except FileNotFoundError:
                 print("Warning: Font file not found. Using system fonts.")
-                font_large = pygame.font.SysFont("Arial", 72)
-                font_small = pygame.font.SysFont("Arial", 36)
-                font_medal = pygame.font.SysFont("Arial", 48)
+                font_large = pygame.SysFont("Arial", 72)
+                font_small = pygame.SysFont("Arial", 36)
+                font_medal = pygame.SysFont("Arial", 48)
             
             # Dynamic colors based on theme
             if game.background_theme == "dark":

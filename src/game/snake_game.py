@@ -227,17 +227,11 @@ class SnakeGame:
         score_text = self.main_font.render("Score: " + str(self.score), True, main_text_color)
         self.display.blit(score_text, [0, 0])
         
-        # Try to load and display high score with dynamic color
-        try:
-            high_score_file = "data/stats/highscores.json"
-            if os.path.exists(high_score_file):
-                with open(high_score_file, 'r') as f:
-                    high_scores = json.load(f)
-                    classic_high = high_scores.get('classic', 0)
-                    high_score_text = self.sub_font.render(f"High Score: {classic_high}", True, high_score_color)
-                    self.display.blit(high_score_text, [self.width - high_score_text.get_width() - 10, 10])
-        except:
-            pass  # Skip if there's an issue loading the high score
+        # Draw just the high score value directly using self.record
+        if hasattr(self, 'record'):
+            high_score_text = self.sub_font.render(f"High Score: {self.record}", True, high_score_color)
+            high_score_rect = high_score_text.get_rect(topright=(self.width - 10, 10))
+            self.display.blit(high_score_text, high_score_rect)
         
         # Add controls help text at bottom left with dynamic color
         controls_text = self.small_font.render("ESC - Back to Menu | P - Pause | Arrow Keys/WASD - Move", True, controls_color)
