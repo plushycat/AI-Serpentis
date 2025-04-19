@@ -17,7 +17,7 @@ from src.game.customization import customization
 
 # Create a special SnakeGame subclass for VS mode
 class VSPlayerGame(SnakeGame):
-    """A modified SnakeGame that accepts external direction input"""
+    """A modified SnakeGame that accepts external direction input and has minimal UI"""
     
     def __init__(self, width=640, height=480, speed=SPEED, display_surface=None):
         """Initialize with speed parameter"""
@@ -89,10 +89,57 @@ class VSPlayerGame(SnakeGame):
             if self.food_theme.random_colors and self.frame_iteration % 60 == 0:
                 self.food_theme.new_random_color()
         
-        # Update UI and clock
-        self._update_ui()
+        # Override parent's _update_ui with our own minimal version
+        self._update_ui_simple()
         self.clock.tick(self.speed)
         return False, self.score
+    
+    def _update_ui_simple(self):
+        """A minimal UI update that skips drawing scores and other elements"""
+        # Apply background based on theme
+        if self.background_theme == "dark":
+            self.display.fill((0, 0, 20))  # Very dark blue
+        else:
+            self.display.fill((240, 240, 240))  # Very light gray
+
+        # Draw snake with custom theme - only essential game elements
+        for i, point in enumerate(self.snake):
+            segment_color = self.snake_theme.get_segment_color(i)
+            pygame.draw.rect(self.display, segment_color, pygame.Rect(point.x, point.y, BLOCK_SIZE, BLOCK_SIZE))
+
+        # Draw food with custom theme
+        food_color = self.food_theme.get_food_color(self.frame_iteration)
+        pygame.draw.circle(self.display, food_color, 
+                         (self.food.x + BLOCK_SIZE // 2, self.food.y + BLOCK_SIZE // 2), 10)
+
+        pygame.display.flip()
+
+# Create a special SnakeGameAI subclass for VS mode
+class VSAIGame(SnakeGameAI):
+    """A modified SnakeGameAI with minimal UI for use in split-screen"""
+    
+    def __init__(self, width=640, height=480, display_surface=None):
+        super().__init__(width=width, height=height, display_surface=display_surface)
+    
+    def _update_ui(self):
+        """Override to provide minimal UI"""
+        # Apply background based on theme
+        if self.background_theme == "dark":
+            self.display.fill((0, 0, 20))  # Very dark blue
+        else:
+            self.display.fill((240, 240, 240))  # Very light gray
+
+        # Draw snake with custom theme
+        for i, point in enumerate(self.snake):
+            segment_color = self.snake_theme.get_segment_color(i)
+            pygame.draw.rect(self.display, segment_color, pygame.Rect(point.x, point.y, BLOCK_SIZE, BLOCK_SIZE))
+
+        # Draw food with custom theme
+        food_color = self.food_theme.get_food_color(self.frame_iteration)
+        pygame.draw.circle(self.display, food_color, 
+                         (self.food.x + BLOCK_SIZE // 2, self.food.y + BLOCK_SIZE // 2), 10)
+
+        pygame.display.flip()
 
 # For high score handling
 def load_high_scores():
@@ -140,37 +187,15 @@ def save_vs_high_score(player_type, score):
         print(f"Error saving high score: {e}")
         return False
 
-def draw_scoreboard(surface, p_score, ai_score, total_width, font=None):
-    """Draw unified scoreboard showing both scores"""
-    if font is None:
-        font = pygame.font.SysFont("Arial", 36)
+def draw_simple_score(surface, p_score, ai_score, total_width, font):
+    """Draw a clean, simple scoreboard showing only player and AI scores"""
+    # Draw player score on left side
+    player_txt = font.render(f"{p_score}", True, (255, 255, 255))
+    surface.blit(player_txt, (total_width//4 - player_txt.get_width()//2, 20))
     
-    # Draw player score on left
-    player_txt = font.render(f"PLAYER: {p_score}", True, (255, 255, 255))
-    surface.blit(player_txt, (total_width//4 - player_txt.get_width()//2, 10))
-    
-    # Draw divider
-    pygame.draw.line(surface, (200, 200, 200), 
-                    (total_width//2, 5), (total_width//2, 50), 2)
-    
-    # Draw AI score on right
-    ai_txt = font.render(f"AI: {ai_score}", True, (255, 255, 255))
-    surface.blit(ai_txt, (total_width*3//4 - ai_txt.get_width()//2, 10))
-    
-    # Draw high scores
-    try:
-        high_scores = load_high_scores()
-        player_high = high_scores.get("vs", {}).get("player", 0)
-        ai_high = high_scores.get("vs", {}).get("ai", 0)
-        
-        small_font = pygame.font.SysFont("Arial", 24)
-        player_high_txt = small_font.render(f"High: {player_high}", True, (255, 255, 0))
-        ai_high_txt = small_font.render(f"High: {ai_high}", True, (255, 255, 0))
-        
-        surface.blit(player_high_txt, (total_width//4 - player_high_txt.get_width()//2, 45))
-        surface.blit(ai_high_txt, (total_width*3//4 - ai_high_txt.get_width()//2, 45))
-    except:
-        pass
+    # Draw AI score on right side
+    ai_txt = font.render(f"{ai_score}", True, (255, 255, 255))
+    surface.blit(ai_txt, (total_width*3//4 - ai_txt.get_width()//2, 20))
 
 def player_vs_ai():
     """Main function for the split-screen player vs AI mode"""
@@ -179,25 +204,30 @@ def player_vs_ai():
     # 1) Set up window dimensions
     game_w, game_h = 640, 480
     screen_width = game_w * 2
-    screen_height = game_h + 80  # Add some space at bottom for controls
+    screen_height = game_h + 60  # Add just a bit of space for controls at bottom
     screen = pygame.display.set_mode((screen_width, screen_height))
-    pygame.display.set_caption("AI Serpentis - Snake Showdown")
+    pygame.display.set_caption("AI Serpentis - Player vs AI")
     
     # Create black background for the entire screen
     screen.fill((0, 0, 0))
     
+    # Create a persistent background for the score area to prevent flickering
+    score_area = pygame.Surface((screen_width, 60))
+    score_area.fill((0, 0, 35))  # Dark blue background
+    pygame.draw.line(score_area, (100, 100, 150), (screen_width//2, 0), (screen_width//2, 60), 2)
+    
     # 2) Create two sub-surfaces for the games
-    left_surf = screen.subsurface(pygame.Rect(0, 80, game_w, game_h))
-    right_surf = screen.subsurface(pygame.Rect(game_w, 80, game_w, game_h))
+    left_surf = screen.subsurface(pygame.Rect(0, 60, game_w, game_h))
+    right_surf = screen.subsurface(pygame.Rect(game_w, 60, game_w, game_h))
     
     # Load fonts with error handling
     try:
-        main_font = pygame.font.Font("assets/fonts/game_over.ttf", 36)
-        small_font = pygame.font.Font("assets/fonts/game_over.ttf", 24)
+        main_font = pygame.font.Font("assets/fonts/game_over.ttf", 48)  # Larger, cleaner score font
+        small_font = pygame.font.Font("assets/fonts/game_over.ttf", 20)  # Smaller font for controls
     except FileNotFoundError:
         print("Warning: Font file not found. Using system fonts.")
-        main_font = pygame.font.SysFont("Arial", 36)
-        small_font = pygame.font.SysFont("Arial", 24)
+        main_font = pygame.font.SysFont("Arial", 48)  
+        small_font = pygame.font.SysFont("Arial", 20)
     
     # Load sounds with error handling
     try:
@@ -245,7 +275,7 @@ def player_vs_ai():
     
     # 4) Create game instances on the surfaces
     player_game = VSPlayerGame(width=game_w, height=game_h, display_surface=left_surf)
-    ai_game = SnakeGameAI(width=game_w, height=game_h, display_surface=right_surf)
+    ai_game = VSAIGame(width=game_w, height=game_h, display_surface=right_surf)
     
     # Apply customization settings to both games
     snake_theme = customization.get_current_snake_theme()
@@ -290,8 +320,12 @@ def player_vs_ai():
                     overlay.fill((0, 0, 0, 150))  # Semi-transparent black
                     screen.blit(overlay, (0, 0))
                     
-                    pause_text = main_font.render("PAUSED - Press P to continue", True, (255, 255, 255))
-                    screen.blit(pause_text, (screen_width//2 - pause_text.get_width()//2, screen_height//2))
+                    pause_text = main_font.render("PAUSED", True, (255, 255, 255))
+                    screen.blit(pause_text, (screen_width//2 - pause_text.get_width()//2, screen_height//2 - 30))
+                    
+                    continue_text = small_font.render("Press P to continue", True, (200, 200, 200))
+                    screen.blit(continue_text, (screen_width//2 - continue_text.get_width()//2, screen_height//2 + 30))
+                    
                     pygame.display.flip()
                     
                     # Pause loop
@@ -311,7 +345,6 @@ def player_vs_ai():
                         pygame.time.delay(100)
                 
                 # Player controls - update the player_direction based on keys
-                # This is the key fix - only apply valid movements
                 if not player_game_over:
                     if (event.key == pygame.K_LEFT or event.key == pygame.K_a) and player_game.direction != RIGHT:
                         player_direction = LEFT
@@ -322,8 +355,8 @@ def player_vs_ai():
                     elif (event.key == pygame.K_DOWN or event.key == pygame.K_s) and player_game.direction != UP:
                         player_direction = DOWN
         
-        # Clear the top portion for the scoreboard
-        pygame.draw.rect(screen, (0, 0, 40), (0, 0, screen_width, 80))
+        # Draw the score area background
+        screen.blit(score_area, (0, 0))
         
         # If both games are over, show final result
         if player_game_over and ai_game_over and not final_result_shown:
@@ -347,11 +380,11 @@ def player_vs_ai():
             
             # Draw winner text
             winner_surf = main_font.render(winner_text, True, winner_color)
-            screen.blit(winner_surf, (screen_width//2 - winner_surf.get_width()//2, screen_height//2 - 50))
+            screen.blit(winner_surf, (screen_width//2 - winner_surf.get_width()//2, screen_height//2 - 30))
             
             # Draw continue text
             continue_surf = small_font.render("Press any key to continue", True, (200, 200, 200))
-            screen.blit(continue_surf, (screen_width//2 - continue_surf.get_width()//2, screen_height//2 + 50))
+            screen.blit(continue_surf, (screen_width//2 - continue_surf.get_width()//2, screen_height//2 + 30))
             
             pygame.display.flip()
             final_result_shown = True
@@ -372,7 +405,7 @@ def player_vs_ai():
                             # Reset games for a new round
                             random.seed(random.randint(1, 10000))
                             player_game = VSPlayerGame(width=game_w, height=game_h, display_surface=left_surf)
-                            ai_game = SnakeGameAI(width=game_w, height=game_h, display_surface=right_surf)
+                            ai_game = VSAIGame(width=game_w, height=game_h, display_surface=right_surf)
                             
                             # Apply customization again
                             player_game.snake_theme = snake_theme
@@ -426,22 +459,21 @@ def player_vs_ai():
             if ai_game_over and game_over_sound:
                 game_over_sound.play()
         
-        # c) Draw unified scoreboard
-        draw_scoreboard(screen, player_score, ai_score, screen_width, main_font)
+        # Draw simple score display (just the numbers)
+        player_txt = main_font.render(f"{player_score}", True, (255, 255, 255))
+        ai_txt = main_font.render(f"{ai_score}", True, (255, 255, 255))
+        screen.blit(player_txt, (game_w//2 - player_txt.get_width()//2, 10))
+        screen.blit(ai_txt, (screen_width - game_w//2 - ai_txt.get_width()//2, 10))
         
-        # Draw divider between the two game areas
-        pygame.draw.line(screen, (200, 200, 200), 
-                        (screen_width//2, 80), (screen_width//2, screen_height), 3)
+        # Draw simple text labels for player and AI
+        player_label = small_font.render("YOU", True, (180, 180, 180))
+        ai_label = small_font.render("AI", True, (180, 180, 180))
+        screen.blit(player_label, (10, 10))
+        screen.blit(ai_label, (screen_width - 40, 10))
         
-        # Draw game labels
-        player_label = small_font.render("PLAYER", True, (255, 255, 255))
-        ai_label = small_font.render("AI", True, (255, 255, 255))
-        screen.blit(player_label, (game_w//2 - player_label.get_width()//2, 80))
-        screen.blit(ai_label, (screen_width - game_w//2 - ai_label.get_width()//2, 80))
-        
-        # Draw controls help at the bottom - centered to avoid overlap
-        controls_text = small_font.render("ESC - Menu | P - Pause | Arrow Keys/WASD - Move", True, (180, 180, 180))
-        screen.blit(controls_text, ((screen_width - controls_text.get_width()) // 2, screen_height - 30))
+        # Draw minimal controls text only on player side (bottom right of player area)
+        controls_text = small_font.render("ESC - Menu | P - Pause", True, (150, 150, 150))
+        screen.blit(controls_text, (game_w - controls_text.get_width() - 10, screen_height - 30))
         
         # Draw game over text if needed
         if player_game_over:
