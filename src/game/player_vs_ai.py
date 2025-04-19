@@ -231,12 +231,17 @@ def player_vs_ai():
     """Main function for the split-screen player vs AI mode"""
     pygame.init()
     
-    # 1) Set up window dimensions
-    game_w, game_h = 640, 480
-    screen_width = game_w * 2
-    screen_height = game_h + 60  # Add just a bit of space for controls at bottom
+    # 1) Set up window dimensions that maintain the grid alignment
+    game_w = 640  # Keep width the same
+    game_h = 640  # Make height a clean multiple of BLOCK_SIZE (20px)
+    screen_width = game_w * 2   # 1280px
+    screen_height = game_h + 80 # 720px total (640 for game + 80 for header/footer)
     screen = pygame.display.set_mode((screen_width, screen_height))
     pygame.display.set_caption("AI Serpentis - Player vs AI")
+    
+    # Header is now 60px and footer is 20px (total 80px non-game area)
+    header_height = 60
+    footer_height = 20
     
     # Create permanent UI elements to avoid flickering
     # Permanent background for the entire screen
@@ -244,8 +249,12 @@ def player_vs_ai():
     permanent_bg.fill((0, 0, 0))
     
     # Permanent header area for scores
-    header_area = pygame.Surface((screen_width, 60))
+    header_area = pygame.Surface((screen_width, header_height))
     header_area.fill((0, 0, 35))  # Dark blue background
+    
+    # Create footer area for controls
+    footer_area = pygame.Surface((screen_width, footer_height))
+    footer_area.fill((0, 0, 35))  # Match header color
     
     # Make divider wider and more visible
     divider_width = 8  # Increased from 4 to 8 for better visibility
@@ -258,20 +267,22 @@ def player_vs_ai():
     
     # 2) Create two sub-surfaces for the games based on player position
     if player_position == "right":
-        player_surf = screen.subsurface(pygame.Rect(game_w, 60, game_w, game_h))
-        ai_surf = screen.subsurface(pygame.Rect(0, 60, game_w, game_h))
+        player_surf = screen.subsurface(pygame.Rect(game_w, header_height, game_w, game_h))
+        ai_surf = screen.subsurface(pygame.Rect(0, header_height, game_w, game_h))
     else:
-        player_surf = screen.subsurface(pygame.Rect(0, 60, game_w, game_h))
-        ai_surf = screen.subsurface(pygame.Rect(game_w, 60, game_w, game_h))
+        player_surf = screen.subsurface(pygame.Rect(0, header_height, game_w, game_h))
+        ai_surf = screen.subsurface(pygame.Rect(game_w, header_height, game_w, game_h))
     
     # Load fonts with error handling
     try:
         main_font = pygame.font.Font("assets/fonts/game_over.ttf", 64)  # LARGER score font
-        small_font = pygame.font.Font("assets/fonts/game_over.ttf", 28)  # Larger controls font
+        small_font = pygame.font.Font("assets/fonts/game_over.ttf", 36)  # Increased from 28 to 36
+        labels_font = pygame.font.Font("assets/fonts/game_over.ttf", 42)  # New larger font for YOU/AI labels
     except FileNotFoundError:
         print("Warning: Font file not found. Using system fonts.")
         main_font = pygame.font.SysFont("Arial", 64)  
-        small_font = pygame.font.SysFont("Arial", 28)
+        small_font = pygame.font.SysFont("Arial", 36)  # Increased from 28 to 36
+        labels_font = pygame.font.SysFont("Arial", 42)  # New larger font for YOU/AI labels
     
     # Load sounds with error handling
     try:
@@ -373,14 +384,52 @@ def player_vs_ai():
     player_game = VSPlayerGameNoFlip(width=game_w, height=game_h, display_surface=player_surf)
     ai_game = VSAIGameNoFlip(width=game_w, height=game_h, display_surface=ai_surf)
     
+    # Get background theme - handle the missing method error first
+    try:
+        # Try to access the background theme from the UI module
+        from src.ui.main import background_theme as ui_background_theme
+        background_theme = ui_background_theme
+    except ImportError:
+        # If we can't import it, try to load it from customization.json
+        try:
+            with open("statics/customization.json", "r") as f:
+                config = json.load(f)
+                background_theme = config.get("background_theme", "dark")
+        except:
+            # Default to dark theme if all else fails
+            background_theme = "dark"
+    
     # Apply customization settings to both games
-    snake_theme = customization.get_current_snake_theme()
+    player_snake_theme = customization.get_current_snake_theme()  # Get theme for player
+    ai_snake_theme = customization.get_current_snake_theme()      # Get separate theme for AI
     food_theme = customization.get_current_food_theme()
     
-    player_game.snake_theme = snake_theme
+    # If random theme is selected, ensure player and AI have different colors
+    if hasattr(player_snake_theme, 'name') and player_snake_theme.name == "Random":
+        # For Random theme, we need to ensure they're visually distinct
+        # Create copies so we can modify them independently
+        player_snake_theme = player_snake_theme.copy()
+        ai_snake_theme = ai_snake_theme.copy()
+        
+        # Force different random colors by regenerating one of them
+        ai_snake_theme.new_random_color()
+        
+        # Make sure they're sufficiently different - regenerate if too similar
+        def color_distance(c1, c2):
+            return sum((a-b)**2 for a, b in zip(c1, c2))**0.5
+        
+        # Keep regenerating until themes are visually distinct enough
+        while color_distance(player_snake_theme.head_color, ai_snake_theme.head_color) < 100:
+            ai_snake_theme.new_random_color()
+    
+    # Apply the themes to the games
+    player_game.snake_theme = player_snake_theme
     player_game.food_theme = food_theme
-    ai_game.snake_theme = snake_theme
+    player_game.background_theme = background_theme  # Now background_theme is defined
+    
+    ai_game.snake_theme = ai_snake_theme
     ai_game.food_theme = food_theme
+    ai_game.background_theme = background_theme
     
     # Game state variables
     player_score = 0
@@ -395,24 +444,131 @@ def player_vs_ai():
     
     # Pre-render label texts to avoid recreating them every frame
     if player_position == "right":
-        player_label = small_font.render("YOU", True, (220, 220, 220))  # Brighter text
-        ai_label = small_font.render("AI", True, (220, 220, 220))
-        player_label_pos = (screen_width - 100, 10)  # Position on right
-        ai_label_pos = (100, 10)  # Position on left
+        player_label = labels_font.render("YOU", True, (220, 220, 220))  # Using larger font
+        ai_label = labels_font.render("AI", True, (220, 220, 220))  # Using larger font
+        player_label_pos = (screen_width - 120, 8)  # Adjusted position for larger font
+        ai_label_pos = (120, 8)  # Adjusted position for larger font
+        # Position controls text within the footer area
         controls_text = small_font.render("ESC - Menu | P - Pause", True, (200, 200, 200))
-        controls_pos = (screen_width - controls_text.get_width() - 10, screen_height - 30)
+        controls_pos = (screen_width - controls_text.get_width() - 10, screen_height - footer_height + 0)
     else:
-        player_label = small_font.render("YOU", True, (220, 220, 220))
-        ai_label = small_font.render("AI", True, (220, 220, 220))
-        player_label_pos = (100, 10)  # Position on left
-        ai_label_pos = (screen_width - 100, 10)  # Position on right
+        player_label = labels_font.render("YOU", True, (220, 220, 220))  # Using larger font
+        ai_label = labels_font.render("AI", True, (220, 220, 220))  # Using larger font
+        player_label_pos = (120, 8)  # Adjusted position for larger font
+        ai_label_pos = (screen_width - 120, 8)  # Adjusted position for larger font
+        # Position controls text within the footer area
         controls_text = small_font.render("ESC - Menu | P - Pause", True, (200, 200, 200))
-        controls_pos = (10, screen_height - 30)
+        controls_pos = (10, screen_height - footer_height + 0)
     
     # Pre-render the static UI elements to prevent flickering
     # Add the labels to the header
     header_area.blit(player_label, player_label_pos)
     header_area.blit(ai_label, ai_label_pos)
+    
+    # Define a function to show level up animation
+    def show_level_up(is_player):
+        """Show level up animation for either player or AI"""
+        # Determine which side to show the effect on
+        side = "right" if (is_player and player_position == "right") or \
+                        (not is_player and player_position == "left") else "left"
+        
+        # Get the surface and position based on side
+        surface = player_surf if is_player else ai_surf
+        overlay_x = game_w if side == "right" else 0
+        
+        # Create semi-transparent overlay for the specific game area
+        overlay = pygame.Surface((game_w, game_h), pygame.SRCALPHA)
+        
+        # Choose color based on theme
+        if background_theme == "dark":
+            overlay_color = (255, 255, 0, 80)  # Yellow semi-transparent for dark mode
+            text_color = (255, 255, 0)  # Bright yellow for dark mode
+        else:
+            overlay_color = (0, 100, 0, 80)  # Green semi-transparent for light mode
+            text_color = (0, 120, 0)  # Dark green for light mode
+            
+        overlay.fill(overlay_color)
+        
+        # Draw overlay directly on the game surface
+        surface.blit(overlay, (0, 0))
+        
+        # Create and position the level up text
+        level_text = main_font.render("LEVEL UP!", True, text_color)
+        text_rect = level_text.get_rect(center=(game_w//2, game_h//2))
+        surface.blit(level_text, text_rect)
+        
+        # Update display to show the level up effect
+        pygame.display.flip()
+        
+        # Pause briefly to show the effect
+        pygame.time.delay(500)
+    
+    # Add countdown before starting the game
+    def show_countdown():
+        """Display 5-4-3-2-1 countdown before game starts"""
+        # Try to load countdown sounds ONCE outside the loop
+        try:
+            tick_sound = pygame.mixer.Sound("assets/sounds/countdown.mp3")
+            begin_sound = pygame.mixer.Sound("assets/sounds/pvai_begin.mp3")
+            # Set volume to avoid being too loud
+            tick_sound.set_volume(0.7)
+            begin_sound.set_volume(0.8)
+        except Exception as e:
+            print(f"Warning: Could not load countdown sounds: {e}")
+            tick_sound = None
+            begin_sound = None
+            
+        # Create semi-transparent overlay for the countdown
+        overlay = pygame.Surface((screen_width, screen_height), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 180))  # Dark semi-transparent background
+        
+        # Show "Get Ready" text and play countdown sound immediately
+        ready_text = main_font.render("Get Ready!", True, (255, 255, 255))
+        screen.blit(overlay, (0, 0))
+        screen.blit(ready_text, (screen_width//2 - ready_text.get_width()//2, screen_height//2 - 100))
+        
+        # Play the countdown tick sound IMMEDIATELY
+        if tick_sound:
+            tick_sound.play()
+        
+        pygame.display.flip()
+        # No delay here - start countdown immediately
+        
+        # The countdown audio is approximately 5 seconds
+        # We'll sync our visuals to match this timing
+        for count in range(5, 0, -1):
+            # Draw the number
+            count_text = main_font.render(str(count), True, (255, 255, 255))
+            count_rect = count_text.get_rect(center=(screen_width//2, screen_height//2))
+            
+            # Clear the screen and redraw
+            screen.blit(overlay, (0, 0))
+            screen.blit(ready_text, (screen_width//2 - ready_text.get_width()//2, screen_height//2 - 100))
+            screen.blit(count_text, count_rect)
+            
+            pygame.display.flip()
+            
+            # Delay matches the timing in the audio file
+            pygame.time.delay(1100)
+        
+        # Wait a moment after the countdown finishes before showing GO
+        pygame.time.delay(200)
+        
+        # Show "GO!" text when countdown completes
+        go_text = main_font.render("GO!", True, (50, 255, 50))  # Green text
+        go_rect = go_text.get_rect(center=(screen_width//2, screen_height//2))
+        screen.blit(overlay, (0, 0))
+        screen.blit(go_text, go_rect)
+        
+        # Play begin sound ONCE when the countdown finishes
+        if begin_sound:
+            begin_sound.play()
+            
+        pygame.display.flip()
+        pygame.time.delay(700)  # Brief pause on "GO!"
+    
+    # Show countdown before starting the game
+    show_countdown()
     
     # Game loop
     running = True
@@ -522,29 +678,9 @@ def player_vs_ai():
                         return
                     
                     if wait_event.type == pygame.KEYDOWN:
-                        if wait_event.key == pygame.K_ESCAPE:
-                            running = False
-                            waiting_for_key = False
-                        else:
-                            # Reset games for a new round
-                            random.seed(random.randint(1, 10000))
-                            player_game = VSPlayerGame(width=game_w, height=game_h, display_surface=player_surf)
-                            ai_game = VSAIGame(width=game_w, height=game_h, display_surface=ai_surf)
-                            
-                            # Apply customization again
-                            player_game.snake_theme = snake_theme
-                            player_game.food_theme = food_theme
-                            ai_game.snake_theme = snake_theme
-                            ai_game.food_theme = food_theme
-                            
-                            # Reset game states
-                            player_score = 0
-                            ai_score = 0
-                            player_game_over = False
-                            ai_game_over = False
-                            final_result_shown = False
-                            player_direction = RIGHT  # Reset player direction
-                            waiting_for_key = False
+                        # Any key press returns to menu (previously only ESC did this)
+                        running = False
+                        waiting_for_key = False
                 
                 pygame.time.delay(100)
             
@@ -552,20 +688,28 @@ def player_vs_ai():
         
         # b) Process game steps if not game over
         if not player_game_over:
+            # Save previous score to check for level up
+            prev_player_score = player_score
+            
             # Process player game step with the current player direction
             player_game_over, player_score = player_game.play_step(player_direction)
             
-            # Play sounds for player
-            if player_score > player_game.score - 1:  # Score increased
+            # Play sounds for player and show level up if needed
+            if player_score > prev_player_score:  # Score increased
                 if eat_sound:
                     eat_sound.play()
-                if player_score % 10 == 0 and player_score > 0 and level_up_sound:
-                    level_up_sound.play()
+                if player_score % 10 == 0 and player_score > 0:
+                    if level_up_sound:
+                        level_up_sound.play()
+                    show_level_up(is_player=True)  # Show level up animation for player
             
             if player_game_over and game_over_sound:
                 game_over_sound.play()
         
         if not ai_game_over:
+            # Save previous score to check for level up
+            prev_ai_score = ai_score
+            
             # Get AI state and action
             state = agent.get_state(ai_game)
             action = agent.get_action(state)
@@ -573,15 +717,14 @@ def player_vs_ai():
             # Process AI game step
             _, ai_game_over, ai_score = ai_game.play_step(action)
             
-            # Play sounds for AI
-            if ai_score > ai_game.score - 1:  # Score increased
+            # Play sounds for AI and show level up if needed
+            if ai_score > prev_ai_score:  # Score increased
                 if eat_sound:
                     eat_sound.play()
-                if ai_score % 10 == 0 and ai_score > 0 and level_up_sound:
-                    level_up_sound.play()
-            
-            if ai_game_over and game_over_sound:
-                game_over_sound.play()
+                if ai_score % 10 == 0 and ai_score > 0:
+                    if level_up_sound:
+                        level_up_sound.play()
+                    show_level_up(is_player=False)  # Show level up animation for AI
         
         # Draw score numbers that change each frame
         player_txt = main_font.render(f"{player_score}", True, (255, 255, 255))
@@ -599,8 +742,9 @@ def player_vs_ai():
         # but BEFORE drawing game over text
         screen.blit(divider, (divider_x, 0))
         
-        # Draw the controls help text at the bottom
-        screen.blit(controls_text, controls_pos)
+        # Draw controls in the footer area
+        screen.blit(footer_area, (0, screen_height - footer_height))
+        screen.blit(controls_text, controls_pos)  # Only render controls text once, in the footer
         
         # Draw game over text if needed
         if player_game_over:
