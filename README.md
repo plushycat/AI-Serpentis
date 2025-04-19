@@ -153,10 +153,13 @@ Here is a sample graph after training for 200 Iterations:
 
 ## 🎵 Credits
 
-- **BGM**: *Music by Nicholas Panek* from [Pixabay](https://pixabay.com)  
-- **Level Up Sound**: *Magic Game Key Picked Up* by Epic Stock Media from [Upbeat](https://www.upbeat.io)  
-- **UI Click Sound**: *Arcade Game Bling* by Epic Stock Media from [Upbeat](https://www.upbeat.io)  
+- **BGM:** *Music by Nicholas Panek* from [Pixabay](https://pixabay.com)  
+- **Level Up Sound:** *Magic Game Key Picked Up* by Epic Stock Media from [Upbeat](https://www.upbeat.io)  
+- **UI Click Sound:** *Arcade Game Bling* by Epic Stock Media from [Upbeat](https://www.upbeat.io)  
 - **Mute and Unmute Buttons:**  [Freepik](https://freepik.com)  
+
+- **Countdown, and Begin Sounds (Player VS AI):** *female-robotic-countdown-5-to-1* by freesound_community from [Pixabay](https://pixabay.com)  
+*game-start-6104* by freesound_community from [Pixabay](https://pixabay.com) 
 
 - **Source Repository:** [armin2080/Snake-Game-AI](https://github.com/armin2080/Snake-Game-AI)
 

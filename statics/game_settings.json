@@ -1,0 +1,13 @@
+{
+  "appearance": {
+    "background_theme": "light",
+    "enhanced_effects": true
+  },
+  "gameplay": {
+    "player_position": "left",
+    "debug_mode": false
+  },
+  "audio": {
+    "music_on": true
+  }
+}

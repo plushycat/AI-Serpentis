@@ -22,11 +22,18 @@ YELLOW = (255, 255, 0)
 BLOCK_SIZE = 20
 SPEED = 30  # Standardized speed
 
-# Directions
+# Directions as integer constants (for backward compatibility)
 RIGHT = 1
 LEFT = 2
 UP = 3
 DOWN = 4
+
+# Also define Direction as an Enum for cleaner code
+class Direction(Enum):
+    RIGHT = 1
+    LEFT = 2
+    UP = 3
+    DOWN = 4
 
 Point = namedtuple('Point', 'x, y')
 
@@ -35,9 +42,16 @@ font_path = "assets/fonts/game_over.ttf"
 font = pygame.font.Font(font_path, 60)
 
 class SnakeGame:
-    def __init__(self, width=1280, height=720):
+    def __init__(self, width=1280, height=720, display_surface=None):
         self.width = width
         self.height = height
+        
+        # Use provided display surface or create a new one
+        if display_surface is None:
+            self.display = pygame.display.set_mode((width, height))
+        else:
+            self.display = display_surface
+
         self.score = 0
         self.eat_sound = pygame.mixer.Sound('assets/sounds/eat-food.mp3')
         self.game_over_sound = pygame.mixer.Sound('assets/sounds/game-over.mp3')
@@ -57,7 +71,6 @@ class SnakeGame:
         self.background_theme = "dark"  # Default background theme
         
         # Init display
-        self.display = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption('Snake Game - Classic Mode')
         self.clock = pygame.time.Clock()
         self.frame_iteration = 0  # Track frame count for animations
@@ -83,6 +96,9 @@ class SnakeGame:
         ]
         self.food = None
         self._place_food()
+
+        # Add a toggle for enhanced level-up effects
+        self.enhanced_effects = True  # Default to enhanced effects
 
     def _place_food(self):
         x = random.randint(0, (self.width - BLOCK_SIZE) // BLOCK_SIZE) * BLOCK_SIZE 
@@ -159,21 +175,8 @@ class SnakeGame:
                 if hasattr(self, 'level_up_sound') and self.level_up_sound:
                     self.level_up_sound.play()
                     
-                    # Create semi-transparent overlay for better visibility
-                    overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-                    overlay_color = (0, 0, 0, 100) if self.background_theme == "dark" else (255, 255, 255, 100)
-                    overlay.fill(overlay_color)
-                    self.display.blit(overlay, (0, 0))
-                    
-                    # Level up message with dynamic color based on theme
-                    level_color = YELLOW if self.background_theme == "dark" else (0, 100, 0)  # Yellow for dark mode, dark green for light mode
-                    level_text = self.main_font.render(f"LEVEL UP!", True, level_color)
-                    self.display.blit(level_text, 
-                                    (self.width//2 - level_text.get_width()//2, 
-                                    self.height//2 - level_text.get_height()//2))
-                    pygame.display.update()
-                    # Pause briefly so the player can see the level up message
-                    pygame.time.delay(500)
+                    # Show level up animation
+                    self._show_level_up()
         else:
             self.snake.pop()
             
@@ -268,6 +271,57 @@ class SnakeGame:
         theme: String indicating the theme ("dark" or "light").
         """
         self.background_theme = theme
+
+    def _show_level_up(self):
+        """Show an enhanced level up animation with colored translucent overlay"""
+        # Create semi-transparent overlay for better visibility
+        overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        
+        if self.enhanced_effects:
+            # Enhanced effects with colored overlay (like in player_vs_ai)
+            if self.background_theme == "dark":
+                overlay_color = (255, 255, 0, 80)  # Yellow semi-transparent for dark mode
+                text_color = (255, 255, 0)  # Bright yellow
+            else:
+                overlay_color = (0, 100, 0, 80)  # Green semi-transparent for light mode
+                text_color = (0, 120, 0)  # Dark green
+        else:
+            # Simple overlay (original style)
+            overlay_color = (0, 0, 0, 100) if self.background_theme == "dark" else (255, 255, 255, 100)
+            text_color = YELLOW if self.background_theme == "dark" else (0, 100, 0)
+            
+        overlay.fill(overlay_color)
+        self.display.blit(overlay, (0, 0))
+        
+        # Level up message
+        level_text = self.main_font.render(f"LEVEL UP!", True, text_color)
+        self.display.blit(level_text, 
+                        (self.width//2 - level_text.get_width()//2, 
+                         self.height//2 - level_text.get_height()//2))
+        
+        pygame.display.update()
+        # Pause briefly so the player can see the level up message
+        pygame.time.delay(500)
+
+    # Add a method to toggle enhanced effects
+    def toggle_enhanced_effects(self):
+        """Toggle between enhanced and simple level-up effects"""
+        self.enhanced_effects = not self.enhanced_effects
+        return self.enhanced_effects
+
+    def _draw(self):
+        # ... existing drawing code for game elements ...
+        
+        # Draw score and high score cleanly
+        score_text = self.main_font.render(f"Score: {self.score}", True, WHITE)
+        self.display.blit(score_text, [10, 10])
+        
+        # Draw just the high score value in the top right - no date, no extra info
+        high_score_text = self.main_font.render(f"High Score: {self.record}", True, YELLOW)
+        high_score_rect = high_score_text.get_rect(topright=(self.width - 10, 10))
+        self.display.blit(high_score_text, high_score_rect)
+        
+        # ... rest of drawing code ...
 
 if __name__ == '__main__':
     game = SnakeGame()
