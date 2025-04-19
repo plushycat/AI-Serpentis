@@ -246,20 +246,37 @@ def high_scores_page():
     # Load high scores
     high_scores = load_high_scores()
     
-    # Prepare UI elements
-    button_width = 300
-    button_height = 60
-    back_button = pygame.Rect((SCREEN_WIDTH-button_width)//2, SCREEN_HEIGHT - 100, button_width, button_height)
+    # More compact UI elements
+    button_width = 250  # Reduced from 300
+    button_height = 50  # Reduced from 60
+    back_button = pygame.Rect((SCREEN_WIDTH-button_width)//2, SCREEN_HEIGHT - 80, button_width, button_height)
     
-    # Mode selection buttons - CHANGE: combine vs_player and vs_ai into one option
+    # Mode selection buttons - more compact and closer together
     mode_buttons = {
-        "classic": pygame.Rect(220, 150, 280, 60),
-        "ai": pygame.Rect(520, 150, 280, 60),
-        "vs_mode": pygame.Rect(820, 150, 280, 60)  # Single Player vs AI tab
+        "classic": pygame.Rect(260, 120, 250, 45),
+        "ai": pygame.Rect(520, 120, 250, 45),
+        "vs_mode": pygame.Rect(780, 120, 250, 45)
     }
     
     # Track current selected mode
     current_mode = "classic"
+    
+    # Add scrolling functionality
+    scroll_y = 0
+    scroll_velocity = 0
+    max_scroll_y = 0
+    
+    # Define content section dimensions - OPTIMIZED FOR SPACE
+    header_height = 40  # Reduced from 70
+    content_padding_top = 10  # Reduced from 20
+    
+    # Extend content area to use more screen space
+    content_area = pygame.Rect(200, 180 + header_height, 880, 460 - header_height)
+    content_surface = pygame.Surface((880, 2000), pygame.SRCALPHA)  # Taller surface for flexibility
+    
+    # Define consistent button colors
+    back_button_color = (180, 60, 60)
+    back_button_hover = (220, 80, 80)
     
     # Animation step
     step = 0
@@ -290,53 +307,81 @@ def high_scores_page():
             
             draw_button(screen, rect, display_name, footer_font, base_color, hover_color, mouse_pos)
         
+        # Apply smooth scrolling with inertia
+        if abs(scroll_velocity) > 0.5:
+            scroll_y += scroll_velocity
+            scroll_velocity *= 0.9  # Damping factor
+        else:
+            scroll_velocity = 0
+        
+        # Clear content surface
+        content_surface.fill((0, 0, 0, 0))
+        
         # Draw scores for the current mode
-        if (current_mode in ["classic", "ai"]):
-            # Regular modes display unchanged
+        if current_mode in ["classic", "ai"]:
             scores = high_scores.get(current_mode, {}).get("scores", [])
             dates = high_scores.get(current_mode, {}).get("dates", [])
             
-            # Draw scores in a nice format - unchanged for classic and AI modes
-            header_y = 250
-            pygame.draw.rect(screen, (30, 30, 60, 180), pygame.Rect(280, header_y-10, 720, 50), border_radius=10)
+            # Calculate max scroll based on number of entries (with a minimum of 0)
+            entries_height = max(40, len(scores) * 40)  # Minimum height to prevent scrolling artifacts
+            max_scroll_y = max(0, entries_height - content_area.height)
             
-            # Headers
-            rank_text = menu_font.render("Rank", True, (220, 220, 220))
-            score_text = menu_font.render("Score", True, (220, 220, 220))
-            date_text = menu_font.render("Date", True, (220, 220, 220))
+            # HEADER SECTION - DRAWN SEPARATELY AND FIXED
+            # Draw table header directly on screen with more compact design
+            header_bg = pygame.Rect(content_area.left, content_area.top - header_height - 5, 
+                                  content_area.width, header_height)
+            pygame.draw.rect(screen, (30, 30, 60), header_bg, border_radius=8)
             
-            screen.blit(rank_text, (320, header_y))
-            screen.blit(score_text, (550, header_y))
-            screen.blit(date_text, (750, header_y))
+            # Column headers drawn directly on screen - smaller font for headers
+            rank_text = footer_font.render("Rank", True, (220, 220, 220))
+            score_text = footer_font.render("Score", True, (220, 220, 220))
+            date_text = footer_font.render("Date", True, (220, 220, 220))
             
-            # Draw score entries
-            entry_y = header_y + 70
+            screen.blit(rank_text, (content_area.left + 40, header_bg.centery - rank_text.get_height()//2))
+            screen.blit(score_text, (content_area.left + 350, header_bg.centery - score_text.get_height()//2))
+            screen.blit(date_text, (content_area.left + 650, header_bg.centery - date_text.get_height()//2))
+            
+            # SCROLLABLE CONTENT SECTION
+            # Draw score entries on content_surface
+            entry_y = 0 - scroll_y  # Start at top of content area
+            
+            # Always draw all entries, but only process those in view
             for i, (score, date) in enumerate(zip(scores, dates)):
-                # Background for entry - alternating colors
-                bg_color = (40, 40, 70, 180) if i % 2 == 0 else (30, 30, 60, 180)
-                pygame.draw.rect(screen, bg_color, pygame.Rect(280, entry_y-5, 720, 40), border_radius=8)
-                
-                # Medal for top 3
-                if i < 3:
-                    medal_colors = [(255, 215, 0), (192, 192, 192), (205, 127, 50)]  # Gold, Silver, Bronze
-                    pygame.draw.circle(screen, medal_colors[i], (290, entry_y + 15), 15)
+                # Only draw if potentially visible (including buffer zone)
+                if -50 <= entry_y <= content_area.height + 50:
+                    # Background for entry - alternating colors
+                    bg_color = (40, 40, 70, 180) if i % 2 == 0 else (30, 30, 60, 180)
+                    pygame.draw.rect(content_surface, bg_color, pygame.Rect(0, entry_y, 880, 40), border_radius=8)
                     
-                    rank_text = footer_font.render(f"#{i+1}", True, (20, 20, 20))
-                    rank_rect = rank_text.get_rect(center=(290, entry_y + 15))
-                    screen.blit(rank_text, rank_rect)
-                else:
-                    rank_text = footer_font.render(f"#{i+1}", True, WHITE)
-                    screen.blit(rank_text, (320 - rank_text.get_width()//2, entry_y))
+                    # Medal for top 3
+                    if i < 3:
+                        medal_colors = [(255, 215, 0), (192, 192, 192), (205, 127, 50)]  # Gold, Silver, Bronze
+                        pygame.draw.circle(content_surface, medal_colors[i], (40, entry_y + 20), 15)
+                        
+                        rank_text = footer_font.render(f"#{i+1}", True, (20, 20, 20))
+                        rank_rect = rank_text.get_rect(center=(40, entry_y + 20))
+                        content_surface.blit(rank_text, rank_rect)
+                    else:
+                        rank_text = footer_font.render(f"#{i+1}", True, WHITE)
+                        content_surface.blit(rank_text, (40 - rank_text.get_width()//2, entry_y + 5))
+                    
+                    # Format date to be shorter
+                    try:
+                        parsed_date = datetime.datetime.strptime(date, "%Y-%m-%d")
+                        short_date = parsed_date.strftime("%b %d")  # e.g., "Apr 19"
+                    except ValueError:
+                        short_date = date
+                    
+                    # Score and date
+                    score_text = footer_font.render(str(score), True, WHITE)
+                    date_text = footer_font.render(short_date, True, (180, 180, 180))  # Lighter color
+                    
+                    content_surface.blit(score_text, (350, entry_y + 5))
+                    content_surface.blit(date_text, (650, entry_y + 5))
                 
-                # Score and date
-                score_text = footer_font.render(str(score), True, WHITE)
-                date_text = footer_font.render(date, True, WHITE)
-                
-                screen.blit(score_text, (550, entry_y))
-                screen.blit(date_text, (750, entry_y))
-                
-                entry_y += 45
-        else:  # vs_mode - NEW UNIFIED DISPLAY
+                entry_y += 40  # Reduced row height from 45px to 40px
+
+        else:  # vs_mode
             # Get both player and AI scores
             player_scores = high_scores.get("vs", {}).get("player", {}).get("scores", [])
             player_dates = high_scores.get("vs", {}).get("player", {}).get("dates", [])
@@ -354,63 +399,102 @@ def high_scores_page():
             # Sort all matches by score (descending)
             vs_matches.sort(key=lambda x: x[0], reverse=True)
             
-            # Draw table header
-            header_y = 250
-            pygame.draw.rect(screen, (30, 30, 60, 180), pygame.Rect(200, header_y-10, 880, 50), border_radius=10)
+            # Calculate max scroll based on number of entries (with a minimum)
+            entries_height = max(40, len(vs_matches) * 40)  # Minimum height to prevent scrolling artifacts
+            max_scroll_y = max(0, entries_height - content_area.height)
             
-            # Headers
-            rank_text = menu_font.render("Rank", True, (220, 220, 220))
-            winner_text = menu_font.render("Winner", True, (220, 220, 220))
-            score_text = menu_font.render("Score", True, (220, 220, 220))
-            date_text = menu_font.render("Date", True, (220, 220, 220))
+            # HEADER SECTION - DRAWN SEPARATELY AND FIXED
+            # Draw table header directly on screen with more compact design
+            header_bg = pygame.Rect(content_area.left, content_area.top - header_height - 5, 
+                                  content_area.width, header_height)
+            pygame.draw.rect(screen, (30, 30, 60), header_bg, border_radius=8)
             
-            screen.blit(rank_text, (240, header_y))
-            screen.blit(winner_text, (450, header_y))
-            screen.blit(score_text, (650, header_y))
-            screen.blit(date_text, (830, header_y))
+            # Column headers drawn directly on screen
+            rank_text = footer_font.render("Rank", True, (220, 220, 220))
+            winner_text = footer_font.render("Winner", True, (220, 220, 220))
+            score_text = footer_font.render("Score", True, (220, 220, 220))
+            date_text = footer_font.render("Date", True, (220, 220, 220))
             
+            screen.blit(rank_text, (content_area.left + 40, header_bg.centery - rank_text.get_height()//2))
+            screen.blit(winner_text, (content_area.left + 250, header_bg.centery - winner_text.get_height()//2))
+            screen.blit(score_text, (content_area.left + 450, header_bg.centery - score_text.get_height()//2))
+            screen.blit(date_text, (content_area.left + 650, header_bg.centery - date_text.get_height()//2))
+            
+            # SCROLLABLE CONTENT SECTION
             # Draw score entries
-            entry_y = header_y + 70
-            for i, (score, date, is_player) in enumerate(vs_matches[:10]):  # Show top 10 combined
-                # Background for entry
-                bg_color = (40, 40, 70, 180) if i % 2 == 0 else (30, 30, 60, 180)
-                pygame.draw.rect(screen, bg_color, pygame.Rect(200, entry_y-5, 880, 40), border_radius=8)
-                
-                # Medal for top 3
-                if i < 3:
-                    medal_colors = [(255, 215, 0), (192, 192, 192), (205, 127, 50)]  # Gold, Silver, Bronze
-                    pygame.draw.circle(screen, medal_colors[i], (240, entry_y + 15), 15)
+            entry_y = 0 - scroll_y  # Start at top of content area
+            
+            for i, (score, date, is_player) in enumerate(vs_matches[:40]):  # Show up to 40 entries
+                # Only draw if potentially visible (including buffer zone)
+                if -50 <= entry_y <= content_area.height + 50:
+                    # Background for entry
+                    bg_color = (40, 40, 70, 180) if i % 2 == 0 else (30, 30, 60, 180)
+                    pygame.draw.rect(content_surface, bg_color, pygame.Rect(0, entry_y, 880, 40), border_radius=8)
                     
-                    rank_text = footer_font.render(f"#{i+1}", True, (20, 20, 20))
-                    rank_rect = rank_text.get_rect(center=(240, entry_y + 15))
-                    screen.blit(rank_text, rank_rect)
-                else:
-                    rank_text = footer_font.render(f"#{i+1}", True, WHITE)
-                    screen.blit(rank_text, (240 - rank_text.get_width()//2, entry_y))
+                    # Medal for top 3
+                    if i < 3:
+                        medal_colors = [(255, 215, 0), (192, 192, 192), (205, 127, 50)]  # Gold, Silver, Bronze
+                        pygame.draw.circle(content_surface, medal_colors[i], (40, entry_y + 20), 15)
+                        
+                        rank_text = footer_font.render(f"#{i+1}", True, (20, 20, 20))
+                        rank_rect = rank_text.get_rect(center=(40, entry_y + 20))
+                        content_surface.blit(rank_text, rank_rect)
+                    else:
+                        rank_text = footer_font.render(f"#{i+1}", True, WHITE)
+                        content_surface.blit(rank_text, (40 - rank_text.get_width()//2, entry_y + 5))
+                    
+                    # Winner with distinctive colors
+                    winner_color = (50, 255, 50) if is_player else (50, 150, 255)  # Green for player, blue for AI
+                    winner_label = "PLAYER" if is_player else "AI"
+                    winner_text = footer_font.render(winner_label, True, winner_color)
+                    content_surface.blit(winner_text, (250, entry_y + 5))
+                    
+                    # Format date to be shorter
+                    try:
+                        parsed_date = datetime.datetime.strptime(date, "%Y-%m-%d")
+                        short_date = parsed_date.strftime("%b %d")  # e.g., "Apr 19"
+                    except ValueError:
+                        short_date = date
+                    
+                    # Score and date
+                    score_text = footer_font.render(str(score), True, WHITE)
+                    date_text = footer_font.render(short_date, True, (180, 180, 180))  # Lighter color
+                    
+                    content_surface.blit(score_text, (450, entry_y + 5))
+                    content_surface.blit(date_text, (650, entry_y + 5))
                 
-                # Winner with distinctive colors
-                winner_color = (50, 255, 50) if is_player else (50, 150, 255)  # Green for player, blue for AI
-                winner_label = "PLAYER" if is_player else "AI"
-                winner_text = footer_font.render(winner_label, True, winner_color)
-                screen.blit(winner_text, (450, entry_y))
-                
-                # Score and date
-                score_text = footer_font.render(str(score), True, WHITE)
-                date_text = footer_font.render(date, True, WHITE)
-                
-                screen.blit(score_text, (650, entry_y))
-                screen.blit(date_text, (830, entry_y))
-                
-                entry_y += 45
+                entry_y += 40  # Reduced from 45 to 40
         
-        # Show message if no scores
+        # Show message if no scores - center in the content area
         if ((current_mode in ["classic", "ai"] and not scores) or 
             (current_mode == "vs_mode" and not vs_matches)):
             no_scores_text = menu_font.render("No scores recorded yet!", True, (200, 200, 200))
-            screen.blit(no_scores_text, (SCREEN_WIDTH//2 - no_scores_text.get_width()//2, 350))
+            # Draw directly on content_surface (not screen) so it's properly positioned
+            content_surface.blit(no_scores_text, (440 - no_scores_text.get_width()//2, 150))
         
-        # Draw back button
-        draw_fancy_button(screen, back_button, "Back to Menu", menu_font, (100,100,100), (150,150,150), mouse_pos, step)
+        # Blit the content surface to the screen with proper clipping
+        screen.blit(content_surface, (content_area.topleft), 
+                   (0, 0, content_area.width, content_area.height))
+        
+        # Draw scrollbar if content exceeds view (and there are actual entries)
+        has_scores = (current_mode in ["classic", "ai"] and scores) or (current_mode == "vs_mode" and vs_matches)
+        if max_scroll_y > 0 and has_scores:
+            # Calculate scrollbar position and size
+            scrollbar_height = max(30, int(content_area.height * content_area.height / (content_area.height + max_scroll_y)))
+            scrollbar_y = content_area.top + int((content_area.height - scrollbar_height) * min(1, scroll_y / max_scroll_y))
+            
+            # Draw scrollbar track
+            pygame.draw.rect(screen, (60, 60, 80), 
+                           (SCREEN_WIDTH - 15, content_area.top, 10, content_area.height), 
+                           border_radius=5)
+                           
+            # Draw scrollbar thumb
+            pygame.draw.rect(screen, (120, 120, 160), 
+                           (SCREEN_WIDTH - 15, scrollbar_y, 10, scrollbar_height), 
+                           border_radius=5)
+        
+        # Draw back button using the same style as settings page - smaller and positioned better
+        draw_fancy_button(screen, back_button, "Back to Menu", footer_font, back_button_color, back_button_hover, mouse_pos, step)
         
         pygame.display.update()
         
@@ -431,13 +515,41 @@ def high_scores_page():
                     if rect.collidepoint(e.pos):
                         if click_sound: click_sound.play()
                         current_mode = mode
+                        scroll_y = 0  # Reset scroll position when switching modes
+                        scroll_velocity = 0
+                
+                # Mouse wheel scrolling
+                if e.button == 4:  # Scroll up
+                    scroll_velocity -= 15
+                elif e.button == 5:  # Scroll down
+                    scroll_velocity += 15
                         
-            if e.type == pygame.KEYDOWN and e.key == pygame.K_ESCAPE:
-                if click_sound: click_sound.play()
-                return
+            if e.type == pygame.KEYDOWN:
+                if e.key == pygame.K_ESCAPE:
+                    if click_sound: click_sound.play()
+                    return
+                # Add keyboard scrolling
+                elif e.key == pygame.K_UP:
+                    scroll_velocity -= 15
+                elif e.key == pygame.K_DOWN:
+                    scroll_velocity += 15
+                elif e.key == pygame.K_PAGEUP:
+                    scroll_velocity -= 45
+                elif e.key == pygame.K_PAGEDOWN:
+                    scroll_velocity += 45
+                elif e.key == pygame.K_HOME:
+                    scroll_y = 0  # Jump to top
+                elif e.key == pygame.K_END:
+                    scroll_y = max_scroll_y  # Jump to bottom
+        
+        # Clamp scroll position with proper boundary handling
+        if max_scroll_y > 0:
+            scroll_y = max(0, min(max_scroll_y, scroll_y))
+        else:
+            scroll_y = 0  # If there's nothing to scroll, force to 0
         
         step += 1
-        clock.tick(30)
+        clock.tick(60)  # Higher framerate for smoother scrolling
 
 # Initialize Pygame
 pygame.init()
@@ -610,15 +722,14 @@ def home_page():
     start_y        = (SCREEN_HEIGHT - total_height) // 2
     
     buttons = {
-        "Play Classic": pygame.Rect((SCREEN_WIDTH - button_width)//2, start_y,                 button_width, button_height),
-        "Watch AI": pygame.Rect((SCREEN_WIDTH - button_width)//2, start_y + button_spacing, button_width, button_height),
+        "Play Classic Snake": pygame.Rect((SCREEN_WIDTH - button_width)//2, start_y,                 button_width, button_height),
+        "Watch AI Play": pygame.Rect((SCREEN_WIDTH - button_width)//2, start_y + button_spacing, button_width, button_height),
         "Player vs AI": pygame.Rect((SCREEN_WIDTH - button_width)//2, start_y + 2*button_spacing, button_width, button_height),
         "Settings": pygame.Rect((SCREEN_WIDTH - button_width)//2, start_y + 3*button_spacing, button_width, button_height),
         "Quit":     pygame.Rect((SCREEN_WIDTH - button_width)//2, start_y + 4*button_spacing, button_width, button_height),
     }
-    
-    # Add high scores button
-    scores_button = pygame.Rect(20, 20, 180, 50)
+    #high score button
+    scores_button = pygame.Rect(20, 20, 120, 40)  # Much smaller dimensions
     music_rect = pygame.Rect(SCREEN_WIDTH - 60, 20, 40, 40)
     
     # Initialize particles
@@ -647,13 +758,40 @@ def home_page():
         title_x = (SCREEN_WIDTH - title_surface.get_width()) // 2
         glowing_text(screen, title_text, title_font, title_x, 80, YELLOW, step)
         
-        # Draw high scores button
-        scores_text = footer_font.render("High Scores", True, WHITE)
-        pygame.draw.rect(screen, (50, 80, 150), scores_button, border_radius=8)
-        # Add trophy icon or glow effect to make it more visible
-        glow_width = int(abs(math.sin(step / 15)) * 3) + 1
-        pygame.draw.rect(screen, (100, 150, 250), scores_button, glow_width, border_radius=8)
-        screen.blit(scores_text, (scores_button.x + 10, scores_button.y + 12))
+        # Draw high scores button with a more subtle, compact design
+        scores_text = footer_font.render("Scores", True, WHITE)  # Shorter text
+        
+        # Create a more subtle gradient effect
+        scores_surface = pygame.Surface((scores_button.width, scores_button.height), pygame.SRCALPHA)
+        
+        # More subtle colors that complement the UI
+        scores_color = (40, 60, 100)  # Darker, more subtle blue base color
+        scores_hover_color = (60, 90, 150)  # Subtle hover color
+        
+        # Choose color based on hover state
+        button_color = scores_hover_color if scores_button.collidepoint(mouse_pos) else scores_color
+        
+        # Draw button with rounded corners - smaller radius for the smaller button
+        pygame.draw.rect(scores_surface, button_color, 
+                       (0, 0, scores_button.width, scores_button.height), border_radius=6)
+        
+        # Add a slight shadow with adjusted size
+        shadow = pygame.Surface((scores_button.width, scores_button.height), pygame.SRCALPHA)
+        shadow.fill((0, 0, 0, 30))
+        shadow_rect = shadow.get_rect(topleft=(scores_button.x + 2, scores_button.y + 2))
+        screen.blit(shadow, shadow_rect)
+        
+        # Draw the button
+        screen.blit(scores_surface, scores_button)
+        
+        # Add pulsing glow effect (smaller for this button)
+        glow_width = int(abs(math.sin(step / 15)) * 2) + 1  # Reduced from 3 to 2
+        glow_rect = scores_button.inflate(4, 4)  # Smaller inflation (4px instead of 6px)
+        pygame.draw.rect(screen, (80, 120, 200), glow_rect, glow_width, border_radius=6)
+        
+        # Center the text properly inside the button
+        text_rect = scores_text.get_rect(center=scores_button.center)
+        screen.blit(scores_text, text_rect)
         
         # Draw fancy buttons
         for name, rect in buttons.items():
@@ -721,10 +859,10 @@ def home_page():
                 sys.exit()
             if e.type == pygame.MOUSEBUTTONDOWN:
                 pos = e.pos
-                if buttons["Play Classic"].collidepoint(pos):
+                if buttons["Play Classic Snake"].collidepoint(pos):
                     if click_sound: click_sound.play()
                     play_classic_game()
-                elif buttons["Watch AI"].collidepoint(pos):
+                elif buttons["Watch AI Play"].collidepoint(pos):
                     if click_sound: click_sound.play()
                     watch_ai_play()
                 elif buttons["Player vs AI"].collidepoint(pos):
@@ -756,9 +894,9 @@ def home_page():
         # Advance gradient blend very slowly
         gradient_blend += 0.0001
         if gradient_blend >= 1.0:
-            gradient_blend   = 0.0
+            gradient_blend = 0.0
             current_gradient = next_gradient
-            next_gradient    = (next_gradient + 1) % len(dark_gradients)
+            next_gradient = (next_gradient + 1) % len(dark_gradients)
         
         step += 1
         clock.tick(30)
@@ -1206,6 +1344,16 @@ def settings_page():
     mouse_pressed = False
     mouse_pos = (0, 0)
     
+    # Define consistent button colors
+    standard_button_color = (60, 100, 180)  # Blue-ish base color
+    standard_button_hover = (100, 150, 250)  # Lighter blue for hover
+    
+    toggle_on_color = (100, 200, 100)  # Green for ON state
+    toggle_off_color = (200, 100, 100)  # Red for OFF state
+    
+    back_button_color = (180, 60, 60)  # Reddish for exit button
+    back_button_hover = (220, 80, 80)  # Lighter red for hover
+
     while True:
         # Mouse state tracking for responsive clicks
         prev_mouse_pressed = mouse_pressed
@@ -1324,35 +1472,34 @@ def settings_page():
                 selected_border.center = light_button.center
                 pygame.draw.rect(screen, (80, 200, 120), selected_border, 3, border_radius=14)
                 
+            # Use standardized colors for theme buttons
             draw_button(screen, dark_button, "Theme: Dark", menu_font,
-                    (50,50,80) if background_theme == "dark" else (30,30,50),
-                    (80,80,120), mouse_pos)
+                    standard_button_color, standard_button_hover, mouse_pos)
             draw_button(screen, light_button, "Theme: Light", menu_font,
-                    (200,200,220) if background_theme == "light" else (150,150,170),
-                    (230,230,250), mouse_pos)
+                    standard_button_color, standard_button_hover, mouse_pos)
                     
-            # Debug mode toggle button
+            # Debug mode toggle button - keep toggle colors
             debug_label = "Debug: ON" if debug_mode else "Debug: OFF"
-            debug_color = (100, 200, 100) if debug_mode else (200, 100, 100)
+            debug_color = toggle_on_color if debug_mode else toggle_off_color
             draw_button(screen, debug_button, debug_label, menu_font, debug_color, (150, 150, 150), mouse_pos)
             
-            # VS Player Position setting
+            # VS Player Position setting - use standard colors
             vs_position = get_player_position()
             vs_position_text = f"Player Position: {vs_position.title()}"
             
-            # Draw the button
+            # Draw the button with standard colors
             if vs_position_button.collidepoint(mouse_pos):
-                pygame.draw.rect(screen, (150, 150, 150), vs_position_button, border_radius=5)
+                pygame.draw.rect(screen, standard_button_hover, vs_position_button, border_radius=5)
             else:
-                pygame.draw.rect(screen, (100, 100, 100), vs_position_button, border_radius=5)
+                pygame.draw.rect(screen, standard_button_color, vs_position_button, border_radius=5)
             
             text_surface = menu_font.render(vs_position_text, True, WHITE)
             text_rect = text_surface.get_rect(center=(vs_position_button.centerx, vs_position_button.centery))
             screen.blit(text_surface, text_rect)
             
-            # Enhanced effects toggle button
+            # Enhanced effects toggle button - keep toggle colors
             enhanced_label = "Level-Up Effects: Enhanced" if enhanced_effects else "Level-Up Effects: Simple"
-            enhanced_color = (100, 200, 100) if enhanced_effects else (200, 100, 100)
+            enhanced_color = toggle_on_color if enhanced_effects else toggle_off_color
             draw_button(screen, enhanced_effects_button, enhanced_label, menu_font, enhanced_color, (150, 150, 150), mouse_pos)
 
         elif current_page == 1:
@@ -1551,8 +1698,8 @@ def settings_page():
             # Blit the content surface to the screen with proper clipping
             screen.blit(content_surface, (0, content_area.top))
         
-        # Back button
-        draw_fancy_button(screen, back_button, "Back to Menu", menu_font, (100,100,100), (150,150,150), mouse_pos, step)
+        # Back button with distinctive color
+        draw_fancy_button(screen, back_button, "Back to Menu", menu_font, back_button_color, back_button_hover, mouse_pos, step)
         
         # Draw scrollbar for pages that need it
         if current_page in (1, 2) and max_scroll_y > 0:

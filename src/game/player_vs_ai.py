@@ -191,37 +191,58 @@ def save_vs_high_score(player_type, score):
 
 # Function to load player position preference
 def get_player_position():
-    """Get player position preference (left or right)"""
-    config_file = "statics/vs_settings.json"
+    """Get player position preference (left or right) from the unified config system"""
+    # Use the unified configuration system
     try:
-        if os.path.exists(config_file):
-            with open(config_file, 'r') as f:
-                data = json.load(f)
-                return data.get("player_position", "right")  # Default to right if not specified
-        else:
-            # Create default settings
-            position = "right"  # Default to right side
-            save_player_position(position)
-            return position
-    except Exception as e:
-        print(f"Error loading player position: {e}")
-        return "right"  # Default to right if there's an error
+        from src.ui.main import load_config
+        config = load_config()
+        return config.get("gameplay", {}).get("player_position", "left")
+    except (ImportError, Exception) as e:
+        print(f"Error loading player position from unified config: {e}")
+        
+        # Legacy fallback in case the unified system fails
+        try:
+            config_file = "statics/game_settings.json"
+            if os.path.exists(config_file):
+                with open(config_file, 'r') as f:
+                    data = json.load(f)
+                    return data.get("gameplay", {}).get("player_position", "left")
+        except Exception as e:
+            print(f"Error in fallback position loading: {e}")
+        
+        # Default to left if all else fails
+        return "left"
 
 # Function to save player position preference
 def save_player_position(position):
-    """Save player position preference (left or right)"""
-    config_file = "statics/vs_settings.json"
+    """Save player position preference using the unified config system"""
+    # Update the unified configuration system
     try:
-        # Ensure directory exists
-        os.makedirs(os.path.dirname(config_file), exist_ok=True)
-        
-        # Create or update the settings file
-        settings = {"player_position": position}
-        with open(config_file, 'w') as f:
-            json.dump(settings, f)
+        from src.ui.main import load_config, save_config
+        config = load_config()
+        config["gameplay"]["player_position"] = position
+        save_config(config)
         return True
-    except Exception as e:
-        print(f"Error saving player position: {e}")
+    except (ImportError, Exception) as e:
+        print(f"Error saving player position to unified config: {e}")
+        
+        # Legacy fallback in case the unified system fails
+        try:
+            config_file = "statics/game_settings.json"
+            if os.path.exists(config_file):
+                with open(config_file, 'r') as f:
+                    data = json.load(f)
+                
+                if "gameplay" not in data:
+                    data["gameplay"] = {}
+                data["gameplay"]["player_position"] = position
+                
+                with open(config_file, 'w') as f:
+                    json.dump(data, f, indent=2)
+                return True
+        except Exception as e:
+            print(f"Error in fallback position saving: {e}")
+        
         return False
 
 def draw_simple_score(surface, p_score, ai_score, total_width, font):
@@ -512,7 +533,7 @@ def player_vs_ai():
     
     # Add countdown before starting the game
     def show_countdown():
-        """Display 5-4-3-2-1 countdown before game starts"""
+        """Display 5-4-3-2-1 countdown before game starts. Return False if canceled."""
         # Try to load countdown sounds ONCE outside the loop
         try:
             tick_sound = pygame.mixer.Sound("assets/sounds/countdown.mp3")
@@ -524,6 +545,13 @@ def player_vs_ai():
             print(f"Warning: Could not load countdown sounds: {e}")
             tick_sound = None
             begin_sound = None
+        
+        # Helper function to stop sounds when exiting
+        def cleanup_sounds():
+            if tick_sound:
+                tick_sound.stop()
+            if begin_sound:
+                begin_sound.stop()
             
         # Create semi-transparent overlay for the countdown
         overlay = pygame.Surface((screen_width, screen_height), pygame.SRCALPHA)
@@ -539,7 +567,20 @@ def player_vs_ai():
             tick_sound.play()
         
         pygame.display.flip()
-        # No delay here - start countdown immediately
+        
+        # Check for escape key press before starting countdown
+        pygame.event.clear()  # Clear any pending events
+        start_time = pygame.time.get_ticks()
+        while pygame.time.get_ticks() - start_time < 500:  # Short delay before starting the count
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    cleanup_sounds()  # Stop sounds before quitting
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    cleanup_sounds()  # Stop sounds before returning
+                    return False  # Player wants to exit
+            pygame.time.delay(50)  # Small delay to prevent CPU hogging
         
         # The countdown audio is approximately 5 seconds
         # We'll sync our visuals to match this timing
@@ -555,11 +596,18 @@ def player_vs_ai():
             
             pygame.display.flip()
             
-            # Delay matches the timing in the audio file
-            pygame.time.delay(1100)
-        
-        # Wait a moment after the countdown finishes before showing GO
-        pygame.time.delay(200)
+            # Check for escape key press during each number
+            start_time = pygame.time.get_ticks()
+            while pygame.time.get_ticks() - start_time < 1100:  # Matches the timing in the audio file
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        cleanup_sounds()  # Stop sounds before quitting
+                        pygame.quit()
+                        sys.exit()
+                    if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                        cleanup_sounds()  # Stop sounds before returning
+                        return False  # Player wants to exit
+                pygame.time.delay(50)  # Small delay to prevent CPU hogging
         
         # Show "GO!" text when countdown completes
         go_text = main_font.render("GO!", True, (50, 255, 50))  # Green text
@@ -572,10 +620,25 @@ def player_vs_ai():
             begin_sound.play()
             
         pygame.display.flip()
-        pygame.time.delay(700)  # Brief pause on "GO!"
+        
+        # Check for escape key press during "GO!"
+        start_time = pygame.time.get_ticks()
+        while pygame.time.get_ticks() - start_time < 700:  # Brief pause on "GO!"
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    cleanup_sounds()  # Stop sounds before quitting
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    cleanup_sounds()  # Stop sounds before returning
+                    return False  # Player wants to exit
+            pygame.time.delay(50)  # Small delay to prevent CPU hogging
+        
+        return True  # Countdown completed successfully
     
     # Show countdown before starting the game
-    show_countdown()
+    if not show_countdown():
+        return
     
     # Game loop
     running = True
