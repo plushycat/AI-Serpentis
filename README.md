@@ -18,7 +18,9 @@ https://github.com/user-attachments/assets/1b68bf50-60f1-4c06-9df4-b9c3b067056d
 - **AI Mode**: Watch a trained neural network play the game  
 - **Modern UI**: Sleek gradient backgrounds, custom animations, and particle effects  
 - **Customization Options**: Choose from various snake and food themes  
-- **Responsive Controls**: WASD/Arrow keys for movement and pause functionality  
+- **Responsive Controls**: WASD/Arrow keys for movement and pause functionality
+- **(NEW) Player vs AI Split-Screen Mode**: Compete head-to-head with the AI in real time. The screen is divided into two playfields—one for the player and one for the AI—running in perfect sync.
+- **(NEW) Unified Scoreboard**: Track scores for all gamemodes with the click of a button for flexing purposes.
 
 ### 🧠 AI Implementation
 - **Deep Q-Learning**: Neural network with 11-dimensional state and 3 outputs  
