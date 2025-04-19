@@ -9,6 +9,7 @@ from src.ai.model import Linear_QNet
 from src.game.snake_game import SnakeGame
 from src.game.snake_ai import SnakeGameAI
 from src.ai.agent import Agent
+from src.game.player_vs_ai import get_player_position, save_player_position
 from src.game.customization import customization
 
 title_font = pygame.font.Font("assets/fonts/game_over.ttf", 96)
@@ -686,6 +687,10 @@ def settings_page():
     snake_themes = customization.get_all_snake_themes()
     food_themes = customization.get_all_food_themes()
     
+    # Create information text surfaces early so they're always available
+    info_text1 = footer_font.render("Choose light or dark theme to change game appearance", True, WHITE)
+    info_text2 = footer_font.render("Debug mode shows additional information in AI mode", True, WHITE)
+    
     # Debug print to check the number of themes
     print(f"Number of snake themes: {len(snake_themes)}")
     print(f"Number of food themes: {len(food_themes)}")
@@ -699,6 +704,7 @@ def settings_page():
     dark_button = pygame.Rect((SCREEN_WIDTH-button_width)//2, 200, button_width, button_height)
     light_button = pygame.Rect((SCREEN_WIDTH-button_width)//2, 280, button_width, button_height)
     debug_button = pygame.Rect((SCREEN_WIDTH-button_width)//2, 360, button_width, button_height)
+    vs_position_button = pygame.Rect((SCREEN_WIDTH-button_width)//2, 440, button_width, button_height)
     
     # Back button
     back_button = pygame.Rect((SCREEN_WIDTH-button_width)//2, SCREEN_HEIGHT - 100, button_width, button_height)
@@ -788,6 +794,12 @@ def settings_page():
                         elif debug_button.collidepoint(e.pos):
                             if click_sound: click_sound.play()
                             debug_mode = not debug_mode
+                        elif vs_position_button.collidepoint(e.pos):
+                            if click_sound: click_sound.play()
+                            # Toggle position between left and right
+                            new_position = "left" if vs_position == "right" else "right"
+                            save_player_position(new_position)
+                            vs_position = new_position
                     
                     # Back button
                     if back_button.collidepoint(e.pos):
@@ -802,7 +814,7 @@ def settings_page():
             
             if e.type == pygame.KEYDOWN and e.key == pygame.K_ESCAPE:
                 return
-        
+                
         # Draw content based on current page
         if current_page == 0:
             # General settings page
@@ -827,13 +839,24 @@ def settings_page():
             debug_color = (100, 200, 100) if debug_mode else (200, 100, 100)
             draw_button(screen, debug_button, debug_label, menu_font, debug_color, (150, 150, 150), mouse_pos)
             
-            # Add some instructions about the settings
-            info_text1 = footer_font.render("Choose light or dark theme to change game appearance", True, WHITE)
-            info_text2 = footer_font.render("Debug mode shows additional information in AI mode", True, WHITE)
+            # VS Player Position setting
+            vs_position = get_player_position()
+            vs_position_text = f"Player Position: {vs_position.title()}"
             
-            screen.blit(info_text1, [(SCREEN_WIDTH - info_text1.get_width()) // 2, 450])
-            screen.blit(info_text2, [(SCREEN_WIDTH - info_text2.get_width()) // 2, 490])
+            # Draw the button
+            if vs_position_button.collidepoint(mouse_pos):
+                pygame.draw.rect(screen, (150, 150, 150), vs_position_button, border_radius=5)
+            else:
+                pygame.draw.rect(screen, (100, 100, 100), vs_position_button, border_radius=5)
             
+            text_surface = menu_font.render(vs_position_text, True, WHITE)
+            text_rect = text_surface.get_rect(center=(vs_position_button.centerx, vs_position_button.centery))
+            screen.blit(text_surface, text_rect)
+            
+            # Move the information text lower to avoid overlap with the vs position button
+            screen.blit(info_text1, [(SCREEN_WIDTH - info_text1.get_width()) // 2, 520])
+            screen.blit(info_text2, [(SCREEN_WIDTH - info_text2.get_width()) // 2, 560])
+
         elif current_page == 1:
             # Clear the content surface for proper clipping
             content_surface.fill((0,0,0,0))

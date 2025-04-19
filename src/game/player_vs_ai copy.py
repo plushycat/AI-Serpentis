@@ -106,6 +106,8 @@ class VSPlayerGame(SnakeGame):
         pygame.draw.circle(self.display, food_color, 
                          (self.food.x + BLOCK_SIZE // 2, self.food.y + BLOCK_SIZE // 2), 10)
 
+        pygame.display.flip()
+
 # Create a special SnakeGameAI subclass for VS mode
 class VSAIGame(SnakeGameAI):
     """A modified SnakeGameAI with minimal UI for use in split-screen"""
@@ -130,6 +132,8 @@ class VSAIGame(SnakeGameAI):
         food_color = self.food_theme.get_food_color(self.frame_iteration)
         pygame.draw.circle(self.display, food_color, 
                          (self.food.x + BLOCK_SIZE // 2, self.food.y + BLOCK_SIZE // 2), 10)
+
+        pygame.display.flip()
 
 # For high score handling
 def load_high_scores():
@@ -247,8 +251,8 @@ def player_vs_ai():
     header_area = pygame.Surface((screen_width, 60))
     header_area.fill((0, 0, 35))  # Dark blue background
     
-    # Make divider wider and more visible
-    divider_width = 8  # Increased from 4 to 8 for better visibility
+    # Draw permanent divider line
+    divider_width = 4
     divider_x = screen_width // 2 - divider_width // 2
     divider = pygame.Surface((divider_width, screen_height))
     divider.fill((150, 150, 200))  # Light blue color
@@ -317,61 +321,8 @@ def player_vs_ai():
     random.seed(seed)
     
     # 4) Create game instances on the surfaces
-    class VSPlayerGameNoFlip(VSPlayerGame):
-        def _update_ui_simple(self):
-            """A minimal UI update that doesn't flip the display"""
-            # Apply background based on theme
-            if self.background_theme == "dark":
-                self.display.fill((0, 0, 20))  # Very dark blue
-            else:
-                self.display.fill((240, 240, 240))  # Very light gray
-    
-            # Draw snake with custom theme - only essential game elements
-            for i, point in enumerate(self.snake):
-                segment_color = self.snake_theme.get_segment_color(i)
-                pygame.draw.rect(self.display, segment_color, pygame.Rect(point.x, point.y, BLOCK_SIZE, BLOCK_SIZE))
-    
-            # Draw food with custom theme
-            food_color = self.food_theme.get_food_color(self.frame_iteration)
-            pygame.draw.circle(self.display, food_color, 
-                             (self.food.x + BLOCK_SIZE // 2, self.food.y + BLOCK_SIZE // 2), 10)
-            # No pygame.display.flip() call here
-    
-    class VSAIGameNoFlip(VSAIGame):
-        def _update_ui(self):
-            """Override to provide minimal UI without display flip"""
-            # Apply background based on theme
-            if self.background_theme == "dark":
-                self.display.fill((0, 0, 20))  # Very dark blue
-            else:
-                self.display.fill((240, 240, 240))  # Very light gray
-    
-            # Draw snake with custom theme
-            for i, point in enumerate(self.snake):
-                segment_color = self.snake_theme.get_segment_color(i)
-                pygame.draw.rect(self.display, segment_color, pygame.Rect(point.x, point.y, BLOCK_SIZE, BLOCK_SIZE))
-    
-            # Draw food with custom theme
-            food_color = self.food_theme.get_food_color(self.frame_iteration)
-            pygame.draw.circle(self.display, food_color, 
-                             (self.food.x + BLOCK_SIZE // 2, self.food.y + BLOCK_SIZE // 2), 10)
-            # No pygame.display.flip() call here
-    
-    # Create permanent UI elements with more elements pre-rendered
-    permanent_bg = pygame.Surface((screen_width, screen_height))
-    permanent_bg.fill((0, 0, 0))
-    
-    # Create a more permanent header with divider included
-    header_area = pygame.Surface((screen_width, 60))
-    header_area.fill((0, 0, 35))  # Dark blue background
-    
-    # Draw divider on the permanent background AND header
-    divider = pygame.Surface((divider_width, screen_height))
-    divider.fill((150, 150, 200))  # Light blue color
-    
-    # Use the modified game classes
-    player_game = VSPlayerGameNoFlip(width=game_w, height=game_h, display_surface=player_surf)
-    ai_game = VSAIGameNoFlip(width=game_w, height=game_h, display_surface=ai_surf)
+    player_game = VSPlayerGame(width=game_w, height=game_h, display_surface=player_surf)
+    ai_game = VSAIGame(width=game_w, height=game_h, display_surface=ai_surf)
     
     # Apply customization settings to both games
     snake_theme = customization.get_current_snake_theme()
@@ -595,10 +546,6 @@ def player_vs_ai():
             screen.blit(player_txt, (game_w//2 - player_txt.get_width()//2, 5))  # Player on left
             screen.blit(ai_txt, (screen_width - game_w//2 - ai_txt.get_width()//2, 5))  # AI on right
             
-        # 4. IMPORTANT: Draw the divider AFTER the games have updated their surfaces
-        # but BEFORE drawing game over text
-        screen.blit(divider, (divider_x, 0))
-        
         # Draw the controls help text at the bottom
         screen.blit(controls_text, controls_pos)
         
