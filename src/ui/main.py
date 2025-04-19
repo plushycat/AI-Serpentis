@@ -23,10 +23,11 @@ def load_high_scores():
             with open(highscore_file, 'r') as f:
                 return json.load(f)
         else:
-            # Default high scores
+            # Default high scores - updated to include vs mode
             high_scores = {
                 "classic": 0,
-                "ai": 0
+                "ai": 0,
+                "vs": {"player": 0, "ai": 0}  # Add vs mode scores
             }
             # Create the directory if it doesn't exist
             os.makedirs(os.path.dirname(highscore_file), exist_ok=True)
@@ -36,7 +37,7 @@ def load_high_scores():
             return high_scores
     except Exception as e:
         print(f"Error loading high scores: {e}")
-        return {"classic": 0, "ai": 0}
+        return {"classic": 0, "ai": 0, "vs": {"player": 0, "ai": 0}}  # Include vs mode in default return
 
 def save_high_score(mode, score):
     """Save high score if it's a new record"""
@@ -209,14 +210,15 @@ def home_page():
     button_width   = 300
     button_height  = 60
     button_spacing = 80
-    total_height   = 4 * button_height + 3 * (button_spacing - button_height)
+    total_height   = 5 * button_height + 4 * (button_spacing - button_height)
     start_y        = (SCREEN_HEIGHT - total_height) // 2
     
     buttons = {
         "Play Classic": pygame.Rect((SCREEN_WIDTH - button_width)//2, start_y,                 button_width, button_height),
         "Watch AI": pygame.Rect((SCREEN_WIDTH - button_width)//2, start_y + button_spacing, button_width, button_height),
-        "Settings": pygame.Rect((SCREEN_WIDTH - button_width)//2, start_y + 2*button_spacing, button_width, button_height),
-        "Quit":     pygame.Rect((SCREEN_WIDTH - button_width)//2, start_y + 3*button_spacing, button_width, button_height),
+        "Player vs AI": pygame.Rect((SCREEN_WIDTH - button_width)//2, start_y + 2*button_spacing, button_width, button_height),
+        "Settings": pygame.Rect((SCREEN_WIDTH - button_width)//2, start_y + 3*button_spacing, button_width, button_height),
+        "Quit":     pygame.Rect((SCREEN_WIDTH - button_width)//2, start_y + 4*button_spacing, button_width, button_height),
     }
     music_rect = pygame.Rect(SCREEN_WIDTH - 60, 20, 40, 40)
     
@@ -315,6 +317,10 @@ def home_page():
                 elif buttons["Watch AI"].collidepoint(pos):
                     if click_sound: click_sound.play()
                     watch_ai_play()
+                elif buttons["Player vs AI"].collidepoint(pos):
+                    if click_sound: click_sound.play()
+                    from src.game.player_vs_ai import player_vs_ai
+                    player_vs_ai()
                 elif buttons["Settings"].collidepoint(pos):
                     if click_sound: click_sound.play()
                     settings_page()

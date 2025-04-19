@@ -40,7 +40,7 @@ class SnakeGameAI:
     Handles game logic, rendering, and user interactions.
     """
 
-    def __init__(self, width=640, height=480, record=0, avg=0, iteration=0):
+    def __init__(self, width=640, height=480, record=0, avg=0, iteration=0, display_surface=None):
         """
         Initializes the game with specified dimensions and statistics.
 
@@ -80,7 +80,10 @@ class SnakeGameAI:
         self.viewing_mode = False  # Add a new flag to indicate if we're in viewing mode (spectating AI)
         
         # Use the width and height parameters to set up the display
-        self.display = pygame.display.set_mode((self.width, self.height))
+        if display_surface is None:
+            self.display = pygame.display.set_mode((width, height))
+        else:
+            self.display = display_surface
         pygame.display.set_caption('Snake Game - AI Mode')
         self.clock = pygame.time.Clock()
         

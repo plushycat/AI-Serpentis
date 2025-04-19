@@ -22,11 +22,18 @@ YELLOW = (255, 255, 0)
 BLOCK_SIZE = 20
 SPEED = 30  # Standardized speed
 
-# Directions
+# Directions as integer constants (for backward compatibility)
 RIGHT = 1
 LEFT = 2
 UP = 3
 DOWN = 4
+
+# Also define Direction as an Enum for cleaner code
+class Direction(Enum):
+    RIGHT = 1
+    LEFT = 2
+    UP = 3
+    DOWN = 4
 
 Point = namedtuple('Point', 'x, y')
 
@@ -35,9 +42,16 @@ font_path = "assets/fonts/game_over.ttf"
 font = pygame.font.Font(font_path, 60)
 
 class SnakeGame:
-    def __init__(self, width=1280, height=720):
+    def __init__(self, width=1280, height=720, display_surface=None):
         self.width = width
         self.height = height
+        
+        # Use provided display surface or create a new one
+        if display_surface is None:
+            self.display = pygame.display.set_mode((width, height))
+        else:
+            self.display = display_surface
+
         self.score = 0
         self.eat_sound = pygame.mixer.Sound('assets/sounds/eat-food.mp3')
         self.game_over_sound = pygame.mixer.Sound('assets/sounds/game-over.mp3')
@@ -57,7 +71,6 @@ class SnakeGame:
         self.background_theme = "dark"  # Default background theme
         
         # Init display
-        self.display = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption('Snake Game - Classic Mode')
         self.clock = pygame.time.Clock()
         self.frame_iteration = 0  # Track frame count for animations
