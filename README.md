@@ -153,29 +153,26 @@ Here is a sample graph after training for 200 Iterations:
 
 ---
 
+
 ## 🎵 Credits
 
-- **BGM:**
-  
-*Music by Nicholas Panek* from [Pixabay](https://pixabay.com)  
+- **BGM**  
+  *Music by Nicholas Panek* — [Pixabay](https://pixabay.com)
 
-- **Level Up Sound:**
-*Magic Game Key Picked Up* by Epic Stock Media from [Upbeat](https://www.upbeat.io)
+- **Level Up Sound**  
+  *Magic Game Key Picked Up* by Epic Stock Media — [Upbeat](https://www.upbeat.io)
 
-- **UI Click Sound:**
-  
-*Arcade Game Bling* by Epic Stock Media from [Upbeat](https://www.upbeat.io)
+- **UI Click Sound**  
+  *Arcade Game Bling* by Epic Stock Media — [Upbeat](https://www.upbeat.io)
 
-- **Mute and Unmute Buttons:**
-  
-[Freepik](https://freepik.com)  
+- **Mute and Unmute Buttons**  
+  Icons by [Freepik](https://freepik.com)
 
-- **Countdown, and Begin Sounds (Player VS AI):**
+- **Countdown and Begin Sounds (Player VS AI)**  
+  *female-robotic-countdown-5-to-1* by freesound_community — [Pixabay](https://pixabay.com)  
+  *game-start-6104* by freesound_community — [Pixabay](https://pixabay.com)
 
-*female-robotic-countdown-5-to-1* by freesound_community from [Pixabay](https://pixabay.com)  
-*game-start-6104* by freesound_community from [Pixabay](https://pixabay.com) 
+- **Source Repository**  
+  Forked from [armin2080/Snake-Game-AI](https://github.com/armin2080/Snake-Game-AI)
 
-- **Source Repository:**
-
-[armin2080/Snake-Game-AI](https://github.com/armin2080/Snake-Game-AI)
 
