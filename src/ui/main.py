@@ -8,11 +8,12 @@ import json
 from src.ai.model import Linear_QNet
 from src.game.snake_game import SnakeGame
 from src.game.snake_ai import SnakeGameAI
+from src.game.player_vs_ai import player_vs_ai
+from src.game.fibonacci_snake import FibonacciSnakeGame
 from src.ai.agent import Agent
 from src.game.player_vs_ai import get_player_position, save_player_position
 from src.game.customization import customization
 import datetime
-from typing import Dict, List, Any, Tuple
 import atexit
 
 title_font = pygame.font.Font("assets/fonts/game_over.ttf", 96)
@@ -165,7 +166,11 @@ def save_high_score(mode, score):
             high_scores["vs"][player_type]["scores"] = scores
             high_scores["vs"][player_type]["dates"] = dates
         else:
-            # Regular modes (classic, ai)
+            # Regular modes (classic, ai, fibonacci)
+            # Make sure the mode exists
+            if mode not in high_scores:
+                high_scores[mode] = {"scores": [], "dates": []}
+                
             if "scores" not in high_scores[mode]:
                 high_scores[mode]["scores"] = []
                 high_scores[mode]["dates"] = []
@@ -202,6 +207,60 @@ def save_high_score(mode, score):
         return is_new_high
     except Exception as e:
         print(f"Error saving high score: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+def save_fibonacci_high_score(food_score, segments):
+    """Special function to save Fibonacci high scores with both metrics"""
+    try:
+        high_scores = load_high_scores()
+        today = datetime.datetime.now().strftime("%Y-%m-%d")
+        is_new_high = False
+        
+        # Make sure fibonacci category exists with all required fields
+        if "fibonacci" not in high_scores:
+            high_scores["fibonacci"] = {"scores": [], "segments": [], "dates": []}
+        
+        if "scores" not in high_scores["fibonacci"]:
+            high_scores["fibonacci"]["scores"] = []
+        if "segments" not in high_scores["fibonacci"]:
+            high_scores["fibonacci"]["segments"] = []
+        if "dates" not in high_scores["fibonacci"]:
+            high_scores["fibonacci"]["dates"] = []
+            
+        scores = high_scores["fibonacci"]["scores"]
+        segments = high_scores["fibonacci"]["segments"]
+        dates = high_scores["fibonacci"]["dates"]
+        
+        # Check if this is a new high score - prioritize food score first
+        if not scores or food_score > max(scores):
+            is_new_high = True
+        
+        # Insert score in sorted order (by food score)
+        insert_index = 0
+        while insert_index < len(scores) and food_score <= scores[insert_index]:
+            insert_index += 1
+            
+        scores.insert(insert_index, food_score)
+        segments.insert(insert_index, segments)
+        dates.insert(insert_index, today)
+        
+        # Keep only the top 10 scores
+        if len(scores) > 10:
+            scores.pop(10)
+            segments.pop(10)
+            dates.pop(10)
+            
+        # Save updated high scores
+        os.makedirs(os.path.dirname(HIGHSCORE_FILE), exist_ok=True)
+        with open(HIGHSCORE_FILE, 'w') as f:
+            json.dump(high_scores, f, indent=2)
+        
+        print(f"Successfully saved Fibonacci score: {food_score} food, {segments} segments")
+        return is_new_high
+    except Exception as e:
+        print(f"Error saving Fibonacci high score: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -682,20 +741,21 @@ def home_page():
     
     clock = pygame.time.Clock()
     
-    # Button layout parameters
-    button_width   = 300
-    button_height  = 60
-    button_spacing = 80
-    total_height   = 5 * button_height + 4 * (button_spacing - button_height)
-    start_y        = (SCREEN_HEIGHT - total_height) // 2
+    buttons = [
+        {"text": "Play Classic Mode", "action": play_classic_game, 
+            "rect": pygame.Rect(SCREEN_WIDTH//2 - 200, 220, 400, 60)},
+        {"text": "Play Fibonacci Mode", "action": play_fibonacci_game, 
+            "rect": pygame.Rect(SCREEN_WIDTH//2 - 200, 290, 400, 60)},
+        {"text": "Player vs AI", "action": player_vs_ai, 
+            "rect": pygame.Rect(SCREEN_WIDTH//2 - 200, 360, 400, 60)},
+        {"text": "Watch AI Play", "action": watch_ai_play, 
+            "rect": pygame.Rect(SCREEN_WIDTH//2 - 200, 430, 400, 60)},
+        {"text": "Settings", "action": settings_page, 
+            "rect": pygame.Rect(SCREEN_WIDTH//2 - 200, 500, 400, 60)},
+        {"text": "Quit", "action": sys.exit, 
+            "rect": pygame.Rect(SCREEN_WIDTH//2 - 200, 570, 400, 60)}
+    ]
     
-    buttons = {
-        "Play Classic Snake": pygame.Rect((SCREEN_WIDTH - button_width)//2, start_y,                 button_width, button_height),
-        "Watch AI Play": pygame.Rect((SCREEN_WIDTH - button_width)//2, start_y + button_spacing, button_width, button_height),
-        "Player vs AI": pygame.Rect((SCREEN_WIDTH - button_width)//2, start_y + 2*button_spacing, button_width, button_height),
-        "Settings": pygame.Rect((SCREEN_WIDTH - button_width)//2, start_y + 3*button_spacing, button_width, button_height),
-        "Quit":     pygame.Rect((SCREEN_WIDTH - button_width)//2, start_y + 4*button_spacing, button_width, button_height),
-    }
     #high score button
     scores_button = pygame.Rect(20, 20, 120, 40)  # Much smaller dimensions
     music_rect = pygame.Rect(SCREEN_WIDTH - 60, 20, 40, 40)
@@ -762,7 +822,9 @@ def home_page():
         screen.blit(scores_text, text_rect)
         
         # Draw fancy buttons
-        for name, rect in buttons.items():
+        for button in buttons:
+            rect = button["rect"]
+            name = button["text"]
             # Create gradient button surfaces
             is_hovered = rect.collidepoint(mouse_pos)
             
@@ -827,27 +889,11 @@ def home_page():
                 sys.exit()
             if e.type == pygame.MOUSEBUTTONDOWN:
                 pos = e.pos
-                if buttons["Play Classic Snake"].collidepoint(pos):
-                    if click_sound: click_sound.play()
-                    play_classic_game()
-                elif buttons["Watch AI Play"].collidepoint(pos):
-                    if click_sound: click_sound.play()
-                    watch_ai_play()
-                elif buttons["Player vs AI"].collidepoint(pos):
-                    if click_sound: click_sound.play()
-                    from src.game.player_vs_ai import player_vs_ai
-                    player_vs_ai()
-                elif buttons["Settings"].collidepoint(pos):
-                    if click_sound: click_sound.play()
-                    settings_page()
-                elif buttons["Quit"].collidepoint(pos):
-                    if click_sound: click_sound.play()
-                    # Save config before quitting
-                    config["audio"]["music_on"] = music_on
-                    save_config(config)
-                    pygame.quit()
-                    sys.exit()
-                elif music_rect.collidepoint(pos):
+                for button in buttons:
+                    if button["rect"].collidepoint(pos):
+                        if click_sound: click_sound.play()
+                        button["action"]()
+                if music_rect.collidepoint(pos):
                     if click_sound: click_sound.play()
                     music_on = not music_on
                     config["audio"]["music_on"] = music_on
@@ -996,6 +1042,164 @@ def play_classic_game():
                     # Pulsing effect using sine wave
                     pulse = abs(math.sin(animation_step / 10)) * 50
                     glow_color = (255, 215, 0 + pulse)  # Pulsing gold
+                    new_record_text = font_medal.render("NEW HIGH SCORE!", True, glow_color)
+                    game.display.blit(new_record_text, new_record_rect)
+                    pygame.display.update(overlay_rect)
+                
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        pygame.quit()
+                        sys.exit()
+                    if event.type == pygame.KEYDOWN:
+                        if click_sound: click_sound.play()
+                        waiting = False
+                clock.tick(30)
+            break
+
+    # Return to main menu
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    pygame.display.set_caption("AI Serpentis")
+
+def play_fibonacci_game():
+    global snake_color, background_theme, screen, enhanced_effects
+    
+    # Initialize game with customized settings
+    game = FibonacciSnakeGame()
+    
+    # Apply the enhanced effects setting
+    game.enhanced_effects = enhanced_effects
+    
+    # Load high scores 
+    high_scores = load_high_scores()
+    
+    # Make sure we have a fibonacci category with the right structure
+    if "fibonacci" not in high_scores:
+        high_scores["fibonacci"] = {
+            "scores": [],
+            "segments": [],
+            "dates": []
+        }
+    
+    # Ensure all required keys exist
+    if "scores" not in high_scores["fibonacci"]:
+        high_scores["fibonacci"]["scores"] = []
+    if "segments" not in high_scores["fibonacci"]:
+        high_scores["fibonacci"]["segments"] = []
+    if "dates" not in high_scores["fibonacci"]:
+        high_scores["fibonacci"]["dates"] = []
+    
+    # Get highest score for fibonacci mode
+    fibonacci_high_score = (0, 0)  # (food_score, segments)
+    
+    if high_scores["fibonacci"]["scores"] and len(high_scores["fibonacci"]["scores"]) > 0:
+        # Find the entry with highest food score
+        highest_idx = 0
+        highest_food = 0
+        
+        for i, score in enumerate(high_scores["fibonacci"]["scores"]):
+            if score > highest_food:
+                highest_food = score
+                highest_idx = i
+                
+        # Get the corresponding segment count
+        if len(high_scores["fibonacci"]["segments"]) > highest_idx:
+            fibonacci_high_score = (highest_food, high_scores["fibonacci"]["segments"][highest_idx])
+        else:
+            fibonacci_high_score = (highest_food, 0)
+    
+    # Set the record in the game object
+    game.record = fibonacci_high_score
+    
+    # Initialize with current customization settings
+    game.snake_theme = customization.get_current_snake_theme()
+    game.food_theme = customization.get_current_food_theme()
+    game.set_theme(background_theme)
+    
+    # For compatibility with older code
+    game.snake_color = game.snake_theme.head_color
+    
+    while True:
+        over, result = game.play_step()
+        if over:
+            if isinstance(result, tuple) and len(result) == 2:
+                # New format with (score, total_growth)
+                score, total_growth = result
+            else:
+                # Old format with just score
+                score = result
+                total_growth = score * 2  # Rough estimate
+                
+            print(f"Game Over! Food: {score}, Total Growth: {total_growth}")
+            
+            # Need to update save_high_score to handle this special case
+            is_new_high = save_fibonacci_high_score(score, total_growth)
+            
+            # Show game over screen
+            try:
+                font_large = pygame.font.Font("assets/fonts/game_over.ttf", 72)
+                font_small = pygame.font.Font("assets/fonts/game_over.ttf", 36)
+                font_medal = pygame.font.Font("assets/fonts/game_over.ttf", 48)
+            except FileNotFoundError:
+                print("Warning: Font file not found. Using system fonts.")
+                font_large = pygame.SysFont("Arial", 72)
+                font_small = pygame.SysFont("Arial", 36)
+                font_medal = pygame.SysFont("Arial", 48)
+            
+            # Game over screen texts
+            game_over_text = font_large.render("GAME OVER", True, (255, 50, 50))
+            score_text = font_small.render(f"Food Eaten: {score}", True, WHITE)
+            growth_text = font_small.render(f"Segments Grown: {total_growth}", True, WHITE)
+            continue_text = font_small.render("Press any key to continue", True, (200, 200, 200))
+            
+            # Position texts
+            game_over_rect = game_over_text.get_rect(center=(game.width//2, game.height//2 - 120))
+            score_rect = score_text.get_rect(center=(game.width//2, game.height//2 - 30))
+            growth_rect = growth_text.get_rect(center=(game.width//2, game.height//2 + 20))
+            
+            # Show high score
+            highest_food = max(fibonacci_high_score[0], score)
+            highest_growth = max(fibonacci_high_score[1], total_growth)
+            record_text = font_small.render(f"High Score: {highest_food} food, {highest_growth} segments", True, YELLOW)
+            record_rect = record_text.get_rect(center=(game.width//2, game.height//2 + 70))
+            continue_rect = continue_text.get_rect(center=(game.width//2, game.height//2 + 150))
+            
+            if is_new_high:
+                new_record_text = font_medal.render("NEW HIGH SCORE!", True, (255, 215, 0))
+                new_record_rect = new_record_text.get_rect(center=(game.width//2, game.height//2 + 110))
+            
+            # Create dark overlay
+            overlay = pygame.Surface((game.width, game.height), pygame.SRCALPHA)
+            overlay_color = (0, 0, 0, 180) if game.background_theme == "dark" else (255, 255, 255, 180)
+            overlay.fill(overlay_color)
+            game.display.blit(overlay, (0, 0))
+            
+            # Draw texts
+            game.display.blit(game_over_text, game_over_rect)
+            game.display.blit(score_text, score_rect)
+            game.display.blit(growth_text, growth_rect)
+            game.display.blit(record_text, record_rect)
+            if is_new_high:
+                game.display.blit(new_record_text, new_record_rect)
+            game.display.blit(continue_text, continue_rect)
+            pygame.display.update()
+            
+            # Wait for key press
+            waiting = True
+            animation_step = 0
+            clock = pygame.time.Clock()
+            while waiting:
+                animation_step += 1
+                
+                # Animate high score text if it's a new record
+                if is_new_high and animation_step % 10 == 0:
+                    # Redraw just the high score with pulsing effect
+                    overlay_rect = pygame.Rect(new_record_rect.left - 20, new_record_rect.top - 10, 
+                                            new_record_rect.width + 40, new_record_rect.height + 20)
+                    pygame.draw.rect(game.display, overlay_color[:3] + (180,), overlay_rect)
+                    
+                    # Pulsing effect using sine wave
+                    pulse = abs(math.sin(animation_step / 10)) * 50
+                    glow_color = (255, 215, 0)  # Gold color
                     new_record_text = font_medal.render("NEW HIGH SCORE!", True, glow_color)
                     game.display.blit(new_record_text, new_record_rect)
                     pygame.display.update(overlay_rect)
