@@ -160,7 +160,8 @@ Here is a sample graph after training for 200 Iterations:
 - **UI Click Sound:** *Arcade Game Bling* by Epic Stock Media from [Upbeat](https://www.upbeat.io)  
 - **Mute and Unmute Buttons:**  [Freepik](https://freepik.com)  
 
-- **Countdown, and Begin Sounds (Player VS AI):** *female-robotic-countdown-5-to-1* by freesound_community from [Pixabay](https://pixabay.com)  
+- **Countdown, and Begin Sounds (Player VS AI):** 
+*female-robotic-countdown-5-to-1* by freesound_community from [Pixabay](https://pixabay.com)  
 *game-start-6104* by freesound_community from [Pixabay](https://pixabay.com) 
 
 - **Source Repository:** [armin2080/Snake-Game-AI](https://github.com/armin2080/Snake-Game-AI)
