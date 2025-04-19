@@ -78,6 +78,7 @@ class SnakeGameAI:
         self.loop_detection_length = 20  # How many recent positions to check for loops
         self.debug_mode = False  # Add debug mode flag
         self.viewing_mode = False  # Add a new flag to indicate if we're in viewing mode (spectating AI)
+        self.enhanced_effects = True  # Default to enhanced effects
         
         # Use the width and height parameters to set up the display
         if display_surface is None:
@@ -208,25 +209,12 @@ class SnakeGameAI:
             self.eat_sound.play()
             
             # Play level up sound every 10 points
-            if self.score % 10 == 0 and self.score > 0:
+            if self.score % 10 == 0 and self.score > 0 and reward > 0:
                 if hasattr(self, 'level_up_sound') and self.level_up_sound:
                     self.level_up_sound.play()
                     # Also show a level up message if in viewing mode
                     if self.viewing_mode:
-                        # Create semi-transparent overlay for better visibility
-                        overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-                        overlay_color = (0, 0, 0, 100) if self.background_theme == "dark" else (255, 255, 255, 100)
-                        overlay.fill(overlay_color)
-                        self.display.blit(overlay, (0, 0))
-                        
-                        # Level up message with dynamic color based on theme
-                        level_color = (255, 255, 0) if self.background_theme == "dark" else (0, 100, 0)  # Yellow for dark mode, dark green for light mode
-                        level_text = self.main_font.render(f"LEVEL UP!", True, level_color)
-                        self.display.blit(level_text, 
-                                        (self.width//2 - level_text.get_width()//2, 
-                                        self.height//2 - level_text.get_height()//2))
-                        pygame.display.update()
-                        pygame.time.delay(500)  # Brief pause to notice the message
+                        self._show_level_up()
             
             # Reset frame iteration when food is eaten to prevent timeout
             self.frame_iteration = 0
@@ -389,3 +377,34 @@ class SnakeGameAI:
         theme: String indicating the theme ("dark" or "light").
         """
         self.background_theme = theme
+
+    def _show_level_up(self):
+        """Show an enhanced level up animation with colored translucent overlay"""
+        # Create semi-transparent overlay for better visibility
+        overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        
+        if self.enhanced_effects:
+            # Enhanced effects with colored overlay (like in player_vs_ai)
+            if self.background_theme == "dark":
+                overlay_color = (255, 255, 0, 80)  # Yellow semi-transparent for dark mode
+                text_color = (255, 255, 0)  # Bright yellow
+            else:
+                overlay_color = (0, 100, 0, 80)  # Green semi-transparent for light mode
+                text_color = (0, 120, 0)  # Dark green
+        else:
+            # Simple overlay (original style)
+            overlay_color = (0, 0, 0, 100) if self.background_theme == "dark" else (255, 255, 255, 100)
+            text_color = (255, 255, 0) if self.background_theme == "dark" else (0, 100, 0)
+            
+        overlay.fill(overlay_color)
+        self.display.blit(overlay, (0, 0))
+        
+        # Level up message
+        level_text = self.main_font.render(f"LEVEL UP!", True, text_color)
+        self.display.blit(level_text, 
+                        (self.width//2 - level_text.get_width()//2, 
+                         self.height//2 - level_text.get_height()//2))
+        
+        pygame.display.update()
+        # Pause briefly so the player can see the level up message
+        pygame.time.delay(500)

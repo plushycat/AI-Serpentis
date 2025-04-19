@@ -157,30 +157,37 @@ def load_high_scores():
         return {"classic": 0, "ai": 0, "vs": {"player": 0, "ai": 0}}
 
 def save_vs_high_score(player_type, score):
-    """Save high score for vs mode if it's a new record"""
-    highscore_file = "data/stats/highscores.json"
+    """Save high score for vs mode using the unified system"""
     try:
-        if os.path.exists(highscore_file):
-            with open(highscore_file, 'r') as f:
-                high_scores = json.load(f)
-        else:
-            high_scores = {"classic": 0, "ai": 0, "vs": {"player": 0, "ai": 0}}
-            os.makedirs(os.path.dirname(highscore_file), exist_ok=True)
-            
-        # Update if it's a new high score
-        if score > high_scores.get("vs", {}).get(player_type, 0):
-            if "vs" not in high_scores:
-                high_scores["vs"] = {}
-            high_scores["vs"][player_type] = score
-            
-            # Save updated high scores
-            with open(highscore_file, 'w') as f:
-                json.dump(high_scores, f)
-            return True  # Indicates this is a new high score
-        return False
-    except Exception as e:
-        print(f"Error saving high score: {e}")
-        return False
+        # Import the unified save function
+        from src.ui.main import save_high_score
+        # Call it with the proper formatted mode
+        return save_high_score(f"vs.{player_type}", score)
+    except ImportError:
+        # Fallback to old method if import fails
+        highscore_file = "data/stats/highscores.json"
+        try:
+            if os.path.exists(highscore_file):
+                with open(highscore_file, 'r') as f:
+                    high_scores = json.load(f)
+            else:
+                high_scores = {"classic": 0, "ai": 0, "vs": {"player": 0, "ai": 0}}
+                os.makedirs(os.path.dirname(highscore_file), exist_ok=True)
+                
+            # Update if it's a new high score
+            if score > high_scores.get("vs", {}).get(player_type, 0):
+                if "vs" not in high_scores:
+                    high_scores["vs"] = {}
+                high_scores["vs"][player_type] = score
+                
+                # Save updated high scores
+                with open(highscore_file, 'w') as f:
+                    json.dump(high_scores, f, indent=2)
+                return True  # Indicates this is a new high score
+            return False
+        except Exception as e:
+            print(f"Error saving high score: {e}")
+            return False
 
 # Function to load player position preference
 def get_player_position():
@@ -758,6 +765,19 @@ def player_vs_ai():
         # Update display and control frame rate
         pygame.display.flip()
         clock.tick(15)  # Lower frame rate for fair gameplay
+    
+    # Game is over when we reach this point - save scores
+    print(f"Game ended - Player: {player_score}, AI: {ai_score}")
+    
+    # Save player's final score
+    if player_score > 0:  # Only save non-zero scores
+        is_player_new_high = save_vs_high_score("player", player_score)
+        print(f"Player score {player_score} saved.{' New high score!' if is_player_new_high else ''}")
+    
+    # Save AI's final score 
+    if ai_score > 0:  # Only save non-zero scores
+        is_ai_new_high = save_vs_high_score("ai", ai_score)
+        print(f"AI score {ai_score} saved.{' New high score!' if is_ai_new_high else ''}")
     
     # Reset display mode for returning to main menu
     pygame.display.set_mode((1280, 720))

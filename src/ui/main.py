@@ -11,53 +11,432 @@ from src.game.snake_ai import SnakeGameAI
 from src.ai.agent import Agent
 from src.game.player_vs_ai import get_player_position, save_player_position
 from src.game.customization import customization
+import datetime
+from typing import Dict, List, Any, Tuple
 
 title_font = pygame.font.Font("assets/fonts/game_over.ttf", 96)
 click_sound = pygame.mixer.Sound("assets/sounds/ui_click.mp3")
 highscore_file = "data/stats/highscores.json"
 
-def load_high_scores():
-    """Load high scores from file or create default if it doesn't exist"""
-    highscore_file = "data/stats/highscores.json"
+# Define file paths as constants for better maintainability
+CONFIG_FILE = "statics/game_settings.json"
+HIGHSCORE_FILE = "data/stats/highscores.json"
+
+# Function to load all game settings
+def load_config():
+    """Load all game configuration settings from a single file"""
     try:
-        if os.path.exists(highscore_file):
-            with open(highscore_file, 'r') as f:
+        if os.path.exists(CONFIG_FILE):
+            with open(CONFIG_FILE, 'r') as f:
                 return json.load(f)
         else:
-            # Default high scores - updated to include vs mode
-            high_scores = {
-                "classic": 0,
-                "ai": 0,
-                "vs": {"player": 0, "ai": 0}  # Add vs mode scores
+            # Default config settings
+            default_config = {
+                "appearance": {
+                    "background_theme": "dark",
+                    "enhanced_effects": True
+                },
+                "gameplay": {
+                    "player_position": "left",
+                    "debug_mode": False
+                },
+                "audio": {
+                    "music_on": True
+                }
             }
+            
             # Create the directory if it doesn't exist
-            os.makedirs(os.path.dirname(highscore_file), exist_ok=True)
+            os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
+            
+            # Write default config to file
+            with open(CONFIG_FILE, 'w') as f:
+                json.dump(default_config, f, indent=2)
+            
+            return default_config
+    except Exception as e:
+        print(f"Error loading config: {e}")
+        # Return default config if there's an error
+        return {
+            "appearance": {"background_theme": "dark", "enhanced_effects": True},
+            "gameplay": {"player_position": "left", "debug_mode": False},
+            "audio": {"music_on": True}
+        }
+
+# Function to save all game settings
+def save_config(config):
+    """Save all game configuration settings to a single file"""
+    try:
+        os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
+        with open(CONFIG_FILE, 'w') as f:
+            json.dump(config, f, indent=2)
+        return True
+    except Exception as e:
+        print(f"Error saving config: {e}")
+        return False
+
+# Enhanced high score functions
+def load_high_scores():
+    """Load high scores with history from file or create default if it doesn't exist"""
+    try:
+        if os.path.exists(HIGHSCORE_FILE):
+            with open(HIGHSCORE_FILE, 'r') as f:
+                old_scores = json.load(f)
+                
+                # Check if this is the old format (directly storing integers)
+                if isinstance(old_scores.get("classic"), int) or isinstance(old_scores.get("ai"), int):
+                    print("Converting high scores from old format to new format...")
+                    
+                    # Convert old format to new format
+                    today = datetime.datetime.now().strftime("%Y-%m-%d")
+                    new_scores = {
+                        "classic": {
+                            "scores": [old_scores.get("classic", 0)] if old_scores.get("classic", 0) > 0 else [],
+                            "dates": [today] if old_scores.get("classic", 0) > 0 else []
+                        },
+                        "ai": {
+                            "scores": [old_scores.get("ai", 0)] if old_scores.get("ai", 0) > 0 else [],
+                            "dates": [today] if old_scores.get("ai", 0) > 0 else []
+                        },
+                        "vs": {
+                            "player": {
+                                "scores": [old_scores.get("vs", {}).get("player", 0)] if old_scores.get("vs", {}).get("player", 0) > 0 else [],
+                                "dates": [today] if old_scores.get("vs", {}).get("player", 0) > 0 else []
+                            },
+                            "ai": {
+                                "scores": [old_scores.get("vs", {}).get("ai", 0)] if old_scores.get("vs", {}).get("ai", 0) > 0 else [],
+                                "dates": [today] if old_scores.get("vs", {}).get("ai", 0) > 0 else []
+                            }
+                        }
+                    }
+                    
+                    # Save the new format back to the file
+                    with open(HIGHSCORE_FILE, 'w') as f2:
+                        json.dump(new_scores, f2, indent=2)
+                    
+                    return new_scores
+                else:
+                    # Already in new format
+                    return old_scores
+        else:
+            # Create default new format
+            high_scores = {
+                "classic": {
+                    "scores": [],
+                    "dates": []
+                },
+                "ai": {
+                    "scores": [],
+                    "dates": []
+                },
+                "vs": {
+                    "player": {
+                        "scores": [],
+                        "dates": []
+                    },
+                    "ai": {
+                        "scores": [],
+                        "dates": []
+                    }
+                }
+            }
+            
+            # Create the directory if it doesn't exist
+            os.makedirs(os.path.dirname(HIGHSCORE_FILE), exist_ok=True)
+            
             # Create the file with default scores
-            with open(highscore_file, 'w') as f:
-                json.dump(high_scores, f)
+            with open(HIGHSCORE_FILE, 'w') as f:
+                json.dump(high_scores, f, indent=2)
+            
             return high_scores
     except Exception as e:
         print(f"Error loading high scores: {e}")
-        return {"classic": 0, "ai": 0, "vs": {"player": 0, "ai": 0}}  # Include vs mode in default return
+        return {
+            "classic": {"scores": [], "dates": []},
+            "ai": {"scores": [], "dates": []},
+            "vs": {"player": {"scores": [], "dates": []}, "ai": {"scores": [], "dates": []}}
+        }
 
 def save_high_score(mode, score):
-    """Save high score if it's a new record"""
-    highscore_file = "data/stats/highscores.json"
+    """Save high score with date to the high scores file"""
     try:
         high_scores = load_high_scores()
+        today = datetime.datetime.now().strftime("%Y-%m-%d")
+        is_new_high = False
         
-        # Update if it's a new high score
-        if score > high_scores.get(mode, 0):
-            high_scores[mode] = score
+        # Handle VS mode differently since it has nested structure
+        if mode.startswith("vs."):
+            # Extract the player type (player/ai) from the mode string
+            _, player_type = mode.split(".")
             
-            # Save updated high scores
-            with open(highscore_file, 'w') as f:
-                json.dump(high_scores, f)
-            return True  # Indicates this is a new high score
-        return False
+            # Get the current scores and dates for this mode
+            if "scores" not in high_scores["vs"][player_type]:
+                high_scores["vs"][player_type]["scores"] = []
+                high_scores["vs"][player_type]["dates"] = []
+                
+            scores = high_scores["vs"][player_type]["scores"]
+            dates = high_scores["vs"][player_type]["dates"]
+            
+            # Insert the new score in the sorted position
+            if not scores or score > scores[0]:
+                is_new_high = True
+                
+            # Insert score in sorted order
+            insert_index = 0
+            while insert_index < len(scores) and score <= scores[insert_index]:
+                insert_index += 1
+                
+            scores.insert(insert_index, score)
+            dates.insert(insert_index, today)
+            
+            # Keep only the top 10 scores
+            if len(scores) > 10:
+                scores.pop()
+                dates.pop()
+                
+            high_scores["vs"][player_type]["scores"] = scores
+            high_scores["vs"][player_type]["dates"] = dates
+        else:
+            # Regular modes (classic, ai)
+            if "scores" not in high_scores[mode]:
+                high_scores[mode]["scores"] = []
+                high_scores[mode]["dates"] = []
+                
+            scores = high_scores[mode]["scores"]
+            dates = high_scores[mode]["dates"]
+            
+            # Check if this is a new high score
+            if not scores or score > scores[0]:
+                is_new_high = True
+                
+            # Insert score in sorted order (descending)
+            insert_index = 0
+            while insert_index < len(scores) and score <= scores[insert_index]:
+                insert_index += 1
+                
+            scores.insert(insert_index, score)
+            dates.insert(insert_index, today)
+            
+            # Keep only the top 10 scores
+            if len(scores) > 10:
+                scores.pop()
+                dates.pop()
+                
+            high_scores[mode]["scores"] = scores
+            high_scores[mode]["dates"] = dates
+        
+        # Save updated high scores
+        os.makedirs(os.path.dirname(HIGHSCORE_FILE), exist_ok=True)
+        with open(HIGHSCORE_FILE, 'w') as f:
+            json.dump(high_scores, f, indent=2)
+        
+        print(f"Successfully saved high score of {score} for mode {mode}")
+        return is_new_high
     except Exception as e:
         print(f"Error saving high score: {e}")
+        import traceback
+        traceback.print_exc()
         return False
+
+# Add this function to display high scores
+def high_scores_page():
+    global screen
+    clock = pygame.time.Clock()
+    
+    # Load high scores
+    high_scores = load_high_scores()
+    
+    # Prepare UI elements
+    button_width = 300
+    button_height = 60
+    back_button = pygame.Rect((SCREEN_WIDTH-button_width)//2, SCREEN_HEIGHT - 100, button_width, button_height)
+    
+    # Mode selection buttons - CHANGE: combine vs_player and vs_ai into one option
+    mode_buttons = {
+        "classic": pygame.Rect(220, 150, 280, 60),
+        "ai": pygame.Rect(520, 150, 280, 60),
+        "vs_mode": pygame.Rect(820, 150, 280, 60)  # Single Player vs AI tab
+    }
+    
+    # Track current selected mode
+    current_mode = "classic"
+    
+    # Animation step
+    step = 0
+    
+    while True:
+        mouse_pos = pygame.mouse.get_pos()
+        
+        # Draw background
+        draw_smooth_gradient()
+        
+        # Draw title
+        title_x = (SCREEN_WIDTH - title_font.size("High Scores")[0]) // 2
+        glowing_text(screen, "High Scores", title_font, title_x, 30, YELLOW, step)
+        
+        # Draw mode selection buttons
+        for mode, rect in mode_buttons.items():
+            # Determine display name based on the mode
+            if mode == "classic":
+                display_name = "Classic Mode"
+            elif mode == "ai":
+                display_name = "AI Mode"
+            else:  # vs_mode
+                display_name = "Player vs AI"
+            
+            # Highlight selected mode
+            base_color = (60, 100, 200) if mode == current_mode else (50, 50, 80)
+            hover_color = (100, 150, 250) if mode == current_mode else (80, 80, 120)
+            
+            draw_button(screen, rect, display_name, footer_font, base_color, hover_color, mouse_pos)
+        
+        # Draw scores for the current mode
+        if current_mode in ["classic", "ai"]:
+            # Regular modes display unchanged
+            scores = high_scores.get(current_mode, {}).get("scores", [])
+            dates = high_scores.get(current_mode, {}).get("dates", [])
+            
+            # Draw scores in a nice format - unchanged for classic and AI modes
+            header_y = 250
+            pygame.draw.rect(screen, (30, 30, 60, 180), pygame.Rect(280, header_y-10, 720, 50), border_radius=10)
+            
+            # Headers
+            rank_text = menu_font.render("Rank", True, (220, 220, 220))
+            score_text = menu_font.render("Score", True, (220, 220, 220))
+            date_text = menu_font.render("Date", True, (220, 220, 220))
+            
+            screen.blit(rank_text, (320, header_y))
+            screen.blit(score_text, (550, header_y))
+            screen.blit(date_text, (750, header_y))
+            
+            # Draw score entries
+            entry_y = header_y + 70
+            for i, (score, date) in enumerate(zip(scores, dates)):
+                # Background for entry - alternating colors
+                bg_color = (40, 40, 70, 180) if i % 2 == 0 else (30, 30, 60, 180)
+                pygame.draw.rect(screen, bg_color, pygame.Rect(280, entry_y-5, 720, 40), border_radius=8)
+                
+                # Medal for top 3
+                if i < 3:
+                    medal_colors = [(255, 215, 0), (192, 192, 192), (205, 127, 50)]  # Gold, Silver, Bronze
+                    pygame.draw.circle(screen, medal_colors[i], (290, entry_y + 15), 15)
+                    
+                    rank_text = footer_font.render(f"#{i+1}", True, (20, 20, 20))
+                    rank_rect = rank_text.get_rect(center=(290, entry_y + 15))
+                    screen.blit(rank_text, rank_rect)
+                else:
+                    rank_text = footer_font.render(f"#{i+1}", True, WHITE)
+                    screen.blit(rank_text, (320 - rank_text.get_width()//2, entry_y))
+                
+                # Score and date
+                score_text = footer_font.render(str(score), True, WHITE)
+                date_text = footer_font.render(date, True, WHITE)
+                
+                screen.blit(score_text, (550, entry_y))
+                screen.blit(date_text, (750, entry_y))
+                
+                entry_y += 45
+        else:  # vs_mode - NEW UNIFIED DISPLAY
+            # Get both player and AI scores
+            player_scores = high_scores.get("vs", {}).get("player", {}).get("scores", [])
+            player_dates = high_scores.get("vs", {}).get("player", {}).get("dates", [])
+            ai_scores = high_scores.get("vs", {}).get("ai", {}).get("scores", [])
+            ai_dates = high_scores.get("vs", {}).get("ai", {}).get("dates", [])
+            
+            # Prepare combined score array with tuples of (score, date, is_player)
+            vs_matches = []
+            for score, date in zip(player_scores, player_dates):
+                vs_matches.append((score, date, True))  # True = Player score
+                
+            for score, date in zip(ai_scores, ai_dates):
+                vs_matches.append((score, date, False))  # False = AI score
+                
+            # Sort all matches by score (descending)
+            vs_matches.sort(key=lambda x: x[0], reverse=True)
+            
+            # Draw table header
+            header_y = 250
+            pygame.draw.rect(screen, (30, 30, 60, 180), pygame.Rect(200, header_y-10, 880, 50), border_radius=10)
+            
+            # Headers
+            rank_text = menu_font.render("Rank", True, (220, 220, 220))
+            winner_text = menu_font.render("Winner", True, (220, 220, 220))
+            score_text = menu_font.render("Score", True, (220, 220, 220))
+            date_text = menu_font.render("Date", True, (220, 220, 220))
+            
+            screen.blit(rank_text, (240, header_y))
+            screen.blit(winner_text, (450, header_y))
+            screen.blit(score_text, (650, header_y))
+            screen.blit(date_text, (830, header_y))
+            
+            # Draw score entries
+            entry_y = header_y + 70
+            for i, (score, date, is_player) in enumerate(vs_matches[:10]):  # Show top 10 combined
+                # Background for entry
+                bg_color = (40, 40, 70, 180) if i % 2 == 0 else (30, 30, 60, 180)
+                pygame.draw.rect(screen, bg_color, pygame.Rect(200, entry_y-5, 880, 40), border_radius=8)
+                
+                # Medal for top 3
+                if i < 3:
+                    medal_colors = [(255, 215, 0), (192, 192, 192), (205, 127, 50)]  # Gold, Silver, Bronze
+                    pygame.draw.circle(screen, medal_colors[i], (240, entry_y + 15), 15)
+                    
+                    rank_text = footer_font.render(f"#{i+1}", True, (20, 20, 20))
+                    rank_rect = rank_text.get_rect(center=(240, entry_y + 15))
+                    screen.blit(rank_text, rank_rect)
+                else:
+                    rank_text = footer_font.render(f"#{i+1}", True, WHITE)
+                    screen.blit(rank_text, (240 - rank_text.get_width()//2, entry_y))
+                
+                # Winner with distinctive colors
+                winner_color = (50, 255, 50) if is_player else (50, 150, 255)  # Green for player, blue for AI
+                winner_label = "PLAYER" if is_player else "AI"
+                winner_text = footer_font.render(winner_label, True, winner_color)
+                screen.blit(winner_text, (450, entry_y))
+                
+                # Score and date
+                score_text = footer_font.render(str(score), True, WHITE)
+                date_text = footer_font.render(date, True, WHITE)
+                
+                screen.blit(score_text, (650, entry_y))
+                screen.blit(date_text, (830, entry_y))
+                
+                entry_y += 45
+        
+        # Show message if no scores
+        if ((current_mode in ["classic", "ai"] and not scores) or 
+            (current_mode == "vs_mode" and not vs_matches)):
+            no_scores_text = menu_font.render("No scores recorded yet!", True, (200, 200, 200))
+            screen.blit(no_scores_text, (SCREEN_WIDTH//2 - no_scores_text.get_width()//2, 350))
+        
+        # Draw back button
+        draw_fancy_button(screen, back_button, "Back to Menu", menu_font, (100,100,100), (150,150,150), mouse_pos, step)
+        
+        pygame.display.update()
+        
+        # Handle events
+        for e in pygame.event.get():
+            if e.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+                
+            if e.type == pygame.MOUSEBUTTONDOWN:
+                # Back button
+                if back_button.collidepoint(e.pos):
+                    if click_sound: click_sound.play()
+                    return
+                
+                # Mode selection buttons
+                for mode, rect in mode_buttons.items():
+                    if rect.collidepoint(e.pos):
+                        if click_sound: click_sound.play()
+                        current_mode = mode
+                        
+            if e.type == pygame.KEYDOWN and e.key == pygame.K_ESCAPE:
+                if click_sound: click_sound.play()
+                return
+        
+        step += 1
+        clock.tick(30)
 
 # Initialize Pygame
 pygame.init()
@@ -118,6 +497,7 @@ game_speed       = 30
 snake_color      = (100, 200, 100)
 background_theme = "dark"
 debug_mode       = False
+enhanced_effects = True  # New global variable for level-up effects
 
 # Dark gradient palettes
 dark_gradients = [
@@ -204,7 +584,21 @@ def draw_slider(screen, x, y, width, min_val, max_val, current_val):
     return slider_pos
 
 def home_page():
-    global music_on, screen, current_gradient, next_gradient, gradient_blend
+    global music_on, screen, current_gradient, next_gradient, gradient_blend, background_theme, debug_mode, enhanced_effects
+    
+    # Load config when entering the home page
+    config = load_config()
+    background_theme = config["appearance"]["background_theme"]
+    enhanced_effects = config["appearance"]["enhanced_effects"]
+    music_on = config["audio"]["music_on"]
+    debug_mode = config["gameplay"]["debug_mode"]
+    
+    # Set music state based on config
+    if music_on:
+        pygame.mixer.music.play(-1)
+    else:
+        pygame.mixer.music.stop()
+    
     clock = pygame.time.Clock()
     
     # Button layout parameters
@@ -221,13 +615,16 @@ def home_page():
         "Settings": pygame.Rect((SCREEN_WIDTH - button_width)//2, start_y + 3*button_spacing, button_width, button_height),
         "Quit":     pygame.Rect((SCREEN_WIDTH - button_width)//2, start_y + 4*button_spacing, button_width, button_height),
     }
+    
+    # Add high scores button
+    scores_button = pygame.Rect(20, 20, 180, 50)
     music_rect = pygame.Rect(SCREEN_WIDTH - 60, 20, 40, 40)
     
     # Initialize particles
     particles = [Particle() for _ in range(80)]
     step = 0
 
-    # New button gradient colors as specified
+    # Button gradient colors
     BUTTON_BASE_LEFT = (0, 241, 143)  # #00F18F - Left side of gradient 
     BUTTON_BASE_RIGHT = (0, 161, 250)  # #00A1FA - Right side of gradient
     BUTTON_HOVER_LEFT = (50, 255, 170)  # Slightly lighter version for hover
@@ -249,7 +646,15 @@ def home_page():
         title_x = (SCREEN_WIDTH - title_surface.get_width()) // 2
         glowing_text(screen, title_text, title_font, title_x, 80, YELLOW, step)
         
-        # Draw fancy buttons with new gradient colors
+        # Draw high scores button
+        scores_text = footer_font.render("High Scores", True, WHITE)
+        pygame.draw.rect(screen, (50, 80, 150), scores_button, border_radius=8)
+        # Add trophy icon or glow effect to make it more visible
+        glow_width = int(abs(math.sin(step / 15)) * 3) + 1
+        pygame.draw.rect(screen, (100, 150, 250), scores_button, glow_width, border_radius=8)
+        screen.blit(scores_text, (scores_button.x + 10, scores_button.y + 12))
+        
+        # Draw fancy buttons
         for name, rect in buttons.items():
             # Create gradient button surfaces
             is_hovered = rect.collidepoint(mouse_pos)
@@ -308,6 +713,9 @@ def home_page():
         # Event handling
         for e in pygame.event.get():
             if e.type == pygame.QUIT:
+                # Save config before quitting
+                config["audio"]["music_on"] = music_on
+                save_config(config)
                 pygame.quit()
                 sys.exit()
             if e.type == pygame.MOUSEBUTTONDOWN:
@@ -327,15 +735,22 @@ def home_page():
                     settings_page()
                 elif buttons["Quit"].collidepoint(pos):
                     if click_sound: click_sound.play()
+                    # Save config before quitting
+                    config["audio"]["music_on"] = music_on
+                    save_config(config)
                     pygame.quit()
                     sys.exit()
                 elif music_rect.collidepoint(pos):
-                    if click_sound: click_sound.play()  # Add click sound for music toggle
+                    if click_sound: click_sound.play()
                     music_on = not music_on
+                    config["audio"]["music_on"] = music_on
                     if music_on:
                         pygame.mixer.music.play(-1)
                     else:
                         pygame.mixer.music.stop()
+                elif scores_button.collidepoint(pos):
+                    if click_sound: click_sound.play()
+                    high_scores_page()
         
         # Advance gradient blend very slowly
         gradient_blend += 0.0001
@@ -348,11 +763,24 @@ def home_page():
         clock.tick(30)
 
 def play_classic_game():
-    global snake_color, background_theme, screen, game_speed
+    global snake_color, background_theme, screen, game_speed, enhanced_effects
     
-    # Load high scores
+    # Initialize game with customized settings
+    game = SnakeGame()
+    
+    # Apply the enhanced effects setting
+    game.enhanced_effects = enhanced_effects
+    
+    # Load high scores 
     high_scores = load_high_scores()
-    classic_high_score = high_scores.get("classic", 0)
+    
+    # Handle new format correctly
+    if isinstance(high_scores.get("classic"), dict):
+        classic_scores = high_scores.get("classic", {}).get("scores", [])
+        classic_high_score = max(classic_scores) if classic_scores else 0
+    else:
+        # Legacy format fallback
+        classic_high_score = high_scores.get("classic", 0)
     
     # Initialize game with customized settings
     game = SnakeGame()
@@ -454,7 +882,7 @@ def play_classic_game():
     pygame.display.set_caption("AI Serpentis")
 
 def watch_ai_play():
-    global snake_color, background_theme, screen, debug_mode
+    global snake_color, background_theme, screen, debug_mode, enhanced_effects
     model = Linear_QNet(11, 256, 3)
     
     # Try multiple model loading paths with better error handling
@@ -482,6 +910,9 @@ def watch_ai_play():
     # Initialize game with customized settings
     game = SnakeGameAI(width=1280, height=720)
     
+    # Apply the enhanced effects setting
+    game.enhanced_effects = enhanced_effects
+    
     # Get a fresh random theme if random is selected
     game.snake_theme = customization.get_current_snake_theme()
     game.food_theme = customization.get_current_food_theme()
@@ -503,9 +934,18 @@ def watch_ai_play():
     
     # Load the AI gameplay high score (separate from training data)
     high_scores = load_high_scores()
-    ai_high_score = high_scores.get("ai", 0)
     
-    # Use the higher of the two values for display purposes only
+    # Handle the new high score format properly
+    ai_high_score = 0  # Default value
+    if isinstance(high_scores.get("ai"), dict):
+        # New format - scores are in an array
+        ai_scores = high_scores.get("ai", {}).get("scores", [])
+        ai_high_score = max(ai_scores) if ai_scores else 0
+    else:
+        # Old format (direct integer)
+        ai_high_score = high_scores.get("ai", 0)
+    
+    # Use the higher of training record and AI high score for display
     display_record = max(training_record, ai_high_score)
     game.record = display_record  # Set the record to show
     
@@ -572,10 +1012,12 @@ def watch_ai_play():
         if done:
             print(f"AI Game Over! Final Score: {score}")
             
-            # Check if this is a new high score for AI gameplay (not training)
-            is_new_high = False
+            # Save the score regardless of whether it's the highest
+            # The save_high_score function will handle sorting and keeping top 10
+            is_new_high = save_high_score("ai", score)
+            
+            # Update ai_high_score if this is higher
             if score > ai_high_score:
-                is_new_high = save_high_score("ai", score)
                 ai_high_score = score
             
             # Show game over screen with score
@@ -666,7 +1108,11 @@ def watch_ai_play():
     pygame.display.set_caption("AI Serpentis")
 
 def settings_page():
-    global snake_color, background_theme, screen, debug_mode
+    global snake_color, background_theme, screen, debug_mode, enhanced_effects
+    
+    # Load the current config
+    config = load_config()
+    
     import math  # Add math import for ceil function
     
     clock = pygame.time.Clock()
@@ -687,14 +1133,6 @@ def settings_page():
     snake_themes = customization.get_all_snake_themes()
     food_themes = customization.get_all_food_themes()
     
-    # Create information text surfaces early so they're always available
-    info_text1 = footer_font.render("Choose light or dark theme to change game appearance", True, WHITE)
-    info_text2 = footer_font.render("Debug mode shows additional information in AI mode", True, WHITE)
-    
-    # Debug print to check the number of themes
-    print(f"Number of snake themes: {len(snake_themes)}")
-    print(f"Number of food themes: {len(food_themes)}")
-    
     # Create buttons for all pages
     general_button = pygame.Rect((SCREEN_WIDTH//2 - button_width*1.5)//1, 120, button_width, button_height)
     snake_button = pygame.Rect(SCREEN_WIDTH//2 - button_width//2, 120, button_width, button_height)
@@ -705,6 +1143,7 @@ def settings_page():
     light_button = pygame.Rect((SCREEN_WIDTH-button_width)//2, 280, button_width, button_height)
     debug_button = pygame.Rect((SCREEN_WIDTH-button_width)//2, 360, button_width, button_height)
     vs_position_button = pygame.Rect((SCREEN_WIDTH-button_width)//2, 440, button_width, button_height)
+    enhanced_effects_button = pygame.Rect((SCREEN_WIDTH-button_width)//2, 520, button_width, button_height)
     
     # Back button
     back_button = pygame.Rect((SCREEN_WIDTH-button_width)//2, SCREEN_HEIGHT - 100, button_width, button_height)
@@ -788,22 +1227,31 @@ def settings_page():
                         if dark_button.collidepoint(e.pos):
                             if click_sound: click_sound.play()
                             background_theme = "dark"
+                            config["appearance"]["background_theme"] = "dark"
                         elif light_button.collidepoint(e.pos):
                             if click_sound: click_sound.play()
                             background_theme = "light"
+                            config["appearance"]["background_theme"] = "light"
                         elif debug_button.collidepoint(e.pos):
                             if click_sound: click_sound.play()
                             debug_mode = not debug_mode
+                            config["gameplay"]["debug_mode"] = debug_mode
                         elif vs_position_button.collidepoint(e.pos):
                             if click_sound: click_sound.play()
                             # Toggle position between left and right
                             new_position = "left" if vs_position == "right" else "right"
                             save_player_position(new_position)
                             vs_position = new_position
+                            config["gameplay"]["player_position"] = new_position
+                        elif enhanced_effects_button.collidepoint(e.pos):
+                            if click_sound: click_sound.play()
+                            enhanced_effects = not enhanced_effects
+                            config["appearance"]["enhanced_effects"] = enhanced_effects
                     
                     # Back button
                     if back_button.collidepoint(e.pos):
                         if click_sound: click_sound.play()
+                        save_config(config)
                         return
                 
                 # Mouse wheel scrolling with smoother velocity
@@ -853,9 +1301,10 @@ def settings_page():
             text_rect = text_surface.get_rect(center=(vs_position_button.centerx, vs_position_button.centery))
             screen.blit(text_surface, text_rect)
             
-            # Move the information text lower to avoid overlap with the vs position button
-            screen.blit(info_text1, [(SCREEN_WIDTH - info_text1.get_width()) // 2, 520])
-            screen.blit(info_text2, [(SCREEN_WIDTH - info_text2.get_width()) // 2, 560])
+            # Enhanced effects toggle button
+            enhanced_label = "Level-Up Effects: Enhanced" if enhanced_effects else "Level-Up Effects: Simple"
+            enhanced_color = (100, 200, 100) if enhanced_effects else (200, 100, 100)
+            draw_button(screen, enhanced_effects_button, enhanced_label, menu_font, enhanced_color, (150, 150, 150), mouse_pos)
 
         elif current_page == 1:
             # Clear the content surface for proper clipping
