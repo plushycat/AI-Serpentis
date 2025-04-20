@@ -14,7 +14,7 @@ https://github.com/user-attachments/assets/1b68bf50-60f1-4c06-9df4-b9c3b067056d
 ## ✨ Features
 
 ### 🎮 Game Features
-- **Classic Mode**: Play the snake game manually with keyboard controls  
+- **Classic Mode**: Play the snake game manually with keyboard controls (Arrow Keys/WASD)
 - **AI Mode**: Watch a trained neural network play the game  
 - **Modern UI**: Sleek gradient backgrounds, custom animations, and particle effects  
 - **Customization Options**: Choose from various snake and food themes  
