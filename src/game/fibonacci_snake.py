@@ -3,9 +3,12 @@ from utils import draw_gradient
 from src.game.snake_game import SnakeGame, BLOCK_SIZE, SPEED, Point
 
 class FibonacciSnakeGame(SnakeGame):
-    def __init__(self, width=1280, height=720, display_surface=None):
+    def __init__(self, width=1280, height=720, speed=None, display_surface=None):
         # Call parent constructor to initialize the basic game
         super().__init__(width, height, display_surface)
+        
+        # Use custom speed if provided, otherwise use default
+        self.speed = speed if speed is not None else SPEED
         
         # Override snake initialization - start with just the head
         self.head = Point(self.width // 2, self.height // 2)
@@ -135,7 +138,7 @@ class FibonacciSnakeGame(SnakeGame):
 
         # Update UI and clock
         self._update_ui()
-        self.clock.tick(SPEED)
+        self.clock.tick(self.speed)  # Use instance speed instead of global SPEED
         return False, self.score
     
     def _update_ui(self):

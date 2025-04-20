@@ -532,6 +532,8 @@ def high_scores_page():
                 
             # Sort all matches by score (descending)
             vs_matches.sort(key=lambda x: x[0], reverse=True)
+            # Limit to top 10 overall
+            vs_matches = vs_matches[:10]
             
             # Calculate max scroll
             entries_height = max(40, len(vs_matches) * 40)
@@ -1169,8 +1171,14 @@ def play_classic_game():
 def play_fibonacci_game():
     global snake_color, background_theme, screen, enhanced_effects
     
-    # Initialize game with customized settings
-    game = FibonacciSnakeGame()
+    # Import SPEED directly from snake_game module
+    from src.game.snake_game import SPEED
+    
+    # Calculate slower speed (60% of normal speed = 40% slower)
+    fibonacci_speed = int(SPEED * 0.6)
+    
+    # Initialize game with customized settings and slower speed
+    game = FibonacciSnakeGame(speed=fibonacci_speed)
     
     # Apply the enhanced effects setting
     game.enhanced_effects = enhanced_effects
