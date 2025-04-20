@@ -8,6 +8,7 @@ from src.ai.agent import Agent
 from src.game.snake_game import SnakeGame, Point, RIGHT, LEFT, UP, DOWN, BLOCK_SIZE, SPEED
 from src.game.snake_ai import SnakeGameAI
 from src.game.customization import customization
+from src.utils.input_utils import is_screenshot_key
 
 # Create a special SnakeGame subclass for VS mode
 class VSPlayerGame(SnakeGame):
@@ -748,7 +749,11 @@ def player_vs_ai():
                         return
                     
                     if wait_event.type == pygame.KEYDOWN:
-                        # Any key press returns to menu (previously only ESC did this)
+                        # Ignore screenshot keys
+                        if is_screenshot_key(wait_event.key):
+                            continue
+                            
+                        # Any other key press returns to menu
                         running = False
                         waiting_for_key = False
                 

@@ -1,15 +1,19 @@
 import pygame
 from utils import draw_gradient 
-from src.game.snake_game import SnakeGame, BLOCK_SIZE, SPEED
+from src.game.snake_game import SnakeGame, BLOCK_SIZE, SPEED, Point
 
 class FibonacciSnakeGame(SnakeGame):
     def __init__(self, width=1280, height=720, display_surface=None):
-        # Call parent constructor to initialize the game
+        # Call parent constructor to initialize the basic game
         super().__init__(width, height, display_surface)
         
-        # Initialize Fibonacci sequence values
-        self.fib_current = 1  # First value in sequence
-        self.fib_next = 1     # Second value
+        # Override snake initialization - start with just the head
+        self.head = Point(self.width // 2, self.height // 2)
+        self.snake = [self.head]  # Just the head, no body segments initially
+        
+        # Initialize Fibonacci sequence values correctly
+        self.fibonacci_sequence = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144]  # Pre-compute sequence
+        self.fib_index = 0  # Start at index 0 (value = 0)
         self.growth_pending = 0  # Track segments still to be added
         
         # Track total Fibonacci segments added
@@ -71,44 +75,63 @@ class FibonacciSnakeGame(SnakeGame):
         # Move the snake
         self._move(self.direction)
         self.snake.insert(0, self.head)
+        
+        # Track if we ate food on this step
+        ate_food_this_step = False
 
         # Check for collisions
         if self._is_collision():
-            # Return score and total fibonacci growth when game ends
-            return True, (self.score, self.total_fibonacci_growth)
+            # Return the current food count and the CURRENT Fibonacci value
+            current_fib_index = max(0, self.fib_index - 1)
+            current_fib_value = self.fibonacci_sequence[current_fib_index]
+            return True, (self.score, current_fib_value)
 
         # Check if the snake eats food
         if self.head == self.food:
             self.eat_sound.play()
             self.score += 1
             self._place_food()
+            ate_food_this_step = True
+            
+            # Get current Fibonacci value for growth
+            current_fib_value = self.fibonacci_sequence[self.fib_index]
             
             # Fibonacci growth - add current Fibonacci number to pending growth
-            self.growth_pending += self.fib_current
+            self.growth_pending += current_fib_value
             
             # Track total growth from Fibonacci sequence
-            self.total_fibonacci_growth += self.fib_current
+            self.total_fibonacci_growth += current_fib_value
             
-            # Update Fibonacci sequence for next food
-            temp = self.fib_current
-            self.fib_current = self.fib_next
-            self.fib_next = temp + self.fib_next
+            # Move to next Fibonacci number
+            self.fib_index += 1
+            # If we exceed pre-computed values, calculate more
+            if self.fib_index >= len(self.fibonacci_sequence) - 1:
+                next_val = self.fibonacci_sequence[-1] + self.fibonacci_sequence[-2]
+                self.fibonacci_sequence.append(next_val)
             
             # Play level up sound every 10 points
             if self.score % 10 == 0 and self.score > 0:
                 if hasattr(self, 'level_up_sound') and self.level_up_sound:
                     self.level_up_sound.play()
                     self._show_level_up()
+        
+        # Handle tail removal logic
+        # For the first food (Fibonacci value 0), we ALWAYS remove the tail
+        if ate_food_this_step and self.score == 1:
+            # First food was just eaten - always remove tail to maintain original length
+            self.snake.pop()
+            # We've already accounted for the fact that current_fib_value is 0 
+            # by keeping the snake length the same
+        elif self.growth_pending <= 0:
+            # No pending growth, remove tail
+            self.snake.pop()
         else:
-            # Only remove tail segment if we don't have pending growth
-            if self.growth_pending <= 0:
-                self.snake.pop()
-            else:
-                self.growth_pending -= 1
+            # We have pending growth, keep the tail
+            self.growth_pending -= 1
             
-            # Update food color if it's a rainbow theme
-            if self.food_theme.random_colors and self.frame_iteration % 60 == 0:
-                self.food_theme.new_random_color()
+        # Update food color if it's a rainbow theme
+        if self.food_theme.random_colors and self.frame_iteration % 60 == 0:
+            self.food_theme.new_random_color()
 
         # Update UI and clock
         self._update_ui()
@@ -125,10 +148,10 @@ class FibonacciSnakeGame(SnakeGame):
             controls_color = (180, 180, 180)   # Light gray
         else:
             draw_gradient(self.display, (200, 200, 200), (255, 255, 255), self.width, self.height)
-            # Light theme colors
-            main_text_color = (0, 0, 100)      # Dark blue
-            high_score_color = (180, 100, 0)   # Dark orange
-            controls_color = (80, 80, 80)      # Dark gray
+            # Light theme colors - change to GREEN
+            main_text_color = (0, 120, 0)          # Rich green for main text
+            high_score_color = (0, 100, 0)         # Slightly darker green for high score
+            controls_color = (60, 60, 60)          # Keep dark gray for controls
 
         # Draw snake with custom theme
         for i, point in enumerate(self.snake):
@@ -138,39 +161,71 @@ class FibonacciSnakeGame(SnakeGame):
         # Draw food with custom theme
         food_color = self.food_theme.get_food_color(self.frame_iteration)
         pygame.draw.circle(self.display, food_color, 
-                          (self.food.x + BLOCK_SIZE // 2, self.food.y + BLOCK_SIZE // 2), 10)
+                        (self.food.x + BLOCK_SIZE // 2, self.food.y + BLOCK_SIZE // 2), 10)
 
-        # Display score with consistent font and dynamic color
-        score_text = self.main_font.render("Score: " + str(self.score), True, main_text_color)
-        self.display.blit(score_text, [0, 0])
+        # Get the CURRENT Fibonacci value (the one that was JUST used, not the next one)
+        # We need to look at the previous index since fib_index is already pointing to the NEXT value
+        current_fib_index = max(0, self.fib_index - 1)  # Ensure we don't go below 0
+        current_fib_value = self.fibonacci_sequence[current_fib_index]
+        next_fib_value = self.fibonacci_sequence[self.fib_index]  # This is correct
+
+        # Display score with format showing current score and corresponding Fibonacci value
+        # This now shows the Fibonacci value JUST USED, not the next one
+        score_text = self.main_font.render(f"Score: {self.score} | {current_fib_value}", True, main_text_color)
+        self.display.blit(score_text, [10, 10])
         
-        # Display total growth stat
-        growth_stat = self.sub_font.render(f"Total Growth: {self.total_fibonacci_growth}", True, main_text_color)
-        growth_stat_rect = growth_stat.get_rect(topright=(self.width - 10, 60))
-        self.display.blit(growth_stat, growth_stat_rect)
-        
-        # Draw just the high score value directly using self.record
-        if hasattr(self, 'record'):
-            if isinstance(self.record, tuple):
-                # Display both food and segments in high score
-                high_score_text = self.sub_font.render(f"High Score: {self.record[0]} ({self.record[1]} segments)", True, high_score_color)
+        # Draw high score if available
+        if hasattr(self, 'record') and self.record:
+            if isinstance(self.record, tuple) and len(self.record) == 2:
+                # Use the format (food_count, fib_value)
+                high_score_text = self.sub_font.render(f"High Score: {self.record[0]} | {self.record[1]}", True, high_score_color)
             else:
-                # Fallback for backward compatibility
+                # Fallback for old format
                 high_score_text = self.sub_font.render(f"High Score: {self.record}", True, high_score_color)
             high_score_rect = high_score_text.get_rect(topright=(self.width - 10, 10))
             self.display.blit(high_score_text, high_score_rect)
         
-        # Add controls help text at bottom left with dynamic color
+        # Add controls help text
         controls_text = self.small_font.render("ESC - Back to Menu | P - Pause | Arrow Keys/WASD - Move", True, controls_color)
         self.display.blit(controls_text, [10, self.height - 30])
         
-        # Add Fibonacci-specific UI elements - CENTERED version
-        theme_color = (255, 215, 0) if self.background_theme == "dark" else (180, 100, 0)  # Gold/amber
+        # Calculate exact total length (initial head + all growth)
+        total_length = len(self.snake)
         
-        # Display next growth value - CENTERED with new format
-        fib_text = self.main_font.render(f"NEXT: +{self.fib_current}", True, theme_color)
-        fib_text_rect = fib_text.get_rect(center=(self.width//2, 40))
-        self.display.blit(fib_text, fib_text_rect)
+        # Define colors for the metrics display
+        metrics_color = (255, 215, 0) if self.background_theme == "dark" else (0, 120, 50)  # Green with blue tint
         
-        # Only call flip once
+        # Display Total Length to the left of the Next Growth
+        length_text = self.main_font.render(f"Length: {total_length}", True, metrics_color)
+        next_growth_text = self.main_font.render(f"NEXT: +{next_fib_value}", True, metrics_color)
+        
+        # Calculate positions - center them both with spacing between
+        total_width = length_text.get_width() + next_growth_text.get_width() + 60  # 60px spacing
+        start_x = (self.width - total_width) // 2
+        
+        # Display metrics side by side
+        length_rect = length_text.get_rect(midleft=(start_x, 40))
+        next_growth_rect = next_growth_text.get_rect(midleft=(start_x + length_text.get_width() + 60, 40))
+        
+        self.display.blit(length_text, length_rect)
+        self.display.blit(next_growth_text, next_growth_rect)
+        
+        # Update display
         pygame.display.flip()
+
+    def get_fibonacci_at_position(self, position):
+        """Get the Fibonacci number at the given position in the sequence"""
+        if position < len(self.fibonacci_sequence):
+            return self.fibonacci_sequence[position]
+            
+        # If position is beyond our pre-computed values, calculate it
+        if position <= 0:
+            return 0
+        elif position == 1 or position == 2:
+            return 1
+        
+        # Generate the Fibonacci sequence up to the desired position
+        a, b = 1, 1
+        for _ in range(3, position + 1):
+            a, b = b, a + b
+        return b
