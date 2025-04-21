@@ -18,11 +18,13 @@ class FibonacciGameAI(SnakeGameAI):
         # Initialize the parent class
         super().__init__(width, height, record, avg, iteration, display_surface)
         
-        # Fibonacci-specific attributes
-        self.fibonacci_sequence = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144]  # Added the initial 0
-        self.fib_index = 0  # Start with the first Fibonacci number
+        # Fibonacci-specific attributes - match player mode
+        # Start with 0 to match player mode (0-indexed growth)
+        self.fibonacci_sequence = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144]
+        self.fib_index = 0  # Start with index 0 (value 0)
         self.total_fibonacci_growth = 0
         self.fib_score = 0  # Total Fibonacci value collected
+        self.viewing_mode = False  # Flag for viewer mode UI
         
     def reset(self):
         """Override reset to include Fibonacci-specific reset logic"""
@@ -39,6 +41,10 @@ class FibonacciGameAI(SnakeGameAI):
             
     def get_fibonacci_at_position(self, index):
         """Get the Fibonacci value at a specific index, extending if needed"""
+        # Safety check for negative indices
+        if index < 0:
+            return 0
+            
         while index >= len(self.fibonacci_sequence):
             self._extend_fibonacci_sequence()
         return self.fibonacci_sequence[index]
@@ -57,19 +63,19 @@ class FibonacciGameAI(SnakeGameAI):
                 # Handle pause
                 if event.key == pygame.K_p:
                     paused = True
-                    
+    
                     # Create semi-transparent overlay for better contrast
                     overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
                     overlay.fill((0, 0, 0, 120) if self.background_theme == "dark" else (255, 255, 255, 120))
                     self.display.blit(overlay, (0, 0))
-                    
+    
                     # Dynamic text color based on theme
                     pause_color = WHITE if self.background_theme == "dark" else (0, 0, 100)
-                    
+    
                     pause_text = self.sub_font.render('PAUSED - Press P to continue', True, pause_color)
                     self.display.blit(pause_text, (self.width//2 - pause_text.get_width()//2, self.height//2))
                     pygame.display.update()
-                    
+    
                     while paused:
                         for pause_event in pygame.event.get():
                             if pause_event.type == pygame.KEYDOWN and pause_event.key == pygame.K_p:
@@ -77,6 +83,7 @@ class FibonacciGameAI(SnakeGameAI):
                             elif pause_event.type == pygame.QUIT:
                                 pygame.quit()
                                 quit()
+                        pygame.time.wait(100)
         
         # Move the snake
         self._move(action)
@@ -99,7 +106,6 @@ class FibonacciGameAI(SnakeGameAI):
             return reward, game_over, self.score
         
         # Check for timeout - using customizable frame limit multiplier
-        # Only applies this strict timeout if the snake is not growing
         if self.score > 10 and self.frame_iteration > self.frame_limit_multiplier * len(self.snake):
             game_over = True
             reward = -10
@@ -110,20 +116,25 @@ class FibonacciGameAI(SnakeGameAI):
             # Get current Fibonacci value for growth
             current_fib_value = self.get_fibonacci_at_position(self.fib_index)
             
-            # Increment score
+            # Increment score - this represents food eaten
             self.score += 1
             
-            # Add to Fibonacci score
+            # Add to Fibonacci score - accumulated Fibonacci values
             self.fib_score += current_fib_value
             
             # Reward is proportional to the Fibonacci value
-            reward = current_fib_value / 10  # Scale down large values
+            reward = max(1, current_fib_value) / 10  # Scale down large values
             
-            # Make the snake grow according to the Fibonacci value
-            for _ in range(current_fib_value - 1):  # -1 because we already added the head
-                # Add segments to the tail
-                self.snake.append(self.snake[-1])
-                
+            # SPECIAL CASE: For first food (score=1, fib_index=0, value=0), remove tail
+            # to match player mode behavior - no growth for first food
+            if self.score == 1:
+                self.snake.pop()  # Remove the tail to maintain original length
+            else:
+                # For subsequent values, add exactly that many segments
+                for _ in range(current_fib_value):
+                    # Add segments to the tail
+                    self.snake.append(self.snake[-1])
+                    
             # Track total growth
             self.total_fibonacci_growth += current_fib_value
                 
@@ -192,7 +203,9 @@ class FibonacciGameAI(SnakeGameAI):
                          (self.food.x + BLOCK_SIZE // 2, self.food.y + BLOCK_SIZE // 2), 10)
 
         # Get the current and next Fibonacci values
+        # Current value is the last one used for growth
         current_fib_value = self.get_fibonacci_at_position(max(0, self.fib_index - 1))
+        # Next value is what will be used for next growth
         next_fib_value = self.get_fibonacci_at_position(self.fib_index)
 
         # Different UI for viewer mode vs training mode
@@ -212,6 +225,10 @@ class FibonacciGameAI(SnakeGameAI):
             # Show total length
             length_text = self.sub_font.render(f"Length: {len(self.snake)}", True, main_text_color)
             self.display.blit(length_text, [self.width - length_text.get_width() - 10, 70])
+            
+            # Show total Fibonacci score
+            fib_score_text = self.sub_font.render(f"Fibonacci Sum: {self.fib_score}", True, main_text_color)
+            self.display.blit(fib_score_text, [10, 120])
             
             # Add controls help text
             controls_text = self.small_font.render("ESC - Back to Menu | P - Pause", True, controls_color)

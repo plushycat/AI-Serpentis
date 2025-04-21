@@ -4,7 +4,7 @@
     "enhanced_effects": true
   },
   "gameplay": {
-    "player_position": "left",
+    "player_position": "right",
     "debug_mode": false
   },
   "audio": {

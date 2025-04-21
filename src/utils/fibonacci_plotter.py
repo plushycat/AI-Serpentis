@@ -24,13 +24,7 @@ def plot(scores, mean_scores, fib_scores=None):
     Thread(target=lambda: plot_thread(scores, mean_scores, fib_scores), daemon=True).start()
 
 def plot_thread(scores, mean_scores, fib_scores=None):
-    """Thread function to create and save the plot without using interactive features.
-    
-    Args:
-        scores (list): List of scores from each game
-        mean_scores (list): List of mean scores
-        fib_scores (list, optional): List of fibonacci scores from each game
-    """
+    """Thread function to create and save the plot without using interactive features."""
     try:
         # Create a new figure with specified size
         fig = Figure(figsize=(10, 6), dpi=100)
@@ -39,26 +33,26 @@ def plot_thread(scores, mean_scores, fib_scores=None):
         if fib_scores:
             # Regular game scores subplot
             ax1 = fig.add_subplot(211)  # 2 rows, 1 column, first plot
-            ax1.plot(scores, label='Score', color='blue')
+            ax1.plot(scores, label='Food Score', color='blue')
             ax1.plot(mean_scores, label='Mean Score', color='red')
-            ax1.set_title('Game Scores Progress')
-            ax1.set_ylabel('Score')
+            ax1.set_title('Food Collection Progress')
+            ax1.set_ylabel('Food Score')
             ax1.set_ylim(bottom=0)
             
             # Add text annotations for the latest scores
             if scores and mean_scores:
                 ax1.text(len(scores)-1, scores[-1], str(scores[-1]))
-                ax1.text(len(mean_scores)-1, mean_scores[-1], str(mean_scores[-1]))
+                ax1.text(len(mean_scores)-1, mean_scores[-1], f"{mean_scores[-1]:.1f}")
             
             # Add legend
             ax1.legend(loc='upper left')
             
             # Fibonacci scores subplot
             ax2 = fig.add_subplot(212)  # 2 rows, 1 column, second plot
-            ax2.plot(fib_scores, label='Fibonacci Score', color='green')
-            ax2.set_title('Fibonacci Values Progress')
+            ax2.plot(fib_scores, label='Fibonacci Sum', color='green')
+            ax2.set_title('Fibonacci Growth Progress')
             ax2.set_xlabel('Number of Games')
-            ax2.set_ylabel('Fibonacci Value')
+            ax2.set_ylabel('Fibonacci Sum')
             ax2.set_ylim(bottom=0)
             
             # Add text annotations for the latest fibonacci scores
