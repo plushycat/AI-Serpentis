@@ -61,7 +61,15 @@ def play_fibonacci_game():
         over, score_info = game.play_step()
         
         if over:
-            score, fib_score = score_info
+            # Handle both tuple and integer return formats
+            if isinstance(score_info, tuple) and len(score_info) == 2:
+                score, fib_score = score_info
+            else:
+                # Old format with just score
+                score = score_info
+                # Calculate fibonacci sum if possible
+                fib_score = game.fib_score if hasattr(game, 'fib_score') else 0
+            
             print(f"Game Over! Score: {score}, Fibonacci Sum: {fib_score}")
             
             # Check if this is a new high score for either metric

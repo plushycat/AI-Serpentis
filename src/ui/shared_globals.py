@@ -64,14 +64,16 @@ def init_globals():
     try:
         # Get absolute paths using the asset_path helper
         font_path = get_asset_path("assets/fonts/game_over.ttf")
-        title_font = pygame.font.Font(font_path, 96)
-        menu_font = pygame.font.Font(font_path, 36)
-        footer_font = pygame.font.Font(font_path, 24)
+        
+        # MORE REASONABLE FONT SIZES (matches old_main.py)
+        title_font = pygame.font.Font(font_path, 96)   # Back to original
+        menu_font = pygame.font.Font(font_path, 48)    # Better size for menus
+        footer_font = pygame.font.Font(font_path, 36)  # Better size for entries
     except (FileNotFoundError, pygame.error) as e:
         print(f"Warning: Font files not found: {e}. Using system fonts.")
-        title_font = pygame.font.SysFont("Arial", 96)
-        menu_font = pygame.font.SysFont("Arial", 36)
-        footer_font = pygame.font.SysFont("Arial", 24)
+        title_font = pygame.font.SysFont("Arial", 96)  # Back to original
+        menu_font = pygame.font.SysFont("Arial", 48)   # Better size for menus
+        footer_font = pygame.font.SysFont("Arial", 36) # Better size for entries
     
     # Load sound effects and assets with better error handling
     try:

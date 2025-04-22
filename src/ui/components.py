@@ -77,27 +77,16 @@ def draw_smooth_gradient(screen, current_gradient=0, next_gradient=1, blend=0):
         )
         pygame.draw.line(screen, line_color, (0, y), (width, y))
 
-def glowing_text(screen, text, font, x, y, color, animation_step=0, glow_amount=15):
-    """Render text with glow effect"""
-    # Calculate glow intensity based on animation step
-    glow = abs(math.sin(animation_step / 20)) * glow_amount
-    
-    # Draw glow layers
-    for offset in range(int(glow), 0, -3):
-        alpha = 150 - offset * 10
-        if alpha <= 0:
-            continue
-        
-        # Create glow text with alpha
-        glow_text = font.render(text, True, (color[0], color[1], color[2]))
-        glow_text.set_alpha(alpha)  # Set alpha on the surface
-        screen.blit(glow_text, (x - offset // 2, y - offset // 2))
-    
-    # Draw main text on top
-    text_surface = font.render(text, True, WHITE)
-    screen.blit(text_surface, (x, y))
-    
-    return text_surface
+def glowing_text(screen, text, font, x, y, base_color, step):
+    glow = abs(math.sin(step / 20)) * 180
+    color = (
+        min(255, base_color[0] + glow),
+        min(255, base_color[1] + glow),
+        min(255, base_color[2] + glow),
+    )
+    surface = font.render(text, True, color)
+    screen.blit(surface, (x, y))
+
 
 def draw_button(screen, rect, text, font, base_color, hover_color, mouse_pos):
     """Draw a button with hover effect"""

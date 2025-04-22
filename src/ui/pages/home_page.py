@@ -94,11 +94,16 @@ def home_page():
     scores_button = pygame.Rect(20, 20, 120, 40)
     music_rect = pygame.Rect(SCREEN_WIDTH - 60, 20, 40, 40)
     
-    # Help button
-    help_button_size = 40
-    help_button = pygame.Rect(20, SCREEN_HEIGHT - 60, help_button_size, help_button_size)
+    # Help button - define once outside the loop with correct size
+    help_button_size = 50  # Larger size for better visibility 
+    help_button = pygame.Rect(20, SCREEN_HEIGHT - 70, help_button_size, help_button_size)
     help_color = (80, 100, 180)
     help_hover = (120, 140, 220)
+    
+    # Pre-render help button elements
+    question_text = menu_font.render("?", True, WHITE)  # Changed from green to white to match scores text
+    help_shadow = pygame.Surface((help_button_size, help_button_size), pygame.SRCALPHA)
+    help_shadow.fill((0, 0, 0, 30))
     
     # Initialize particles
     particles = [Particle() for _ in range(80)]
@@ -106,14 +111,16 @@ def home_page():
 
     # Pre-render static elements to reduce flickering
     title_text = "AI Serpentis"
-    title_font = pygame.font.Font("assets/fonts/game_over.ttf", 96) 
-    footer_surf = pygame.font.Font("assets/fonts/game_over.ttf", 24).render("The Snake Game Reimagined v2.0", True, (200, 200, 200))
+    
+    # Use the shared footer_font instead of hardcoded size
+    footer_surf = footer_font.render("The Snake Game Reimagined v2.0", True, (200, 200, 200))
     footer_rect = footer_surf.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT - 30))
     
     # Pre-render button labels to avoid creating them every frame
     button_labels = []
     for button in buttons:
-        text_surface = pygame.font.Font("assets/fonts/game_over.ttf", 36).render(button["text"], True, WHITE)
+        # Use menu_font instead of hardcoded size
+        text_surface = menu_font.render(button["text"], True, WHITE)
         button_labels.append(text_surface)
     
     # Cache button surfaces
@@ -121,7 +128,7 @@ def home_page():
     shadow_surfaces = [None] * len(buttons)
     
     # Pre-render scores button
-    scores_text = pygame.font.Font("assets/fonts/game_over.ttf", 24).render("Scores", True, WHITE)
+    scores_text = footer_font.render("Scores", True, WHITE)
     scores_shadow = pygame.Surface((scores_button.width, scores_button.height), pygame.SRCALPHA)
     scores_shadow.fill((0, 0, 0, 30))
     
@@ -213,10 +220,24 @@ def home_page():
         # Draw footer
         screen.blit(footer_surf, footer_rect)
         
-        # Draw help button
-        pygame.draw.rect(screen, help_hover if help_button.collidepoint(mouse_pos) else help_color, 
-                      help_button, border_radius=20)
-        question_text = pygame.font.Font("assets/fonts/game_over.ttf", 36).render("?", True, WHITE)
+        # Draw help button with improved animation (same style as scores button)
+        help_surface = pygame.Surface((help_button.width, help_button.height), pygame.SRCALPHA)
+        
+        # Change color based on hover state (same as scores button)
+        current_help_color = help_hover if help_button.collidepoint(mouse_pos) else help_color
+        pygame.draw.rect(help_surface, current_help_color, 
+                    (0, 0, help_button.width, help_button.height), border_radius=20)
+        
+        # Add shadow for depth
+        screen.blit(help_shadow, (help_button.x + 2, help_button.y + 2))
+        screen.blit(help_surface, help_button)
+        
+        # Add pulsing glow effect like scores button
+        help_glow_width = int(abs(math.sin(step / 15)) * 2) + 1  # Reduced from (3)+2 to (2)+1
+        help_glow_rect = help_button.inflate(4, 4)  # Reduced from (8,8) to (4,4)
+        pygame.draw.rect(screen, (80, 120, 200), help_glow_rect, help_glow_width, border_radius=20)
+        
+        # Center the question mark in the button
         question_rect = question_text.get_rect(center=help_button.center)
         screen.blit(question_text, question_rect)
         
