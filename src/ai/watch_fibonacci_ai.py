@@ -7,7 +7,6 @@ import torch
 import pygame
 import time
 from src.game.fibonacci_ai import FibonacciGameAI
-# Change this import to use transfer_fibonacci_ai instead
 from src.ai.transfer_fibonacci_ai import TransferredFibonacciAgent, watch
 from src.ai.model import Linear_QNet
 

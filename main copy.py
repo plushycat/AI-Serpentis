@@ -23,31 +23,5 @@ from src.ui.old_main import (
     save_high_score
 )
 
-import pygame
-import sys
-
-# Initialize pygame first - before ANY imports
-pygame.init()
-
-# Import and initialize shared globals immediately
-from src.ui.shared_globals import init_globals
-
-# Initialize all shared resources
-init_globals()
-
-# Now it's safe to import home_page
-def main():
-    try:
-        # Import here to avoid circular imports
-        from src.ui.pages.home_page import home_page
-        home_page()
-    except Exception as e:
-        print(f"Error in main application: {e}")
-        import traceback
-        traceback.print_exc()
-    finally:
-        pygame.quit()
-        sys.exit()
-
 if __name__ == "__main__":
-    main()
+    home_page()

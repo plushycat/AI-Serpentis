@@ -186,5 +186,23 @@ class GameCustomization:
         """Get all available food themes."""
         return self.food_themes
 
+    def get_current_snake_theme_index(self):
+        """Get the index of the currently selected snake theme."""
+        themes = list(self.snake_themes.keys())
+        try:
+            return themes.index(self.current_snake_theme)
+        except ValueError:
+            # If current theme not found (e.g., "random"), return 0 (default)
+            return 0
+            
+    def get_current_food_theme_index(self):
+        """Get the index of the currently selected food theme."""
+        themes = list(self.food_themes.keys())
+        try:
+            return themes.index(self.current_food_theme)
+        except ValueError:
+            # If current theme not found, return 0 (default)
+            return 0
+
 # Create a global instance for easy access
 customization = GameCustomization()
