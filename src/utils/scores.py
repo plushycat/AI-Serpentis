@@ -9,9 +9,11 @@ HIGHSCORE_FILE = "data/stats/highscores.json"
 def load_high_scores():
     """Load high scores with history from file or create default if it doesn't exist"""
     try:
+        print(f"Attempting to load high scores from {HIGHSCORE_FILE}")
         if os.path.exists(HIGHSCORE_FILE):
             with open(HIGHSCORE_FILE, 'r') as f:
                 high_scores = json.load(f)
+                print(f"Successfully loaded high scores: {list(high_scores.keys())}")
                 
             # Ensure the file has the expected structure
             if not isinstance(high_scores, dict):

@@ -1,13 +1,13 @@
 {
-  "appearance": {
-    "background_theme": "dark",
-    "enhanced_effects": true
-  },
-  "gameplay": {
-    "player_position": "right",
-    "debug_mode": false
-  },
-  "audio": {
-    "music_on": true
-  }
+    "appearance": {
+        "background_theme": "dark",
+        "enhanced_effects": true
+    },
+    "gameplay": {
+        "player_position": "right",
+        "debug_mode": false
+    },
+    "audio": {
+        "music_on": true
+    }
 }
