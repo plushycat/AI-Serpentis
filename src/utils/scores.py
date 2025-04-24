@@ -58,6 +58,7 @@ def create_default_high_scores():
         
     return high_scores
 
+# Fix for save_high_score
 def save_high_score(mode, score):
     """Save high score with date to the high scores file"""
     try:
@@ -74,14 +75,13 @@ def save_high_score(mode, score):
         high_scores[mode]["scores"].append(score)
         high_scores[mode]["dates"].append(today)
         
-        # Sort scores (highest first) and keep only top 10
-        if len(high_scores[mode]["scores"]) > 10:
-            combined = list(zip(high_scores[mode]["scores"], high_scores[mode]["dates"]))
-            combined.sort(key=lambda x: x[0], reverse=True)  # Sort by score
-            combined = combined[:10]  # Keep top 10
-            
-            high_scores[mode]["scores"] = [item[0] for item in combined]
-            high_scores[mode]["dates"] = [item[1] for item in combined]
+        # ALWAYS sort scores (highest first) regardless of count
+        combined = list(zip(high_scores[mode]["scores"], high_scores[mode]["dates"]))
+        combined.sort(key=lambda x: x[0], reverse=True)  # Sort by score
+        combined = combined[:10] if len(combined) > 10 else combined  # Keep top 10 if needed
+        
+        high_scores[mode]["scores"] = [item[0] for item in combined]
+        high_scores[mode]["dates"] = [item[1] for item in combined]
         
         # Save the updated high scores
         with open(HIGHSCORE_FILE, 'w') as f:
@@ -93,6 +93,7 @@ def save_high_score(mode, score):
         print(f"Error saving high score: {e}")
         return False
 
+# Fix for save_fibonacci_high_score
 def save_fibonacci_high_score(food_score, fib_value):
     """Save Fibonacci high score with both food count and Fibonacci value"""
     try:
@@ -114,19 +115,18 @@ def save_fibonacci_high_score(food_score, fib_value):
         high_scores["fibonacci"]["fib_values"].append(fib_value)
         high_scores["fibonacci"]["dates"].append(today)
         
-        # Sort by food score (highest first) and keep top 10
-        if len(high_scores["fibonacci"]["scores"]) > 10:
-            combined = list(zip(
-                high_scores["fibonacci"]["scores"],
-                high_scores["fibonacci"]["fib_values"],
-                high_scores["fibonacci"]["dates"]
-            ))
-            combined.sort(key=lambda x: x[0], reverse=True)  # Sort by food score
-            combined = combined[:10]  # Keep top 10
-            
-            high_scores["fibonacci"]["scores"] = [item[0] for item in combined]
-            high_scores["fibonacci"]["fib_values"] = [item[1] for item in combined]
-            high_scores["fibonacci"]["dates"] = [item[2] for item in combined]
+        # ALWAYS sort by food score (highest first)
+        combined = list(zip(
+            high_scores["fibonacci"]["scores"],
+            high_scores["fibonacci"]["fib_values"],
+            high_scores["fibonacci"]["dates"]
+        ))
+        combined.sort(key=lambda x: x[0], reverse=True)  # Sort by food score
+        combined = combined[:10] if len(combined) > 10 else combined  # Keep top 10 if needed
+        
+        high_scores["fibonacci"]["scores"] = [item[0] for item in combined]
+        high_scores["fibonacci"]["fib_values"] = [item[1] for item in combined]
+        high_scores["fibonacci"]["dates"] = [item[2] for item in combined]
         
         # Save the updated high scores
         with open(HIGHSCORE_FILE, 'w') as f:
@@ -163,17 +163,16 @@ def save_vs_high_score(player_type, score):
         high_scores["vs_mode"][player_type]["scores"].append(score)
         high_scores["vs_mode"][player_type]["dates"].append(today)
         
-        # Sort scores (highest first) and keep only top 10
-        if len(high_scores["vs_mode"][player_type]["scores"]) > 10:
-            combined = list(zip(
-                high_scores["vs_mode"][player_type]["scores"], 
-                high_scores["vs_mode"][player_type]["dates"]
-            ))
-            combined.sort(key=lambda x: x[0], reverse=True)  # Sort by score
-            combined = combined[:10]  # Keep top 10
-            
-            high_scores["vs_mode"][player_type]["scores"] = [item[0] for item in combined]
-            high_scores["vs_mode"][player_type]["dates"] = [item[1] for item in combined]
+        # ALWAYS sort scores (highest first) regardless of count
+        combined = list(zip(
+            high_scores["vs_mode"][player_type]["scores"], 
+            high_scores["vs_mode"][player_type]["dates"]
+        ))
+        combined.sort(key=lambda x: x[0], reverse=True)  # Sort by score
+        combined = combined[:10] if len(combined) > 10 else combined  # Keep top 10 if needed
+        
+        high_scores["vs_mode"][player_type]["scores"] = [item[0] for item in combined]
+        high_scores["vs_mode"][player_type]["dates"] = [item[1] for item in combined]
         
         # Save the updated high scores
         with open(HIGHSCORE_FILE, 'w') as f:
@@ -184,3 +183,176 @@ def save_vs_high_score(player_type, score):
     except Exception as e:
         print(f"Error saving VS mode high score: {e}")
         return False
+
+def resort_all_high_scores():
+    """Resort all high scores and correct legacy data structures"""
+    try:
+        high_scores = load_high_scores()
+        modified = False
+        
+        # Resort classic mode and AI mode scores
+        for mode in ["classic", "ai"]:
+            if mode in high_scores:
+                # Ensure scores are in the new format
+                if isinstance(high_scores[mode], dict) and "scores" in high_scores[mode]:
+                    scores = high_scores[mode]["scores"]
+                    dates = high_scores[mode].get("dates", [])
+                    
+                    # If dates are missing, create placeholder dates
+                    while len(dates) < len(scores):
+                        dates.append(datetime.datetime.now().strftime("%Y-%m-%d"))
+                    
+                    # Sort scores
+                    combined = list(zip(scores, dates))
+                    combined.sort(key=lambda x: x[0], reverse=True)  # Sort by score (highest first)
+                    
+                    # Keep only top 10
+                    combined = combined[:10] if len(combined) > 10 else combined
+                    
+                    # Update high scores
+                    high_scores[mode]["scores"] = [item[0] for item in combined]
+                    high_scores[mode]["dates"] = [item[1] for item in combined]
+                    modified = True
+                    
+                # Handle legacy format (direct integer)
+                elif isinstance(high_scores[mode], (int, float)):
+                    # Convert to new format
+                    score = high_scores[mode]
+                    high_scores[mode] = {
+                        "scores": [score],
+                        "dates": [datetime.datetime.now().strftime("%Y-%m-%d")]
+                    }
+                    modified = True
+        
+        # Resort fibonacci modes
+        for mode in ["fibonacci", "fibonacci_ai"]:
+            if mode in high_scores:
+                # Ensure we have all required fields
+                if isinstance(high_scores[mode], dict) and "scores" in high_scores[mode]:
+                    scores = high_scores[mode]["scores"]
+                    fib_values = high_scores[mode].get("fib_values", [0] * len(scores))
+                    dates = high_scores[mode].get("dates", [])
+                    
+                    # If dates are missing, create placeholder dates
+                    while len(dates) < len(scores):
+                        dates.append(datetime.datetime.now().strftime("%Y-%m-%d"))
+                        
+                    # If fib_values are missing, create placeholder values
+                    while len(fib_values) < len(scores):
+                        fib_values.append(0)
+                    
+                    # Sort scores
+                    combined = list(zip(scores, fib_values, dates))
+                    combined.sort(key=lambda x: x[0], reverse=True)  # Sort by score (highest first)
+                    
+                    # Keep only top 10
+                    combined = combined[:10] if len(combined) > 10 else combined
+                    
+                    # Update high scores
+                    high_scores[mode]["scores"] = [item[0] for item in combined]
+                    high_scores[mode]["fib_values"] = [item[1] for item in combined]
+                    high_scores[mode]["dates"] = [item[2] for item in combined]
+                    modified = True
+        
+        # Handle VS mode - both old and new formats
+        # First, sort the current vs_mode format
+        if "vs_mode" in high_scores:
+            for player_type in ["player", "ai"]:
+                if player_type in high_scores["vs_mode"] and "scores" in high_scores["vs_mode"][player_type]:
+                    scores = high_scores["vs_mode"][player_type]["scores"]
+                    dates = high_scores["vs_mode"][player_type].get("dates", [])
+                    
+                    # If dates are missing, create placeholder dates
+                    while len(dates) < len(scores):
+                        dates.append(datetime.datetime.now().strftime("%Y-%m-%d"))
+                    
+                    # Sort scores
+                    combined = list(zip(scores, dates))
+                    combined.sort(key=lambda x: x[0], reverse=True)  # Sort by score (highest first)
+                    
+                    # Keep only top 10
+                    combined = combined[:10] if len(combined) > 10 else combined
+                    
+                    # Update high scores
+                    high_scores["vs_mode"][player_type]["scores"] = [item[0] for item in combined]
+                    high_scores["vs_mode"][player_type]["dates"] = [item[1] for item in combined]
+                    modified = True
+        
+        # Then handle the legacy "vs" format and merge with vs_mode
+        if "vs" in high_scores:
+            # Create vs_mode if it doesn't exist
+            if "vs_mode" not in high_scores:
+                high_scores["vs_mode"] = {
+                    "player": {"scores": [], "dates": []},
+                    "ai": {"scores": [], "dates": []},
+                    "matches": []
+                }
+            
+            # Ensure all player types exist in vs_mode
+            for player_type in ["player", "ai"]:
+                if player_type not in high_scores["vs_mode"]:
+                    high_scores["vs_mode"][player_type] = {"scores": [], "dates": []}
+                
+                # Also ensure the scores and dates keys exist
+                if "scores" not in high_scores["vs_mode"][player_type]:
+                    high_scores["vs_mode"][player_type]["scores"] = []
+                if "dates" not in high_scores["vs_mode"][player_type]:
+                    high_scores["vs_mode"][player_type]["dates"] = []
+                
+                # Now proceed with the migration
+                if player_type in high_scores["vs"] and "scores" in high_scores["vs"][player_type]:
+                    vs_scores = high_scores["vs"][player_type]["scores"]
+                    vs_dates = high_scores["vs"][player_type].get("dates", [])
+                    
+                    # If dates are missing, create placeholder dates
+                    while len(vs_dates) < len(vs_scores):
+                        vs_dates.append(datetime.datetime.now().strftime("%Y-%m-%d"))
+                    
+                    # Merge with vs_mode scores
+                    new_scores = high_scores["vs_mode"][player_type]["scores"] + vs_scores
+                    new_dates = high_scores["vs_mode"][player_type]["dates"] + vs_dates
+                    
+                    # Sort combined scores
+                    combined = list(zip(new_scores, new_dates))
+                    combined.sort(key=lambda x: x[0], reverse=True)  # Sort by score
+                    
+                    # Keep only top 10
+                    combined = combined[:10] if len(combined) > 10 else combined
+                    
+                    # Update vs_mode
+                    high_scores["vs_mode"][player_type]["scores"] = [item[0] for item in combined]
+                    high_scores["vs_mode"][player_type]["dates"] = [item[1] for item in combined]
+                    modified = True
+            
+            # Remove the legacy "vs" key after migration
+            del high_scores["vs"]
+            modified = True
+        
+        # Create backward compatibility by copying vs_mode back to vs
+        if "vs_mode" in high_scores and "vs" not in high_scores:
+            # Recreate the vs structure for compatibility with old UI code
+            high_scores["vs"] = {
+                "player": {"scores": [], "dates": []},
+                "ai": {"scores": [], "dates": []}
+            }
+            
+            # Copy data from vs_mode to vs
+            for player_type in ["player", "ai"]:
+                if player_type in high_scores["vs_mode"]:
+                    high_scores["vs"][player_type]["scores"] = high_scores["vs_mode"][player_type].get("scores", [])
+                    high_scores["vs"][player_type]["dates"] = high_scores["vs_mode"][player_type].get("dates", [])
+            
+            modified = True
+        
+        # Save the updated high scores
+        if modified:
+            with open(HIGHSCORE_FILE, 'w') as f:
+                json.dump(high_scores, f, indent=4)
+            print("Successfully resorted all high scores")
+        
+        return high_scores
+    except Exception as e:
+        print(f"Error resorting high scores: {e}")
+        import traceback
+        traceback.print_exc()
+        return load_high_scores()  # Return original if error

@@ -9,6 +9,7 @@ from src.game.snake_game import SnakeGame, Point, RIGHT, LEFT, UP, DOWN, BLOCK_S
 from src.game.snake_ai import SnakeGameAI
 from src.game.customization import customization
 from src.utils.input_utils import is_screenshot_key
+from src.utils.scores import save_vs_high_score
 
 # Create a special SnakeGame subclass for VS mode
 class VSPlayerGame(SnakeGame):
@@ -156,39 +157,6 @@ def load_high_scores():
     except Exception as e:
         print(f"Error loading high scores: {e}")
         return {"classic": 0, "ai": 0, "vs": {"player": 0, "ai": 0}}
-
-def save_vs_high_score(player_type, score):
-    """Save high score for vs mode using the unified system"""
-    try:
-        # Import the unified save function
-        from src.ui.main import save_high_score
-        # Call it with the proper formatted mode
-        return save_high_score(f"vs.{player_type}", score)
-    except ImportError:
-        # Fallback to old method if import fails
-        highscore_file = "data/stats/highscores.json"
-        try:
-            if os.path.exists(highscore_file):
-                with open(highscore_file, 'r') as f:
-                    high_scores = json.load(f)
-            else:
-                high_scores = {"classic": 0, "ai": 0, "vs": {"player": 0, "ai": 0}}
-                os.makedirs(os.path.dirname(highscore_file), exist_ok=True)
-                
-            # Update if it's a new high score
-            if score > high_scores.get("vs", {}).get(player_type, 0):
-                if "vs" not in high_scores:
-                    high_scores["vs"] = {}
-                high_scores["vs"][player_type] = score
-                
-                # Save updated high scores
-                with open(highscore_file, 'w') as f:
-                    json.dump(high_scores, f, indent=2)
-                return True  # Indicates this is a new high score
-            return False
-        except Exception as e:
-            print(f"Error saving high score: {e}")
-            return False
 
 # Function to load player position preference
 def get_player_position():
