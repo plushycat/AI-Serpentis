@@ -266,11 +266,26 @@ def settings_page():
                 selected_border.center = light_button.center
                 pygame.draw.rect(screen, (80, 200, 120), selected_border, 3, border_radius=14)
                 
-            # Use standardized colors for theme buttons
+            # Use theme-specific colors for theme buttons instead of standard colors
+            dark_theme_color = (40, 40, 50)  # Dark gray
+            dark_theme_hover = (60, 60, 80)  # Slightly lighter dark gray
+            
+            light_theme_color = (230, 230, 240)  # Very light gray (almost white)
+            light_theme_hover = (250, 250, 255)  # White
+            
+            # Dark theme button with dark colors
             draw_button(screen, dark_button, "Theme: Dark", menu_font,
-                    standard_button_color, standard_button_hover, mouse_pos)
-            draw_button(screen, light_button, "Theme: Light", menu_font,
-                    standard_button_color, standard_button_hover, mouse_pos)
+                    dark_theme_color, dark_theme_hover, mouse_pos)
+            
+            # Light theme button with light colors - use dark text
+            is_hover = light_button.collidepoint(mouse_pos)
+            color = light_theme_hover if is_hover else light_theme_color
+            pygame.draw.rect(screen, color, light_button, border_radius=12)
+            
+            # Dark text for light button for better contrast
+            text_surface = menu_font.render("Theme: Light", True, (20, 20, 30))
+            text_rect = text_surface.get_rect(center=light_button.center)
+            screen.blit(text_surface, text_rect)
                     
             # Debug mode toggle button - keep toggle colors
             debug_label = "Debug: ON" if debug_mode else "Debug: OFF"
