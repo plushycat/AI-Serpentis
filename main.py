@@ -9,18 +9,6 @@ from src.game.customization import customization
 from src.ai.watch_fibonacci_ai import watch_ai as watch_fibonacci_ai
 from src.ai.transfer_fibonacci_ai import finetune as train_fibonacci_ai
 
-# Import all functions from the original main.py EXCEPT the score functions
-from src.ui.old_main import (
-    home_page, 
-    play_classic_game,
-    play_fibonacci_game,
-    watch_ai_play,
-    watch_fibonacci_ai_play,
-    player_vs_ai,
-    settings_page,
-)
-
-# INSTEAD, import the correct implementations from scores.py
 from src.utils.scores import load_high_scores, save_high_score, resort_all_high_scores
 
 import pygame
