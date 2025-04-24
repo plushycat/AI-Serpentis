@@ -97,8 +97,8 @@ def init_globals():
             music_off_icon.fill((200, 0, 0))  # Red
         
         # Load and prepare background music
-        bg_music_path = get_asset_path("assets/sounds/background-music.mp3")
-        click_sound_path = get_asset_path("assets/sounds/click.wav")
+        bg_music_path = get_asset_path("assets/sounds/bg_music.mp3")
+        click_sound_path = get_asset_path("assets/sounds/ui_click.mp3")
         
         if os.path.exists(bg_music_path):
             pygame.mixer.music.load(bg_music_path)

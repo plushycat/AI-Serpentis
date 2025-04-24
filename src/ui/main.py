@@ -25,8 +25,8 @@ try:
     music_off_icon = pygame.transform.scale(music_off_icon, (40, 40))
     
     # Load and prepare background music
-    pygame.mixer.music.load("assets/sounds/background-music.mp3")
-    click_sound = pygame.mixer.Sound("assets/sounds/click.wav")
+    pygame.mixer.music.load("assets/sounds/bg_music.mp3")
+    click_sound = pygame.mixer.Sound("assets/sounds/ui_click.mp3")
     music_loaded = True
 except Exception as e:
     print(f"Warning: Resource files not found. {e}")
