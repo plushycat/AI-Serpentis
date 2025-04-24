@@ -9,6 +9,7 @@ from src.game.snake_game import SnakeGame, Point, RIGHT, LEFT, UP, DOWN, BLOCK_S
 from src.game.snake_ai import SnakeGameAI
 from src.game.customization import customization
 from src.utils.input_utils import is_screenshot_key
+from src.utils.scores import save_vs_high_score
 
 # Create a special SnakeGame subclass for VS mode
 class VSPlayerGame(SnakeGame):
@@ -156,39 +157,6 @@ def load_high_scores():
     except Exception as e:
         print(f"Error loading high scores: {e}")
         return {"classic": 0, "ai": 0, "vs": {"player": 0, "ai": 0}}
-
-def save_vs_high_score(player_type, score):
-    """Save high score for vs mode using the unified system"""
-    try:
-        # Import the unified save function
-        from src.ui.main import save_high_score
-        # Call it with the proper formatted mode
-        return save_high_score(f"vs.{player_type}", score)
-    except ImportError:
-        # Fallback to old method if import fails
-        highscore_file = "data/stats/highscores.json"
-        try:
-            if os.path.exists(highscore_file):
-                with open(highscore_file, 'r') as f:
-                    high_scores = json.load(f)
-            else:
-                high_scores = {"classic": 0, "ai": 0, "vs": {"player": 0, "ai": 0}}
-                os.makedirs(os.path.dirname(highscore_file), exist_ok=True)
-                
-            # Update if it's a new high score
-            if score > high_scores.get("vs", {}).get(player_type, 0):
-                if "vs" not in high_scores:
-                    high_scores["vs"] = {}
-                high_scores["vs"][player_type] = score
-                
-                # Save updated high scores
-                with open(highscore_file, 'w') as f:
-                    json.dump(high_scores, f, indent=2)
-                return True  # Indicates this is a new high score
-            return False
-        except Exception as e:
-            print(f"Error saving high score: {e}")
-            return False
 
 # Function to load player position preference
 def get_player_position():
@@ -413,20 +381,14 @@ def player_vs_ai():
     player_game = VSPlayerGameNoFlip(width=game_w, height=game_h, display_surface=player_surf)
     ai_game = VSAIGameNoFlip(width=game_w, height=game_h, display_surface=ai_surf)
     
-    # Get background theme - handle the missing method error first
-    try:
-        # Try to access the background theme from the UI module
-        from src.ui.main import background_theme as ui_background_theme
-        background_theme = ui_background_theme
-    except ImportError:
-        # If we can't import it, try to load it from customization.json
-        try:
-            with open("statics/customization.json", "r") as f:
-                config = json.load(f)
-                background_theme = config.get("background_theme", "dark")
-        except:
-            # Default to dark theme if all else fails
-            background_theme = "dark"
+    # Get background theme from unified config system
+    from src.utils.config import load_config
+    config = load_config()
+    background_theme = config["appearance"]["background_theme"]
+    
+    # Apply the background theme to both games
+    player_game.background_theme = background_theme
+    ai_game.background_theme = background_theme
     
     # Apply customization settings to both games
     player_snake_theme = customization.get_current_snake_theme()  # Get theme for player
@@ -454,11 +416,9 @@ def player_vs_ai():
     # Apply the themes to the games
     player_game.snake_theme = player_snake_theme
     player_game.food_theme = food_theme
-    player_game.background_theme = background_theme  # Now background_theme is defined
     
     ai_game.snake_theme = ai_snake_theme
     ai_game.food_theme = food_theme
-    ai_game.background_theme = background_theme
     
     # Game state variables
     player_score = 0
