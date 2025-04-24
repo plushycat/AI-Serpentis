@@ -49,11 +49,11 @@ def high_scores_page():
     
     # Display names for mode buttons
     mode_display_names = {
-        "classic": "Classic",
-        "fibonacci": "Fib Snake",
-        "ai": "AI Classic",
-        "fibonacci_ai": "AI Fibonacci",
-        "vs_mode": "VS Mode"
+        "classic": "Classic Mode",
+        "fibonacci": "Fibonacci Mode",
+        "ai": "AI (Classic)",
+        "fibonacci_ai": "AI (Fibonacci)",
+        "vs_mode": "Player VS AI"
     }
     
     # Track current selected mode
