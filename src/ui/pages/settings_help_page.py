@@ -6,14 +6,14 @@ from src.ui.components import (
     draw_smooth_gradient, draw_fancy_button, glowing_text, WHITE, YELLOW
 )
 
-# Import shared globals instead of from home_page
+# Import shared globals
 from src.ui.shared_globals import (
-    SCREEN_WIDTH, SCREEN_HEIGHT, click_sound,
+    SCREEN_WIDTH, SCREEN_HEIGHT, click_sound, 
     screen, title_font, menu_font, footer_font
 )
 
-def show_info_page():
-    """Display an information page with game instructions and credits"""
+def show_settings_help(current_page=0):
+    """Display help information about settings options"""
     clock = pygame.time.Clock()
     step = 0
     
@@ -31,48 +31,87 @@ def show_info_page():
     back_button_color = (180, 60, 60)
     back_button_hover = (220, 80, 80)
     
-    # Replace the standard bullet • with a simple dash
-    bullet = "-"  # Simple dash instead of fancy characters
+    # Replace diamond with simple dash
+    bullet = "-"  # Simple dash instead of diamond symbol
     
-    # Define content sections
-    sections = [
+    # Define help sections based on the current page
+    # Information from _main.py
+    general_sections = [
         {
-            "title": "How to Play",
+            "title": "Theme Settings",
             "content": [
-                f"{bullet} Use arrow keys or WASD to control the snake",
-                f"{bullet} Eat food to grow longer",
-                f"{bullet} Avoid hitting walls or yourself",
-                f"{bullet} Press P to pause, ESC to exit"
+                f"{bullet} Dark Theme: Black background.",
+                f"{bullet} Light Theme: White background."
             ]
         },
         {
-            "title": "Game Modes",
+            "title": "Debug Mode",
             "content": [
-                f"{bullet} Classic: Traditional snake game experience",
-                f"{bullet} Fibonacci: Snake grows according to the Fibonacci sequence",
-                f"{bullet} AI Mode: Watch our trained AI play the game",
-                f"{bullet} AI Fibonacci: Watch our AI tackle the Fibonacci challenge",
-                f"{bullet} VS Mode: Challenge our AI in a split-screen battle"
+                f"{bullet} ON: Shows AI vision and decision-making information when watching AI play",
+                f"{bullet} OFF: Normal gameplay without technical overlays",
+                f"{bullet} Toggle with SPACE key during AI gameplay"
             ]
         },
         {
-            "title": "Credits",
+            "title": "Player Position",
             "content": [
-                f"{bullet} Game Design and Programming: AI Serpentis Team",
-                f"{bullet} Deep Q-Learning Implementation: Based on PyTorch",
-                f"{bullet} Font: 'Game Over' by Freepik",
-                f"{bullet} Sound Effects: Various sources under CC license"
+                f"{bullet} Controls the side of the player screen in Player VS AI Mode:",
+                f"{bullet} Either to the left, or to the right of the split screen."
             ]
         },
         {
-            "title": "Special Thanks",
+            "title": "Level-Up Effects",
             "content": [
-                f"{bullet} Our awesome gaming community",
-                f"{bullet} The open-source AI research community",
-                f"{bullet} You, for playing our game!"
+                f"{bullet} Enhanced: Show flashy color overlay visual effect every 10 food collected.",
+                f"{bullet} Simple: Minimal visual effects for user preference."
+            ]
+        },
+        {
+            "title": "Controls",
+            "content": [
+                f"{bullet} Arrow Keys / WASD -> Control the snake direction",
+                f"{bullet} P -> Pause game",
+                f"{bullet} ESC -> Return to menu",
+                f"{bullet} Space -> Toggle debug overlay (if enabled)"
             ]
         }
     ]
+    
+    snake_theme_sections = [
+        {
+            "title": "Snake Themes",
+            "content": [
+                f"{bullet} Choose the appearance of your snake:",
+                f"{bullet} Click on any theme preview to select it",
+                f"{bullet} The currently selected theme has a green border",
+                f"{bullet} Changes take effect immediately in all game modes"
+            ]
+        }
+    ]
+    
+    food_theme_sections = [
+        {
+            "title": "Food Themes",
+            "content": [
+                f"{bullet} Choose the appearance of the food:",
+                f"{bullet} Click on any theme preview to select it",
+                f"{bullet} The currently selected theme has a green border",
+                f"{bullet} Some themes have random colors that change",
+                f"{bullet} Changes take effect immediately in all game modes"
+            ]
+        }
+    ]
+    
+    # Choose which sections to display based on current page
+    if current_page == 0:
+        sections = general_sections
+        page_title = "General Settings Help"
+    elif current_page == 1:
+        sections = snake_theme_sections
+        page_title = "Snake Theme Help"
+    else:
+        sections = food_theme_sections
+        page_title = "Food Theme Help"
     
     while True:
         mouse_pos = pygame.mouse.get_pos()
@@ -81,8 +120,8 @@ def show_info_page():
         draw_smooth_gradient(screen)
         
         # Draw title
-        title_x = (SCREEN_WIDTH - title_font.size("Game Information")[0]) // 2
-        glowing_text(screen, "Game Information", title_font, title_x, 30, YELLOW, step)
+        title_x = (SCREEN_WIDTH - title_font.size(page_title)[0]) // 2
+        glowing_text(screen, page_title, title_font, title_x, 30, YELLOW, step)
         
         # Apply smooth scrolling with inertia
         if abs(scroll_velocity) > 0.5:
@@ -125,19 +164,19 @@ def show_info_page():
                     if current_line:
                         line_parts.append(current_line)
                     
-                    # Render wrapped lines using menu_font (48pt) instead of footer_font
+                    # Render wrapped lines with menu_font for larger text
                     for part in line_parts:
                         if y_pos + 50 > 0 or y_pos < content_area.height:
-                            # Use menu_font instead of footer_font for larger text
+                            # Using menu_font instead of footer_font for larger text
                             text = menu_font.render(part, True, (220, 220, 220))
                             content_surface.blit(text, (50, y_pos))
-                            y_pos += 50  # Increased from 40 to 50 for better spacing with larger font
+                            y_pos += 50  # Increased from 40 to 50 for larger font
                 
                 # Add spacing between sections
                 y_pos += 30
             else:
                 # Skip rendering if section is off-screen, but still account for height
-                height_estimate = 70 + len(section["content"]) * 50 + 30  # Updated for larger line height
+                height_estimate = 70 + len(section["content"]) * 50 + 30  # Adjusted for larger font
                 y_pos += height_estimate
             
             # Track total height for scrolling

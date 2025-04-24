@@ -413,20 +413,14 @@ def player_vs_ai():
     player_game = VSPlayerGameNoFlip(width=game_w, height=game_h, display_surface=player_surf)
     ai_game = VSAIGameNoFlip(width=game_w, height=game_h, display_surface=ai_surf)
     
-    # Get background theme - handle the missing method error first
-    try:
-        # Try to access the background theme from the UI module
-        from src.ui.main import background_theme as ui_background_theme
-        background_theme = ui_background_theme
-    except ImportError:
-        # If we can't import it, try to load it from customization.json
-        try:
-            with open("statics/customization.json", "r") as f:
-                config = json.load(f)
-                background_theme = config.get("background_theme", "dark")
-        except:
-            # Default to dark theme if all else fails
-            background_theme = "dark"
+    # Get background theme from unified config system
+    from src.utils.config import load_config
+    config = load_config()
+    background_theme = config["appearance"]["background_theme"]
+    
+    # Apply the background theme to both games
+    player_game.background_theme = background_theme
+    ai_game.background_theme = background_theme
     
     # Apply customization settings to both games
     player_snake_theme = customization.get_current_snake_theme()  # Get theme for player
@@ -454,11 +448,9 @@ def player_vs_ai():
     # Apply the themes to the games
     player_game.snake_theme = player_snake_theme
     player_game.food_theme = food_theme
-    player_game.background_theme = background_theme  # Now background_theme is defined
     
     ai_game.snake_theme = ai_snake_theme
     ai_game.food_theme = food_theme
-    ai_game.background_theme = background_theme
     
     # Game state variables
     player_score = 0

@@ -6,20 +6,33 @@ from src.game.fibonacci_snake import FibonacciSnakeGame
 from src.game.customization import customization
 from src.utils.scores import load_high_scores, save_fibonacci_high_score
 from src.utils.input_utils import is_screenshot_key
+from src.utils.config import load_config
 
-# Import shared globals instead of from home_page
+# Import shared globals (without SPEED which doesn't exist)
 from src.ui.shared_globals import (
-    SCREEN_WIDTH, SCREEN_HEIGHT, snake_color, background_theme,
+    SCREEN_WIDTH, SCREEN_HEIGHT, snake_color,  # Remove SPEED from here
     enhanced_effects, click_sound, screen, title_font, menu_font, footer_font
 )
 
+# Define SPEED locally if not in shared_globals
+SPEED = 10  # Default value, adjust as needed
+
 def play_fibonacci_game():
-    """Play the Fibonacci version of the snake game"""
-    # Initialize game with customized settings
-    game = FibonacciSnakeGame()
+    # Calculate slower speed (60% of normal speed = 40% slower)
+    fibonacci_speed = int(SPEED * 0.6)
     
-    # Apply the enhanced effects setting
+    # Initialize game with customized settings and slower speed
+    game = FibonacciSnakeGame(speed=fibonacci_speed)
+    
+    # Get background theme from unified config system
+    config = load_config()
+    background_theme = config["appearance"]["background_theme"]
+    
+    # Apply the background theme and other settings
+    game.background_theme = background_theme
     game.enhanced_effects = enhanced_effects
+    game.snake_theme = customization.get_current_snake_theme()
+    game.food_theme = customization.get_current_food_theme()
     
     # Load high scores
     high_scores = load_high_scores()
@@ -46,16 +59,8 @@ def play_fibonacci_game():
     # Set record in game object - use tuple format (food_count, fib_value)
     game.record = (fibonacci_high_score, fibonacci_high_fib)
     
-    # Initialize with current customization settings
-    game.snake_theme = customization.get_current_snake_theme()
-    game.food_theme = customization.get_current_food_theme()
-    game.set_theme(background_theme)
-    
     # For compatibility with older code
     game.snake_color = game.snake_theme.head_color
-    
-    # Set Fibonacci speed (slower than classic)
-    game.speed = 10  # Classic speed is 15
     
     while True:
         over, score_info = game.play_step()
