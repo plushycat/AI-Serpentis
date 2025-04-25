@@ -351,13 +351,14 @@ def settings_page():
                     
                     elif help_button.collidepoint(event.pos):
                         if click_sound: click_sound.play()
-                        # Pass the correct help page index based on current category and subtab
+                        # Map each tab to the correct help page index
                         if current_category == 0:  # Appearance
                             # If in Appearance category, show either Snake or Food theme help
                             show_settings_help(appearance_subtab + 1)  # 1=Snake themes, 2=Food themes
-                        else:
-                            # For Gameplay or Audio, just use the category index
-                            show_settings_help(current_category)
+                        elif current_category == 1:  # Gameplay
+                            show_settings_help(0)  # 0=Gameplay settings
+                        elif current_category == 2:  # Audio
+                            show_settings_help(3)  # 3=Audio settings
             
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 save_config(config)
