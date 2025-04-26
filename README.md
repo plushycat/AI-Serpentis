@@ -4,39 +4,45 @@ This project implements a modern Snake Game featuring manual play, AI-controlled
 
 > Forked from [armin2080/Snake-Game-AI](https://github.com/armin2080/Snake-Game-AI) with significant enhancements.
 
----
-
-# Demo Video
+## 🎮 Demo Video
 
 [https://github.com/user-attachments/assets/1b68bf50-60f1-4c06-9df4-b9c3b067056d](https://github.com/user-attachments/assets/1b68bf50-60f1-4c06-9df4-b9c3b067056d)
-
-
 
 ---
 
 ## ✨ Features
 
-### Game Features
+### 🎮 Game Modes
 
-- Classic Mode: Play manually with Arrow Keys/WASD.
-- AI Mode: Watch a trained neural network play autonomously.
-- (NEW) Player vs AI Split-Screen Mode: Real-time head-to-head competition.
-- (NEW) Fibonacci Snake Mode: Each food increases length by the next Fibonacci number.
-- Unified Scoreboard: View and compare scores across all game modes.
+- **Classic Mode**: Manual control via Arrow Keys / WASD.
+- **Fibonacci Mode**: Each food increases length by the next 
+Fibonacci number.
+- **AI Mode**: Autonomous play using a Deep Q-Learning agent, implemented for both Classic and Fibonacci Modes.
+- **Player vs AI**: Split-screen, real-time competition.
 
-### UI & Customization
+### 🎨 UI & Customization
 
-- Dynamic Gradient Backgrounds: Pastel palettes with subtle animations.
-- Centered Titles & Consistent Buttons: Uniform styling throughout.
-- Particle Effects & Transitions: Smooth visual flourishes on game events.
-- Theme Customization: Swap snake, food, and background themes on the fly.
+- **Dynamic Themes**: Pastel gradients, particle effects, smooth transitions.
+- **Config Pages**: Built as `src/ui/pages`—Home, Info, Scores, Settings & Help.
+- **Persistent Settings**:
+  - Appearance & Audio: `statics/game_settings.json`
+  - Snake & Food Themes: `statics/customization.json`
 
-### AI Implementation
+### 🧠 AI Implementation
 
-- Deep Q-Learning: Feedforward network (`11 → 256 → 3`) with ReLU activations.
-- State Representation: 11-dimensional vector (danger sensors, movement direction, food position).
-- Reward Scheme: `+10` for eating food, `-10` for collisions, incremental reward for moving toward food.
-- Training Pipeline: Checkpoint save/load, real-time plotting of scores and loss.
+- **Neural Network**: Feedforward DQN (`11 → 256 → 3`) with ReLU.
+- **Transfer Learning (Fibonacci AI Mode)**: A DQN agent trained via transfer learning. based on the above Neural Network.
+
+- **State Representation**: Danger sensors (front, left, right), current direction, relative food position.
+- **Actions**: `[Straight, Right Turn, Left Turn]`
+- **Reward Scheme**:
+  - `+10` for eating food
+  - `-10` for collisions
+  - Small positive reward for approaching food
+- **Training Tools**:
+  - `agent.py`: Train base model
+  - `transfer_fibonacci_ai.py`: Transfer learning for Fibonacci Mode
+  - `watch_ai.py` / `watch_fibonacci_ai.py`: Visualize AI gameplay
 
 ---
 
@@ -44,41 +50,55 @@ This project implements a modern Snake Game featuring manual play, AI-controlled
 
 ```
 AI-Serpentis/
-├── assets/                  # Game assets (fonts, sounds, images)
+├── assets/                  # Fonts, images, and sounds used in the game
 ├── data/
-│   ├── checkpoints/         # Saved AI model weights
-│   ├── plots/               # Training progress graphs
-│   └── stats/               # Gameplay statistics
+│   ├── checkpoints/         # Saved training checkpoints for Classic AI
+│   ├── models/              # Final and transfer-learned AI models
+│   ├── plots/               # Generated plots for training performance
+│   └── stats/               # Game scores and performance logs
+├── statics/                 # Persistent user settings and theme preferences
 ├── src/
-│   ├── ai/
-│   │   ├── agent.py         # Training agent & inference loop
-│   │   ├── model.py         # Neural network definition
-│   │   └── watch_ai.py      # AI-play visualization
-│   ├── game/
-│   │   ├── snake_game.py    # Manual play environment
-│   │   ├── snake_ai.py      # AI-compatible game environment
-│   │   └── fibonacci_snake.py # Fibonacci Mode logic
-│   ├── ui/
-│   │   └── main.py          # Menu and UI flow
-│   └── utils/
-│       └── plotter.py       # Training and stats plotting utilities
-├── main.py                  # Entry point for game
-├── requirements.txt         # Dependencies
-└── training_plot.png        # Sample training curve
+│   ├── ai/                           # All AI-related scripts
+│   │   ├── agent.py                  # DQN training loop
+│   │   ├── model.py                  # Classic Neural network model
+│   │   ├── transfer_fibonacci_ai.py  # Transfer learning script
+│   │   ├── watch_ai.py               # Watch trained Classic AI
+│   │   ├── watch_fibonacci_ai.py     # Watch trained Fibonacci AI
+│   │   └── fibonacci_model.py        # AI logic for Fibonacci Mode
+│   ├── game/                # Core gameplay logic
+│   │   ├── snake_game.py    # Manual player logic
+│   │   ├── snake_ai.py      # Environment logic for AI
+│   │   └── customization.py # Utility for themes and color application
+│   ├── ui/                  # Menu and user interface logic
+│   │   ├── main.py          # UI entry point
+│   │   ├── components.py    # Reusable UI components
+│   │   ├── shared_globals.py # UI state management
+│   │   └── pages/           # Different screens (menu, settings, etc.)
+│   │       ├── home_page.py
+│   │       ├── info_page.py
+│   │       ├── scores_page.py
+│   │       ├── settings_page.py
+│   │       └── settings_help_page.py
+│   └── utils/                      # Helper modules
+│       ├── config.py               # Load/save settings
+│       ├── plotter.py              # Classic training plot
+│       ├── fibonacci_plotter.py    # Fibonacci training plot
+│       ├── input_utils.py   # Input handling helpers
+│       └── scores.py        # Score tracking utilities
+├── main.py                  # Game launcher
+├── requirements.txt         # Python dependencies
+└── training_plot.png        # Example Classic training result plot
+└── fibo_training_plot.png   # Example Fibonacci training result plot
 ```
 
 ---
 
 ## 🛠️ Prerequisites
 
-Ensure you have:
-
 - Python 3.10+
 - Pygame
 - PyTorch
 - Matplotlib
-
-Install dependencies:
 
 ```bash
 pip install -r requirements.txt
@@ -86,86 +106,66 @@ pip install -r requirements.txt
 
 ---
 
-## 🕹️ Game Logic
+## 🚀 Getting Started
 
-### Classic Mode
-
-- Control the snake to eat food and grow.
-- Avoid collisions with walls and self.
-- Score increases as you eat more food.
-
-### AI Mode
-
-- State Representation: 11-dimensional vector
-  - Danger detection (front, left, right)
-  - Current movement direction
-  - Food location relative to snake head
-- Action Selection: `[Straight, Right Turn, Left Turn]`
-- Reward System:
-  - `+10` for eating food
-  - `-10` for collisions
-  - Small positive reward for moving toward food
-- Neural Network: `11 → 256 → 3` feedforward with ReLU.
-
-### Fibonacci Mode
-
-- Each food consumed increases snake length by the next Fibonacci number of segments.
-- Adds strategic depth—plan your path to avoid early collisions.
-
----
-
-## 🎨 Customization Options
-
-- Snake Themes: Classic Green, Cool Blue, Fire, Royal Purple, Sky Blue, Random
-- Food Themes: Red Apple, Blueberry, Rainbow, Golden
-- Background Themes: Light, Dark
-- Debug Mode: Toggle real-time AI debug overlay
-
----
-
-## 🚀 Running the Project
-
-### Main Game
+### Launch the Game
 
 ```bash
 python main.py
 ```
 
-Use the menu to choose Classic, AI, Player vs AI, or Fibonacci Mode and adjust themes.
+Pick any of the available gamemodes via the UI.
 
-### Training the AI
+### Train the AI
 
 ```bash
 python src/ai/agent.py
 ```
 
-- Checkpoints → `data/checkpoints/`
-- Plots → `data/plots/`
-- Exit training gracefully with `Esc`
+Checkpoints: `data/checkpoints/`  
+Plots: `data/plots/`
 
-Adjust hyperparameters in `src/ai/agent.py`: `MAX_MEMORY`, `BATCH_SIZE`, `LR`, `GAMMA`, etc.
+### Transfer Learning for Fibonacci Mode
+
+```bash
+python src/ai/transfer_fibonacci_ai.py
+```
+
+Bootstraps from a pretrained Classic Mode model and continues training for Fibonacci Mode.
+
+### Watch AI Play
+
+```bash
+python src/ai/watch_ai.py           # Classic Mode
+python src/ai/watch_fibonacci_ai.py # Fibonacci Mode
+```
 
 ---
 
-## 📈 Results
+## 📈 Sample Results
 
-After \~200 training cycles, the AI learns efficient food-collection and collision-avoidance strategies.
+ After ~200 training cycles, the graphs for the AI modes are as follows:
 
-![training_plot](https://github.com/user-attachments/assets/9e84c918-af51-4c8c-bb0f-03a84039a927)
+#### Classic Mode Training
+![training_plot](training_plot.png)
+
+#### Fibonacci Mode Training
+
+![fibonacci_plot](fibo_training_plot.png)
+
 
 ---
 
 ## 📜 Credits
 
-- **BGM**: Music by Nicholas Panek — Pixabay
-- **Level Up Sound**: Magic Game Key Picked Up — Epic Stock Media
-- **UI Click Sound**: Arcade Game Bling — Epic Stock Media
+- **Music**: Nicholas Panek (Pixabay)
+- **SFX**: Epic Stock Media, freesound\_community (Pixabay)
 - **Icons**: Freepik
-- **Countdown & Start Sounds**: freesound\_community — Pixabay
 
 ---
+
+> **Tip**: Tweak your game style in the Settings page—preferences are saved and applied automatically. Classic meets cutting-edge with AI Serpentis!
 
 ## About
 
 With a self-learning AI at the core and a polished GUI, **AI Serpentis** offers both classic and cutting-edge Snake gameplay. Enjoy the blend of nostalgia and innovation!
-
