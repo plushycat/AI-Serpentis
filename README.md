@@ -6,7 +6,7 @@ This project implements a modern Snake Game featuring manual play, AI-controlled
 
 ## 🎮 Demo Video
 
-[https://github.com/user-attachments/assets/1b68bf50-60f1-4c06-9df4-b9c3b067056d](https://github.com/user-attachments/assets/1b68bf50-60f1-4c06-9df4-b9c3b067056d)
+https://github.com/user-attachments/assets/1b68bf50-60f1-4c06-9df4-b9c3b067056d
 ---
 
 ## ✨ Features
