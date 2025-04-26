@@ -27,25 +27,35 @@ def settings_page():
     """Display and manage game settings with sidebar navigation"""
     global music_on, background_theme, debug_mode, enhanced_effects
     
-    # Load the current config at the start
+    # First, extend the config structure to support sound settings
     config_file = "statics/game_settings.json"
+    
     try:
         if os.path.exists(config_file):
             with open(config_file, 'r') as f:
                 config = json.load(f)
+            
+            # Add new audio settings if they don't exist
+            if "audio" in config:
+                if "sound_effects_on" not in config["audio"]:
+                    config["audio"]["sound_effects_on"] = True
+                if "master_volume" not in config["audio"]:
+                    config["audio"]["master_volume"] = 1.0
+                if "music_volume" not in config["audio"]:
+                    config["audio"]["music_volume"] = 0.8
+                if "sound_effects_volume" not in config["audio"]:
+                    config["audio"]["sound_effects_volume"] = 1.0
         else:
-            # Create default config if it doesn't exist
+            # Create default config with audio settings
             config = {
-                "appearance": {
-                    "background_theme": background_theme,
-                    "enhanced_effects": enhanced_effects
-                },
-                "gameplay": {
-                    "player_position": get_player_position(),
-                    "debug_mode": debug_mode
-                },
+                "appearance": {"background_theme": background_theme, "enhanced_effects": enhanced_effects},
+                "gameplay": {"player_position": "left", "debug_mode": False},
                 "audio": {
-                    "music_on": music_on
+                    "music_on": True,
+                    "sound_effects_on": True,
+                    "master_volume": 1.0,
+                    "music_volume": 0.8,
+                    "sound_effects_volume": 1.0
                 }
             }
             os.makedirs(os.path.dirname(config_file), exist_ok=True)
@@ -54,21 +64,48 @@ def settings_page():
         config = {
             "appearance": {"background_theme": "dark", "enhanced_effects": True},
             "gameplay": {"player_position": "left", "debug_mode": False},
-            "audio": {"music_on": True}
+            "audio": {
+                "music_on": True,
+                "master_volume": 1.0,
+                "music_volume": 0.8,
+                "sound_effects_volume": 1.0
+            }
         }
     
-    # Function to save settings immediately when they're changed
+    # Extract all audio settings from config including click sounds
+    sound_effects_on = config["audio"].get("sound_effects_on", True)
+    click_sounds_on = config["audio"].get("click_sounds_on", sound_effects_on)  # Default to same as sound effects
+    master_volume = config["audio"].get("master_volume", 1.0)
+    music_volume = config["audio"].get("music_volume", 0.8)
+    sound_effects_volume = config["audio"].get("sound_effects_volume", 1.0)
+    
+    # Add click sounds toggle setting 
+    click_sounds_on = sound_effects_on  # Initialize from sound_effects setting
+    
+    # Update save_settings_immediately function to include sound settings
     def save_settings_immediately():
         config["appearance"]["background_theme"] = background_theme
         config["appearance"]["enhanced_effects"] = enhanced_effects
         config["gameplay"]["debug_mode"] = debug_mode
         config["gameplay"]["player_position"] = get_player_position()
         config["audio"]["music_on"] = music_on
+        config["audio"]["sound_effects_on"] = sound_effects_on
+        config["audio"]["master_volume"] = master_volume
+        config["audio"]["music_volume"] = music_volume
+        config["audio"]["sound_effects_volume"] = sound_effects_volume
         
         try:
             with open(config_file, 'w') as f:
                 json.dump(config, f, indent=2)
             print("Settings saved successfully")
+            
+            # Apply volume settings
+            try:
+                pygame.mixer.music.set_volume(master_volume * music_volume)
+                # For other sounds, we'll need to apply when playing them
+            except Exception as e:
+                print(f"Error applying volume settings: {e}")
+                
         except Exception as e:
             print(f"Error saving settings: {e}")
     
@@ -161,9 +198,10 @@ def settings_page():
     col_effects_button = pygame.Rect(col_button_x, content_start_y + 80 + (button_height + button_spacing) * 2, 
                             col_button_width, button_height)
     
-    # Back button positioned at bottom right with more spacing - reduced size for better alignment
-    back_button_width = 160  # Reduced from 200 to 160 for a smaller button
-    back_button = pygame.Rect(SCREEN_WIDTH - back_button_width - page_margin, SCREEN_HEIGHT - 80, back_button_width, button_height)
+    # Back button positioned at bottom right with more spacing - smaller height and lower position
+    back_button_width = 160
+    back_button_height = 45  # Reduced height for better appearance
+    back_button = pygame.Rect(SCREEN_WIDTH - back_button_width - page_margin, SCREEN_HEIGHT - 65, back_button_width, back_button_height)
     
     # Help button - keep in bottom left corner
     help_button_size = 50
@@ -209,6 +247,100 @@ def settings_page():
     # Track mouse state for better interaction
     mouse_pressed = False
     prev_mouse_pressed = False
+    
+    # Define slider dimensions
+    slider_width = 300
+    slider_height = 8
+    slider_knob_radius = 10
+    slider_spacing = 80  # Spacing between sliders
+    
+    # Audio settings buttons and sliders
+    music_button = pygame.Rect(button_x, content_start_y + 80, button_width, button_height)
+    effects_button = pygame.Rect(button_x, content_start_y + 80 + button_height + button_spacing, button_width, button_height)
+    
+    # Create Rect objects for sliders
+    master_slider = pygame.Rect(
+        button_x + (button_width - slider_width) // 2,
+        content_start_y + 200,
+        slider_width,
+        slider_height
+    )
+    
+    music_slider = pygame.Rect(
+        button_x + (button_width - slider_width) // 2,
+        content_start_y + 200 + slider_spacing,
+        slider_width,
+        slider_height
+    )
+    
+    effects_slider = pygame.Rect(
+        button_x + (button_width - slider_width) // 2,
+        content_start_y + 200 + slider_spacing * 2,
+        slider_width,
+        slider_height
+    )
+    
+    # Define the group containers early (before they're used in checkbox positioning)
+    master_group = pygame.Rect(0, 0, 100, 100)  # Initial size, will be updated later
+    music_group = pygame.Rect(0, 0, 100, 160)   # Initial size, will be updated later
+    effects_group = pygame.Rect(0, 0, 100, 160) # Initial size, will be updated later
+
+    # Define checkbox dimensions and styling
+    checkbox_size = 24
+    checkbox_text_spacing = 10
+    checkbox_checked_color = (100, 200, 100)
+    checkbox_unchecked_color = (60, 60, 80)
+    checkbox_border_color = (120, 120, 160)
+    
+    # Define checkboxes alongside other UI elements
+    music_checkbox = pygame.Rect(0, 0, checkbox_size, checkbox_size)
+    effects_checkbox = pygame.Rect(0, 0, checkbox_size, checkbox_size)
+    click_checkbox = pygame.Rect(0, 0, checkbox_size, checkbox_size)
+    
+    # Update checkbox positions
+    music_checkbox.x = music_group.left + 20
+    music_checkbox.y = music_group.top + 50
+
+    effects_checkbox.x = effects_group.left + 20
+    effects_checkbox.y = effects_group.top + 50
+
+    click_checkbox.x = effects_group.left + 20
+    click_checkbox.y = effects_group.top + 80
+    
+    # Function to draw a checkbox
+    def draw_checkbox(screen, rect, is_checked, label, font):
+        # Draw the checkbox
+        pygame.draw.rect(screen, checkbox_border_color, rect, 2, border_radius=4)
+        if is_checked:
+            inner_rect = rect.inflate(-8, -8)
+            pygame.draw.rect(screen, checkbox_checked_color, inner_rect, border_radius=3)
+        
+        # Draw the label
+        label_surface = font.render(label, True, (220, 220, 220))
+        screen.blit(label_surface, (rect.right + checkbox_text_spacing, rect.centery - label_surface.get_height() // 2))
+    
+    # Add this helper function to draw slider triangles
+    def draw_slider_triangles(screen, slider_rect, color=(150, 150, 150)):
+        """Draw triangle indicators at each end of a slider"""
+        # Left triangle (min) - points right
+        left_triangle = [
+            (slider_rect.left - 12, slider_rect.centery),  # Moved further left
+            (slider_rect.left - 6, slider_rect.centery - 6),  # Increased size
+            (slider_rect.left - 6, slider_rect.centery + 6)   # Increased size
+        ]
+        pygame.draw.polygon(screen, color, left_triangle)
+        
+        # Right triangle (max) - points left
+        right_triangle = [
+            (slider_rect.right + 12, slider_rect.centery),   # Moved further right
+            (slider_rect.right + 6, slider_rect.centery - 6),  # Increased size
+            (slider_rect.right + 6, slider_rect.centery + 6)   # Increased size
+        ]
+        pygame.draw.polygon(screen, color, right_triangle)
+        
+        # Min/Max text labels removed as requested
+    
+    active_slider = None
     
     while True:
         prev_mouse_pressed = mouse_pressed
@@ -318,20 +450,74 @@ def settings_page():
                     
                     # Audio settings
                     elif current_category == 2:
-                        if music_button.collidepoint(event.pos):
-                            if click_sound: click_sound.play()
+                        # Music toggle checkbox
+                        if music_checkbox.collidepoint(event.pos):
                             music_on = not music_on
-                            if music_on:
+                            # Apply change immediately
+                            if music_on and music_volume > 0:
                                 try:
                                     pygame.mixer.music.play(-1)
-                                except:
-                                    pass
+                                    pygame.mixer.music.set_volume(master_volume * music_volume)
+                                except Exception as e:
+                                    print(f"Error playing music: {e}")
                             else:
                                 try:
                                     pygame.mixer.music.stop()
-                                except:
-                                    pass
+                                except Exception as e:
+                                    print(f"Error stopping music: {e}")
+                            # Save the setting immediately
                             save_settings_immediately()
+                            
+                            # Play click sound feedback if enabled
+                            if click_sounds_on and click_sound:
+                                click_sound.play()
+                        
+                        # Sound effects toggle checkbox
+                        elif effects_checkbox.collidepoint(event.pos):
+                            sound_effects_on = not sound_effects_on
+                            save_settings_immediately()
+                            
+                            # Play click sound only if turning ON
+                            if sound_effects_on and click_sound:
+                                click_sound.play()
+                        
+                        # UI Click sounds toggle checkbox
+                        elif click_checkbox.collidepoint(event.pos):
+                            click_sounds_on = not click_sounds_on
+                            
+                            # Update config
+                            config["audio"]["click_sounds_on"] = click_sounds_on
+                            save_settings_immediately()
+                            
+                            # Play click sound only if turning ON
+                            if click_sounds_on and click_sound:
+                                click_sound.play()
+                        
+                        # Handle slider dragging
+                        elif pygame.mouse.get_pressed()[0]:
+                            pos = pygame.mouse.get_pos()
+                            
+                            # Master volume slider - increase hit area and make interaction more forgiving
+                            if (master_slider.collidepoint(pos) or 
+                                pygame.Rect(master_slider.left - 10, master_slider.top - 15, 
+                                        master_slider.width + 20, master_slider.height + 30).collidepoint(pos) or
+                                (prev_mouse_pressed and master_slider.left - 10 <= pos[0] <= master_slider.right + 10 and 
+                                abs(pos[1] - master_slider.centery) < 50)):
+                                active_slider = "master"
+                            
+                            # Music volume slider - only if music is enabled
+                            elif music_on and (music_slider.collidepoint(pos) or 
+                                pygame.Rect(music_slider.left - 10, music_slider.top - 15, 
+                                        music_slider.width + 20, music_slider.height + 30).collidepoint(pos) or
+                                (prev_mouse_pressed and music_slider.left - 10 <= pos[0] <= music_slider.right + 10 and 
+                                abs(pos[1] - music_slider.centery) < 50)):
+                                active_slider = "music"
+                            
+                            # Sound effects volume slider - only if sound effects are enabled
+                            elif sound_effects_on and (effects_slider.collidepoint(pos) or \
+                                (prev_mouse_pressed and effects_slider.left <= pos[0] <= effects_slider.right and 
+                                abs(pos[1] - effects_slider.centery) < 40)):
+                                active_slider = "effects"
                     
                     # Snake theme selection
                     if current_category == 0 and appearance_subtab == 0:
@@ -359,6 +545,39 @@ def settings_page():
                             show_settings_help(0)  # 0=Gameplay settings
                         elif current_category == 2:  # Audio
                             show_settings_help(3)  # 3=Audio settings
+            
+            if event.type == pygame.MOUSEMOTION:
+                if pygame.mouse.get_pressed()[0] and active_slider:  # Left button pressed
+                    pos = pygame.mouse.get_pos()
+                    
+                    if active_slider == "master":
+                        # Calculate volume based on x position with clamping
+                        new_x = min(max(pos[0], master_slider.left), master_slider.right)
+                        master_volume = (new_x - master_slider.left) / master_slider.width
+                        # Apply volume
+                        if music_on:
+                            try:
+                                pygame.mixer.music.set_volume(master_volume * music_volume)
+                            except Exception as e:
+                                print(f"Error setting volume: {e}")
+                            save_settings_immediately()
+                            
+                    elif active_slider == "music" and music_on:
+                        # Calculate volume based on x position with clamping
+                        new_x = min(max(pos[0], music_slider.left), music_slider.right)
+                        music_volume = (new_x - music_slider.left) / music_slider.width
+                        # Apply volume
+                        try:
+                            pygame.mixer.music.set_volume(master_volume * music_volume)
+                        except Exception as e:
+                            print(f"Error setting music volume: {e}")
+                        save_settings_immediately()
+                        
+                    elif active_slider == "effects" and sound_effects_on:
+                        # Calculate volume based on x position with clamping
+                        new_x = min(max(pos[0], effects_slider.left), effects_slider.right)
+                        sound_effects_volume = (new_x - effects_slider.left) / effects_slider.width
+                        save_settings_immediately()
             
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 save_config(config)
@@ -460,21 +679,134 @@ def settings_page():
             screen.blit(text, text_rect)
             
         elif current_category == 2:
-            # Audio settings
+            # Audio settings with improved layout
             section_title = menu_font.render("Audio Settings", True, (200, 200, 200))
-            screen.blit(section_title, (content_start_x + 20, content_start_y + 30))
+            screen.blit(section_title, (content_start_x + 20, content_start_y + 20))  # Moved up 10px
             
-            # Music toggle button
-            music_label = "Music: ON" if music_on else "Music: OFF"
-            music_color = toggle_on_color if music_on else toggle_off_color
-            pygame.draw.rect(screen, music_color, music_button, border_radius=12)
-            text = menu_font.render(music_label, True, WHITE)
-            text_rect = text.get_rect(center=music_button.center)
-            screen.blit(text, text_rect)
+            # Define consistent spacing with reduced heights
+            section_spacing = 20  # Reduced from 40
+            group_spacing = 15    # Reduced from 120
             
-            # Note about future audio settings
-            note_text = footer_font.render("More audio settings coming soon!", True, (150, 150, 180))
-            screen.blit(note_text, (content_start_x + 20, music_button.bottom + 40))
+            # Update settings groups with more compact positions
+            master_group.x = content_start_x + 20
+            master_group.y = content_start_y + 55  # Moved up 15px
+            master_group.width = content_width - 40
+            master_group.height = 80  # Reduced from 100
+            
+            music_group.x = content_start_x + 20
+            music_group.y = master_group.bottom + 15  # Reduced gap between sections
+            music_group.width = content_width - 40
+            music_group.height = 140  # Reduced from 160
+            
+            effects_group.x = content_start_x + 20
+            effects_group.y = music_group.bottom + 15  # Reduced gap between sections
+            effects_group.width = content_width - 40
+            effects_group.height = 140  # Reduced from 160
+            
+            # Draw settings groups with slightly more subtle backgrounds
+            pygame.draw.rect(screen, (30, 30, 55), master_group, border_radius=12)
+            pygame.draw.rect(screen, (30, 30, 55), music_group, border_radius=12)
+            pygame.draw.rect(screen, (30, 30, 55), effects_group, border_radius=12)
+            
+            # Master volume section
+            group_title = menu_font.render("Master Volume", True, (220, 220, 220))
+            screen.blit(group_title, (master_group.left + 20, master_group.top + 15))
+            
+            # Master volume slider
+            vol_label = footer_font.render(f"{int(master_volume * 100)}%", True, (180, 180, 180))
+            screen.blit(vol_label, (master_group.right - vol_label.get_width() - 20, master_group.top + 45))
+            
+            # Reposition master slider
+            master_slider.top = master_group.top + 45
+            master_slider.left = master_group.left + 40  # Make consistent with other sliders
+            master_slider.width = master_group.width - 80 - vol_label.get_width()  # Match the 80px margin of other sliders
+            
+            # Draw slider with better visual appearance
+            pygame.draw.rect(screen, (60, 60, 80), master_slider, border_radius=4)
+            filled_width = int(master_slider.width * master_volume)
+            filled_slider = pygame.Rect(master_slider.left, master_slider.top, filled_width, slider_height)
+            pygame.draw.rect(screen, (100, 160, 240), filled_slider, border_radius=4)
+            
+            # Draw larger, more visible knob
+            knob_x = master_slider.left + int(master_slider.width * master_volume)
+            pygame.draw.circle(screen, (140, 200, 255), (knob_x, master_slider.centery), slider_knob_radius)
+            pygame.draw.circle(screen, (200, 230, 255), (knob_x, master_slider.centery), slider_knob_radius - 2)
+            
+            # Draw slider triangles
+            draw_slider_triangles(screen, master_slider)
+            
+            # Music section
+            group_title = menu_font.render("Background Music", True, (220, 220, 220))
+            screen.blit(group_title, (music_group.left + 20, music_group.top + 15))
+            
+            # Create checkbox for music
+            music_checkbox.x = music_group.left + 20
+            music_checkbox.y = music_group.top + 50
+            draw_checkbox(screen, music_checkbox, music_on, "Enable Background Music", footer_font)
+            
+            # Music volume controls (only shown if music is enabled)
+            if music_on:
+                
+                vol_label = footer_font.render(f"{int(music_volume * 100)}%", True, (180, 180, 180))
+                screen.blit(vol_label, (music_group.right - vol_label.get_width() - 20, music_group.top + 95))
+                
+                # Position music slider with proper spacing
+                music_slider.top = music_group.top + 95
+                music_slider.left = music_group.left + 40  # Move left since we no longer have "Volume:" text
+                music_slider.width = music_group.width - 80 - vol_label.get_width()
+                
+                # Draw slider
+                pygame.draw.rect(screen, (60, 60, 80), music_slider, border_radius=4)
+                filled_width = int(music_slider.width * music_volume)
+                filled_slider = pygame.Rect(music_slider.left, music_slider.top, filled_width, slider_height)
+                pygame.draw.rect(screen, (100, 160, 240), filled_slider, border_radius=4)
+                
+                # Draw knob with better visual appearance
+                knob_x = music_slider.left + int(music_slider.width * music_volume)
+                pygame.draw.circle(screen, (140, 200, 255), (knob_x, music_slider.centery), slider_knob_radius)
+                pygame.draw.circle(screen, (200, 230, 255), (knob_x, music_slider.centery), slider_knob_radius - 2)
+                
+                # Draw slider triangles
+                draw_slider_triangles(screen, music_slider)
+            
+            # Sound Effects section
+            group_title = menu_font.render("Sound Effects", True, (220, 220, 220))
+            screen.blit(group_title, (effects_group.left + 20, effects_group.top + 15))
+            
+            # Create checkbox for sound effects
+            effects_checkbox.x = effects_group.left + 20
+            effects_checkbox.y = effects_group.top + 50
+            draw_checkbox(screen, effects_checkbox, sound_effects_on, "Enable Sound Effects", footer_font)
+            
+            # Create separate checkbox for click sounds
+            click_checkbox.x = effects_group.left + 20
+            click_checkbox.y = effects_group.top + 80
+            draw_checkbox(screen, click_checkbox, click_sounds_on, "Enable UI Click Sounds", footer_font)
+            
+            # Sound effects volume controls (only shown if enabled)
+            if sound_effects_on:
+                
+                vol_label = footer_font.render(f"{int(sound_effects_volume * 100)}%", True, (180, 180, 180))
+                screen.blit(vol_label, (effects_group.right - vol_label.get_width() - 20, effects_group.top + 120))
+                
+                # Position effects slider
+                effects_slider.top = effects_group.top + 120
+                effects_slider.left = effects_group.left + 40  # Move left since we no longer have "Volume:" text
+                effects_slider.width = effects_group.width - 80 - vol_label.get_width()
+                
+                # Draw slider background and fill
+                pygame.draw.rect(screen, (60, 60, 80), effects_slider, border_radius=4)
+                filled_width = int(effects_slider.width * sound_effects_volume)
+                filled_slider = pygame.Rect(effects_slider.left, effects_slider.top, filled_width, slider_height)
+                pygame.draw.rect(screen, (100, 160, 240), filled_slider, border_radius=4)
+                
+                # Draw knob
+                effects_knob_x = effects_slider.left + int(effects_slider.width * sound_effects_volume)
+                pygame.draw.circle(screen, (140, 200, 255), (effects_knob_x, effects_slider.centery), slider_knob_radius)
+                pygame.draw.circle(screen, (200, 230, 255), (effects_knob_x, effects_slider.centery), slider_knob_radius - 2)
+                
+                # Draw triangles
+                draw_slider_triangles(screen, effects_slider)
         
         # Draw back button
         draw_fancy_button(screen, back_button, "Back to Menu", menu_font, 

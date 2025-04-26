@@ -87,8 +87,11 @@ def show_settings_help(current_page=0):
         {
             "title": "Audio Settings",
             "content": [
-                f"{bullet} Music: Toggle background music on/off",
-                f"{bullet} Settings apply immediately"
+                f"{bullet} Master Volume: Controls overall game volume",
+                f"{bullet} Background Music: Toggle and adjust music volume",
+                f"{bullet} Sound Effects: Toggle and adjust game sound effects",
+                f"{bullet} UI Click Sounds: Toggle sounds when clicking buttons",
+                f"{bullet} All settings apply immediately"
             ]
         }
     ]
