@@ -42,7 +42,7 @@ font_path = "assets/fonts/game_over.ttf"
 font = pygame.font.Font(font_path, 60)
 
 class SnakeGame:
-    def __init__(self, width=1280, height=720, display_surface=None):
+    def __init__(self, width=1280, height=720, speed=None, display_surface=None):
         self.width = width
         self.height = height
         
@@ -52,6 +52,9 @@ class SnakeGame:
         else:
             self.display = display_surface
 
+        # Use custom speed if provided, otherwise use default
+        self.speed = speed if speed is not None else SPEED
+        
         self.score = 0
         self.eat_sound = pygame.mixer.Sound('assets/sounds/eat-food.mp3')
         self.game_over_sound = pygame.mixer.Sound('assets/sounds/game-over.mp3')
@@ -187,7 +190,7 @@ class SnakeGame:
 
         # Update UI and clock
         self._update_ui()
-        self.clock.tick(SPEED)  # Use standardized frame rate
+        self.clock.tick(self.speed)  # Use custom speed if provided
         return False, self.score
     
     def _is_collision(self):

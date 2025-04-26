@@ -404,7 +404,7 @@ def watch_fibonacci_ai_play():
         fibonacci_ai_fib_record = max(high_scores["fibonacci_ai"]["fib_values"])
         
     # Set the record in the game
-    game.record = fibonacci_ai_high_score
+    game.record = (fibonacci_ai_high_score, fibonacci_ai_fib_record)  # Pass as tuple
     
     # Very high frame limit for watching
     game.frame_limit_multiplier = 1000
@@ -537,7 +537,7 @@ def watch_fibonacci_ai_play():
             game_over_text = font_large.render("GAME OVER", True, (255, 50, 50))  # Always red
             score_text = font_small.render(f"Score: {score}", True, text_color)
             fib_score_text = font_small.render(f"Fibonacci Sum: {game.fib_score}", True, text_color)
-            record_text = font_small.render(f"Record: {fibonacci_ai_high_score}", True, text_color)
+            record_text = font_small.render(f"Record: {fibonacci_ai_high_score} | {fibonacci_ai_fib_record}", True, text_color)
             continue_text = font_small.render("Press any key to continue", True, secondary_color)
             
             # Position texts

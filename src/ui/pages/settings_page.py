@@ -84,30 +84,100 @@ def settings_page():
     
     # Update save_settings_immediately function to include sound settings
     def save_settings_immediately():
+        # Store previous values to detect changes
+        prev_values = {
+            "background_theme": config["appearance"].get("background_theme"),
+            "enhanced_effects": config["appearance"].get("enhanced_effects"),
+            "debug_mode": config["gameplay"].get("debug_mode"),
+            "player_position": config["gameplay"].get("player_position"),
+            "music_on": config["audio"].get("music_on"),
+            "sound_effects_on": config["audio"].get("sound_effects_on"),
+            "click_sounds_on": config["audio"].get("click_sounds_on"),
+            "master_volume": config["audio"].get("master_volume"),
+            "music_volume": config["audio"].get("music_volume"),
+            "sound_effects_volume": config["audio"].get("sound_effects_volume"),
+            "classic_speed": config["gameplay"].get("classic_speed", 10),
+            "fibonacci_speed": config["gameplay"].get("fibonacci_speed", 8),
+        }
+        
+        # Update config with new values
         config["appearance"]["background_theme"] = background_theme
         config["appearance"]["enhanced_effects"] = enhanced_effects
         config["gameplay"]["debug_mode"] = debug_mode
         config["gameplay"]["player_position"] = get_player_position()
         config["audio"]["music_on"] = music_on
         config["audio"]["sound_effects_on"] = sound_effects_on
+        config["audio"]["click_sounds_on"] = click_sounds_on
         config["audio"]["master_volume"] = master_volume
         config["audio"]["music_volume"] = music_volume
         config["audio"]["sound_effects_volume"] = sound_effects_volume
+        config["gameplay"]["classic_speed"] = classic_speed
+        config["gameplay"]["fibonacci_speed"] = fibonacci_speed
+        
+        # Import modules needed for logging
+        import datetime
+        import sys
+        
+        # Get timestamp for logging
+        timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+        
+        # Check for changes and log them
+        changes = []
+        if prev_values["background_theme"] != background_theme:
+            changes.append(f"Background Theme: {prev_values['background_theme']} → {background_theme}")
+        if prev_values["enhanced_effects"] != enhanced_effects:
+            changes.append(f"Enhanced Effects: {prev_values['enhanced_effects']} → {enhanced_effects}")
+        if prev_values["debug_mode"] != debug_mode:
+            changes.append(f"Debug Mode: {prev_values['debug_mode']} → {debug_mode}")
+        if prev_values["player_position"] != get_player_position():
+            changes.append(f"Player Position: {prev_values['player_position']} → {get_player_position()}")
+        if prev_values["music_on"] != music_on:
+            changes.append(f"Music: {prev_values['music_on']} → {music_on}")
+        if prev_values["sound_effects_on"] != sound_effects_on:
+            changes.append(f"Sound Effects: {prev_values['sound_effects_on']} → {sound_effects_on}")
+        if prev_values["click_sounds_on"] != click_sounds_on:
+            changes.append(f"UI Click Sounds: {prev_values['click_sounds_on']} → {click_sounds_on}")
+        
+        # For numeric values, only log if the difference is significant
+        if abs((prev_values["master_volume"] or 0) - master_volume) > 0.001:
+            changes.append(f"Master Volume: {int((prev_values['master_volume'] or 0) * 100)}% → {int(master_volume * 100)}%")
+        if abs((prev_values["music_volume"] or 0) - music_volume) > 0.001:
+            changes.append(f"Music Volume: {int((prev_values['music_volume'] or 0) * 100)}% → {int(music_volume * 100)}%")
+        if abs((prev_values["sound_effects_volume"] or 0) - sound_effects_volume) > 0.001:
+            changes.append(f"SFX Volume: {int((prev_values['sound_effects_volume'] or 0) * 100)}% → {int(sound_effects_volume * 100)}%")
+        if prev_values["classic_speed"] != classic_speed:
+            changes.append(f"Classic Speed: {prev_values['classic_speed']} → {classic_speed}")
+        if prev_values["fibonacci_speed"] != fibonacci_speed:
+            changes.append(f"Fibonacci Speed: {prev_values['fibonacci_speed']} → {fibonacci_speed}")
         
         try:
             with open(config_file, 'w') as f:
                 json.dump(config, f, indent=2)
-            print("Settings saved successfully")
             
+            # Log changes with timestamp
+            import datetime
+            timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+            
+            # Always log something to confirm the function was called
+            if changes:
+                print(f"[{timestamp}] Settings changed: {', '.join(changes)}")
+            else:
+                print(f"[{timestamp}] Settings saved (no changes detected)")
+            
+            # Force flush stdout to ensure it appears in terminal
+            import sys
+            sys.stdout.flush()
+                
             # Apply volume settings
             try:
                 pygame.mixer.music.set_volume(master_volume * music_volume)
-                # For other sounds, we'll need to apply when playing them
             except Exception as e:
-                print(f"Error applying volume settings: {e}")
-                
+                print(f"[{timestamp}] Error applying volume settings: {e}")
+                sys.stdout.flush()
+                    
         except Exception as e:
-            print(f"Error saving settings: {e}")
+            print(f"[{timestamp}] Error saving settings: {e}")
+            sys.stdout.flush()
     
     clock = pygame.time.Clock()
     step = 0
@@ -184,19 +254,14 @@ def settings_page():
     
     # Left column buttons - DEFINE BEFORE EVENT HANDLING
     col_button_x = left_col_x + (col_width - col_button_width) // 2
-    col_dark_button = pygame.Rect(col_button_x, content_start_y + 80, 
-                            col_button_width, button_height)
-    col_light_button = pygame.Rect(col_button_x, content_start_y + 80 + button_height + button_spacing, 
-                            col_button_width, button_height)
+    col_dark_button = pygame.Rect(col_button_x, content_start_y + 60, col_button_width, button_height)  # From 80 to 60
+    col_light_button = pygame.Rect(col_button_x, content_start_y + 60 + button_height + 15, col_button_width, button_height)  # Spacing reduced from 20 to 15
     
     # Right column buttons - DEFINE BEFORE EVENT HANDLING  
     col_button_x = right_col_x + (col_width - col_button_width) // 2
-    col_debug_button = pygame.Rect(col_button_x, content_start_y + 80, 
-                            col_button_width, button_height)
-    col_vs_button = pygame.Rect(col_button_x, content_start_y + 80 + button_height + button_spacing, 
-                            col_button_width, button_height)
-    col_effects_button = pygame.Rect(col_button_x, content_start_y + 80 + (button_height + button_spacing) * 2, 
-                            col_button_width, button_height)
+    col_debug_button = pygame.Rect(col_button_x, content_start_y + 60, col_button_width, button_height)  # From 80 to 60
+    col_vs_button = pygame.Rect(col_button_x, content_start_y + 60 + button_height + 15, col_button_width, button_height)  # Spacing reduced
+    col_effects_button = pygame.Rect(col_button_x, content_start_y + 60 + (button_height + 15) * 2, col_button_width, button_height)  # Spacing reduced
     
     # Back button positioned at bottom right with more spacing - smaller height and lower position
     back_button_width = 160
@@ -251,7 +316,7 @@ def settings_page():
     # Define slider dimensions
     slider_width = 300
     slider_height = 8
-    slider_knob_radius = 10
+    slider_knob_radius = 8  # For circle knobs if needed
     slider_spacing = 80  # Spacing between sliders
     
     # Audio settings buttons and sliders
@@ -322,26 +387,47 @@ def settings_page():
     # Add this helper function to draw slider triangles
     def draw_slider_triangles(screen, slider_rect, color=(150, 150, 150)):
         """Draw triangle indicators at each end of a slider"""
-        # Left triangle (min) - points right
+        # Left triangle (min) - points right - toward slider
         left_triangle = [
-            (slider_rect.left - 12, slider_rect.centery),  # Moved further left
-            (slider_rect.left - 6, slider_rect.centery - 6),  # Increased size
-            (slider_rect.left - 6, slider_rect.centery + 6)   # Increased size
+            (slider_rect.left - 10, slider_rect.centery),      # Tip points right
+            (slider_rect.left - 5, slider_rect.centery - 6),   # Top of base
+            (slider_rect.left - 5, slider_rect.centery + 6)    # Bottom of base
         ]
         pygame.draw.polygon(screen, color, left_triangle)
         
-        # Right triangle (max) - points left
+        # Right triangle (max) - points left - toward slider
         right_triangle = [
-            (slider_rect.right + 12, slider_rect.centery),   # Moved further right
-            (slider_rect.right + 6, slider_rect.centery - 6),  # Increased size
-            (slider_rect.right + 6, slider_rect.centery + 6)   # Increased size
+            (slider_rect.right + 10, slider_rect.centery),     # Tip points left
+            (slider_rect.right + 5, slider_rect.centery - 6),  # Top of base
+            (slider_rect.right + 5, slider_rect.centery + 6)   # Bottom of base
         ]
         pygame.draw.polygon(screen, color, right_triangle)
-        
-        # Min/Max text labels removed as requested
     
     active_slider = None
     
+    # Update knob dimensions - make them wider
+    knob_width = 6  # Increased from 4 to 6 for better visibility
+    knob_height = 20
+    
+    # In settings_page function, add a new variable to hold game speed
+    game_speed = config["gameplay"].get("game_speed", 10)  # Default 10 if not found
+
+    # In the initialization section, load both speeds
+    classic_speed = config["gameplay"].get("classic_speed", 10)
+    fibonacci_speed = config["gameplay"].get("fibonacci_speed", 8)
+
+    # Define wider speed range
+    min_speed = 5
+    max_speed = 30  # Increased from 20 to 30
+
+    # Create separate sliders for both speed settings
+    classic_speed_group = pygame.Rect(content_start_x + 20, col_effects_button.bottom + 15, content_width - 40, 90)  # From 20 to 15
+    fibonacci_speed_group = pygame.Rect(content_start_x + 20, classic_speed_group.bottom + 10, content_width - 40, 90)  # From 15 to 10
+
+    # Setup both sliders
+    classic_speed_slider = pygame.Rect(classic_speed_group.left + 30, classic_speed_group.top + 55, classic_speed_group.width - 100, slider_height)
+    fibonacci_speed_slider = pygame.Rect(fibonacci_speed_group.left + 30, fibonacci_speed_group.top + 55, fibonacci_speed_group.width - 100, slider_height)
+
     while True:
         prev_mouse_pressed = mouse_pressed
         mouse_pressed = pygame.mouse.get_pressed()[0]
@@ -447,6 +533,36 @@ def settings_page():
                             if click_sound: click_sound.play()
                             enhanced_effects = not enhanced_effects
                             save_settings_immediately()
+                        
+                        # Check slider interactions specifically for gameplay category
+                        if current_category == 1:  # Only check these sliders when on Gameplay tab
+                            # Classic speed slider - improved hit area
+                            classic_slider_area = pygame.Rect(
+                                classic_speed_slider.left - 15,
+                                classic_speed_slider.top - 20,
+                                classic_speed_slider.width + 30,
+                                40
+                            )
+                            if classic_slider_area.collidepoint(event.pos):
+                                active_slider = "classic_speed"
+                                # Calculate speed immediately on click for instant feedback
+                                rel_x = max(0, min(event.pos[0] - classic_speed_slider.left, classic_speed_slider.width))
+                                classic_speed = min_speed + int((rel_x / classic_speed_slider.width) * (max_speed - min_speed))
+                                classic_speed = max(min_speed, min(max_speed, classic_speed))
+                            
+                            # Fibonacci speed slider - improved hit area
+                            fibonacci_slider_area = pygame.Rect(
+                                fibonacci_speed_slider.left - 15,
+                                fibonacci_speed_slider.top - 20,
+                                fibonacci_speed_slider.width + 30,
+                                40
+                            )
+                            if fibonacci_slider_area.collidepoint(event.pos):
+                                active_slider = "fibonacci_speed"
+                                # Calculate speed immediately on click for instant feedback
+                                rel_x = max(0, min(event.pos[0] - fibonacci_speed_slider.left, fibonacci_speed_slider.width))
+                                fibonacci_speed = min_speed + int((rel_x / fibonacci_speed_slider.width) * (max_speed - min_speed))
+                                fibonacci_speed = max(min_speed, min(max_speed, fibonacci_speed))
                     
                     # Audio settings
                     elif current_category == 2:
@@ -518,6 +634,17 @@ def settings_page():
                                 (prev_mouse_pressed and effects_slider.left <= pos[0] <= effects_slider.right and 
                                 abs(pos[1] - effects_slider.centery) < 40)):
                                 active_slider = "effects"
+                            
+                            # Add to the event handling section where active_slider is set
+                            elif classic_speed_slider.collidepoint(pos) or \
+                                (prev_mouse_pressed and classic_speed_slider.left - 10 <= pos[0] <= classic_speed_slider.right + 10 and 
+                                abs(pos[1] - classic_speed_slider.centery) < 50):
+                                active_slider = "classic_speed"
+                                
+                            elif fibonacci_speed_slider.collidepoint(pos) or \
+                                (prev_mouse_pressed and fibonacci_speed_slider.left - 10 <= pos[0] <= fibonacci_speed_slider.right + 10 and 
+                                abs(pos[1] - fibonacci_speed_slider.centery) < 50):
+                                active_slider = "fibonacci_speed"
                     
                     # Snake theme selection
                     if current_category == 0 and appearance_subtab == 0:
@@ -554,35 +681,63 @@ def settings_page():
                         # Calculate volume based on x position with clamping
                         new_x = min(max(pos[0], master_slider.left), master_slider.right)
                         master_volume = (new_x - master_slider.left) / master_slider.width
-                        # Apply volume
+                        # Apply volume without saving
                         if music_on:
                             try:
                                 pygame.mixer.music.set_volume(master_volume * music_volume)
                             except Exception as e:
                                 print(f"Error setting volume: {e}")
-                            save_settings_immediately()
-                            
+                        # Don't save during dragging
+                        
                     elif active_slider == "music" and music_on:
                         # Calculate volume based on x position with clamping
                         new_x = min(max(pos[0], music_slider.left), music_slider.right)
                         music_volume = (new_x - music_slider.left) / music_slider.width
-                        # Apply volume
+                        # Apply volume without saving
                         try:
                             pygame.mixer.music.set_volume(master_volume * music_volume)
                         except Exception as e:
                             print(f"Error setting music volume: {e}")
-                        save_settings_immediately()
+                        # Don't save during dragging
                         
                     elif active_slider == "effects" and sound_effects_on:
                         # Calculate volume based on x position with clamping
                         new_x = min(max(pos[0], effects_slider.left), effects_slider.right)
                         sound_effects_volume = (new_x - effects_slider.left) / effects_slider.width
-                        save_settings_immediately()
+                        # Don't save during dragging
+                    
+                    # Handle slider dragging for the new sliders
+                    elif active_slider == "classic_speed":
+                        # Calculate speed based on x position with clamping
+                        new_x = min(max(pos[0], classic_speed_slider.left), classic_speed_slider.right)
+                        classic_speed = min_speed + int((new_x - classic_speed_slider.left) / classic_speed_slider.width * (max_speed - min_speed))
+                        classic_speed = max(min_speed, min(max_speed, classic_speed))
+
+                    elif active_slider == "fibonacci_speed":
+                        # Calculate speed based on x position with clamping
+                        new_x = min(max(pos[0], fibonacci_speed_slider.left), fibonacci_speed_slider.right)
+                        fibonacci_speed = min_speed + int((new_x - fibonacci_speed_slider.left) / fibonacci_speed_slider.width * (max_speed - min_speed))
+                        fibonacci_speed = max(min_speed, min(max_speed, fibonacci_speed))
+            
+            if event.type == pygame.MOUSEBUTTONUP:
+                if active_slider:  # Save settings when releasing the slider
+                    save_settings_immediately()
+                    active_slider = None
             
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 save_config(config)
                 return
         
+        # When mouse is released, save the settings
+        if prev_mouse_pressed and not mouse_pressed:
+            if active_slider == "classic_speed":
+                config["gameplay"]["classic_speed"] = classic_speed
+                save_settings_immediately()
+            elif active_slider == "fibonacci_speed":
+                config["gameplay"]["fibonacci_speed"] = fibonacci_speed
+                save_settings_immediately()
+            active_slider = None
+
         # Draw content based on current category
         if current_category == 0:
             # Appearance tab with sub-tabs
@@ -617,7 +772,7 @@ def settings_page():
             
             # Left column - Background Theme
             section_title = menu_font.render("Background Theme", True, (200, 200, 200))
-            screen.blit(section_title, (left_col_x, content_start_y + 30))
+            screen.blit(section_title, (left_col_x, content_start_y + 20))  # From 30 to 20
             
             # Draw selected theme indicator
             selected_border = pygame.Rect(0, 0, col_button_width + 8, button_height + 8)
@@ -650,7 +805,7 @@ def settings_page():
             
             # Right column - Other gameplay settings
             section_title = menu_font.render("Gameplay Settings", True, (200, 200, 200))
-            screen.blit(section_title, (right_col_x, content_start_y + 30))
+            screen.blit(section_title, (right_col_x, content_start_y + 20))  # From 30 to 20
             
             # Debug mode button
             debug_label = "Debug Mode: ON" if debug_mode else "Debug Mode: OFF"
@@ -678,6 +833,105 @@ def settings_page():
             text_rect = text.get_rect(center=col_effects_button.center)
             screen.blit(text, text_rect)
             
+            # Game Speed Slider
+            speed_group = pygame.Rect(content_start_x + 20, col_effects_button.bottom + 20, content_width - 40, 90)
+            pygame.draw.rect(screen, (30, 30, 55), speed_group, border_radius=12)
+
+            # Speed title
+            speed_title = menu_font.render("Game Speed", True, (220, 220, 220))
+            screen.blit(speed_title, (speed_group.left + 20, speed_group.top + 15))
+
+            # Speed slider
+            speed_slider = pygame.Rect(speed_group.left + 30, speed_group.top + 55, speed_group.width - 100, slider_height)
+            pygame.draw.rect(screen, (60, 60, 80), speed_slider, border_radius=4)
+            filled_width = int(speed_slider.width * ((game_speed - 5) / 15))  # Scale from 5-20 to 0-1
+            filled_slider = pygame.Rect(speed_slider.left, speed_slider.top, filled_width, slider_height)
+            pygame.draw.rect(screen, (100, 160, 240), filled_slider, border_radius=4)
+
+            # Draw knob
+            knob_x = speed_slider.left + filled_width
+            knob_rect = pygame.Rect(knob_x - knob_width//2, speed_slider.centery - knob_height//2, 
+                                knob_width, knob_height)
+            pygame.draw.rect(screen, (140, 200, 255), knob_rect, border_radius=2)
+
+            # Draw slider triangles
+            draw_slider_triangles(screen, speed_slider)
+
+            # Draw speed text
+            speed_label = footer_font.render(f"{game_speed} FPS", True, (180, 180, 180))
+            right_edge_space = content_area.right - speed_slider.right - 15 - speed_label.get_width()
+            if right_edge_space < 20:
+                screen.blit(speed_label, (speed_slider.right - speed_label.get_width(), speed_slider.top - 25))
+            else:
+                screen.blit(speed_label, (speed_slider.right + 15, speed_slider.top - 4))  # Changed from 25 to 15
+
+            # Add slider interaction for speed
+            if speed_slider.collidepoint(mouse_pos) and mouse_pressed and not prev_mouse_pressed:
+                # Calculate speed value between 5-20 based on click position
+                rel_x = mouse_pos[0] - speed_slider.left
+                game_speed = 5 + int((rel_x / speed_slider.width) * 15)
+                game_speed = max(5, min(20, game_speed))  # Clamp between 5-20
+                
+                # Save immediately
+                config["gameplay"]["game_speed"] = game_speed
+                save_settings_immediately()
+            
+            # Draw both speed groups
+            pygame.draw.rect(screen, (30, 30, 55), classic_speed_group, border_radius=12)
+            pygame.draw.rect(screen, (30, 30, 55), fibonacci_speed_group, border_radius=12)
+            
+            # Classic Speed title and slider
+            speed_title = menu_font.render("Classic Game Speed", True, (220, 220, 220))
+            screen.blit(speed_title, (classic_speed_group.left + 20, classic_speed_group.top + 15))
+            
+            # Calculate filled width normalized to range
+            filled_width = int(classic_speed_slider.width * ((classic_speed - min_speed) / (max_speed - min_speed)))
+            filled_slider = pygame.Rect(classic_speed_slider.left, classic_speed_slider.top, filled_width, slider_height)
+            
+            # Draw slider components
+            pygame.draw.rect(screen, (60, 60, 80), classic_speed_slider, border_radius=4)
+            pygame.draw.rect(screen, (100, 160, 240), filled_slider, border_radius=4)
+            draw_slider_triangles(screen, classic_speed_slider)
+            
+            # Draw knob
+            knob_x = classic_speed_slider.left + filled_width
+            knob_rect = pygame.Rect(knob_x - knob_width//2, classic_speed_slider.centery - knob_height//2, knob_width, knob_height)
+            pygame.draw.rect(screen, (140, 200, 255), knob_rect, border_radius=2)
+            
+            # Draw speed text
+            speed_label = footer_font.render(f"{classic_speed} FPS", True, (180, 180, 180))
+            right_edge_space = content_area.right - classic_speed_slider.right - 15 - speed_label.get_width()
+            if right_edge_space < 20:
+                screen.blit(speed_label, (classic_speed_slider.right - speed_label.get_width(), classic_speed_slider.top - 25))
+            else:
+                screen.blit(speed_label, (classic_speed_slider.right + 15, classic_speed_slider.top - 4))
+            
+            # Fibonacci Speed title and slider
+            fib_speed_title = menu_font.render("Fibonacci Game Speed", True, (220, 220, 220))
+            screen.blit(fib_speed_title, (fibonacci_speed_group.left + 20, fibonacci_speed_group.top + 15))
+            
+            # Calculate filled width normalized to range
+            filled_width = int(fibonacci_speed_slider.width * ((fibonacci_speed - min_speed) / (max_speed - min_speed)))
+            filled_slider = pygame.Rect(fibonacci_speed_slider.left, fibonacci_speed_slider.top, filled_width, slider_height)
+            
+            # Draw slider components
+            pygame.draw.rect(screen, (60, 60, 80), fibonacci_speed_slider, border_radius=4)
+            pygame.draw.rect(screen, (100, 160, 240), filled_slider, border_radius=4)
+            draw_slider_triangles(screen, fibonacci_speed_slider)
+            
+            # Draw knob
+            knob_x = fibonacci_speed_slider.left + filled_width
+            knob_rect = pygame.Rect(knob_x - knob_width//2, fibonacci_speed_slider.centery - knob_height//2, knob_width, knob_height)
+            pygame.draw.rect(screen, (140, 200, 255), knob_rect, border_radius=2)
+            
+            # Draw speed text
+            speed_label = footer_font.render(f"{fibonacci_speed} FPS", True, (180, 180, 180))
+            right_edge_space = content_area.right - fibonacci_speed_slider.right - 15 - speed_label.get_width()
+            if right_edge_space < 20:
+                screen.blit(speed_label, (fibonacci_speed_slider.right - speed_label.get_width(), fibonacci_speed_slider.top - 25))
+            else:
+                screen.blit(speed_label, (fibonacci_speed_slider.right + 15, fibonacci_speed_slider.top - 4))
+            
         elif current_category == 2:
             # Audio settings with improved layout
             section_title = menu_font.render("Audio Settings", True, (200, 200, 200))
@@ -691,7 +945,7 @@ def settings_page():
             master_group.x = content_start_x + 20
             master_group.y = content_start_y + 55  # Moved up 15px
             master_group.width = content_width - 40
-            master_group.height = 80  # Reduced from 100
+            master_group.height = 90  # Increased from 80 to 90 for more space
             
             music_group.x = content_start_x + 20
             music_group.y = master_group.bottom + 15  # Reduced gap between sections
@@ -701,7 +955,7 @@ def settings_page():
             effects_group.x = content_start_x + 20
             effects_group.y = music_group.bottom + 15  # Reduced gap between sections
             effects_group.width = content_width - 40
-            effects_group.height = 140  # Reduced from 160
+            effects_group.height = 160  # Increased from 140 to 160 for more bottom space
             
             # Draw settings groups with slightly more subtle backgrounds
             pygame.draw.rect(screen, (30, 30, 55), master_group, border_radius=12)
@@ -712,14 +966,10 @@ def settings_page():
             group_title = menu_font.render("Master Volume", True, (220, 220, 220))
             screen.blit(group_title, (master_group.left + 20, master_group.top + 15))
             
-            # Master volume slider
-            vol_label = footer_font.render(f"{int(master_volume * 100)}%", True, (180, 180, 180))
-            screen.blit(vol_label, (master_group.right - vol_label.get_width() - 20, master_group.top + 45))
-            
-            # Reposition master slider
-            master_slider.top = master_group.top + 45
-            master_slider.left = master_group.left + 40  # Make consistent with other sliders
-            master_slider.width = master_group.width - 80 - vol_label.get_width()  # Match the 80px margin of other sliders
+            # Master volume slider with fixed width - INCREASED GAP HERE
+            master_slider.top = master_group.top + 55  # Increased from 45 to 55 for more space between title and slider
+            master_slider.left = master_group.left + 30
+            master_slider.width = master_group.width - 100  # Fixed width
             
             # Draw slider with better visual appearance
             pygame.draw.rect(screen, (60, 60, 80), master_slider, border_radius=4)
@@ -727,13 +977,18 @@ def settings_page():
             filled_slider = pygame.Rect(master_slider.left, master_slider.top, filled_width, slider_height)
             pygame.draw.rect(screen, (100, 160, 240), filled_slider, border_radius=4)
             
-            # Draw larger, more visible knob
+            # Draw rectangular knob instead of circle
             knob_x = master_slider.left + int(master_slider.width * master_volume)
-            pygame.draw.circle(screen, (140, 200, 255), (knob_x, master_slider.centery), slider_knob_radius)
-            pygame.draw.circle(screen, (200, 230, 255), (knob_x, master_slider.centery), slider_knob_radius - 2)
+            knob_rect = pygame.Rect(knob_x - knob_width//2, master_slider.centery - knob_height//2, 
+                                  knob_width, knob_height)
+            pygame.draw.rect(screen, (140, 200, 255), knob_rect, border_radius=2)
             
             # Draw slider triangles
             draw_slider_triangles(screen, master_slider)
+            
+            # Draw percentage text AFTER the slider and triangles
+            vol_label = footer_font.render(f"{int(master_volume * 100)}%", True, (180, 180, 180))
+            screen.blit(vol_label, (master_slider.right + 25, master_slider.top - 4))
             
             # Music section
             group_title = menu_font.render("Background Music", True, (220, 220, 220))
@@ -747,13 +1002,11 @@ def settings_page():
             # Music volume controls (only shown if music is enabled)
             if music_on:
                 
-                vol_label = footer_font.render(f"{int(music_volume * 100)}%", True, (180, 180, 180))
-                screen.blit(vol_label, (music_group.right - vol_label.get_width() - 20, music_group.top + 95))
-                
-                # Position music slider with proper spacing
+                # For Music slider section
+                # Position music slider with fixed width
                 music_slider.top = music_group.top + 95
-                music_slider.left = music_group.left + 40  # Move left since we no longer have "Volume:" text
-                music_slider.width = music_group.width - 80 - vol_label.get_width()
+                music_slider.left = music_group.left + 30
+                music_slider.width = music_group.width - 100  # Fixed width
                 
                 # Draw slider
                 pygame.draw.rect(screen, (60, 60, 80), music_slider, border_radius=4)
@@ -761,13 +1014,18 @@ def settings_page():
                 filled_slider = pygame.Rect(music_slider.left, music_slider.top, filled_width, slider_height)
                 pygame.draw.rect(screen, (100, 160, 240), filled_slider, border_radius=4)
                 
-                # Draw knob with better visual appearance
+                # Draw rectangular knob instead of circle
                 knob_x = music_slider.left + int(music_slider.width * music_volume)
-                pygame.draw.circle(screen, (140, 200, 255), (knob_x, music_slider.centery), slider_knob_radius)
-                pygame.draw.circle(screen, (200, 230, 255), (knob_x, music_slider.centery), slider_knob_radius - 2)
+                knob_rect = pygame.Rect(knob_x - knob_width//2, music_slider.centery - knob_height//2, 
+                                        knob_width, knob_height)
+                pygame.draw.rect(screen, (140, 200, 255), knob_rect, border_radius=2)
                 
                 # Draw slider triangles
                 draw_slider_triangles(screen, music_slider)
+                
+                # Draw percentage text AFTER the slider and triangles
+                vol_label = footer_font.render(f"{int(music_volume * 100)}%", True, (180, 180, 180))
+                screen.blit(vol_label, (music_slider.right + 25, music_slider.top - 4))
             
             # Sound Effects section
             group_title = menu_font.render("Sound Effects", True, (220, 220, 220))
@@ -785,14 +1043,10 @@ def settings_page():
             
             # Sound effects volume controls (only shown if enabled)
             if sound_effects_on:
-                
-                vol_label = footer_font.render(f"{int(sound_effects_volume * 100)}%", True, (180, 180, 180))
-                screen.blit(vol_label, (effects_group.right - vol_label.get_width() - 20, effects_group.top + 120))
-                
-                # Position effects slider
+                # Position effects slider with fixed width
                 effects_slider.top = effects_group.top + 120
-                effects_slider.left = effects_group.left + 40  # Move left since we no longer have "Volume:" text
-                effects_slider.width = effects_group.width - 80 - vol_label.get_width()
+                effects_slider.left = effects_group.left + 30
+                effects_slider.width = effects_group.width - 100  # Fixed width
                 
                 # Draw slider background and fill
                 pygame.draw.rect(screen, (60, 60, 80), effects_slider, border_radius=4)
@@ -800,13 +1054,18 @@ def settings_page():
                 filled_slider = pygame.Rect(effects_slider.left, effects_slider.top, filled_width, slider_height)
                 pygame.draw.rect(screen, (100, 160, 240), filled_slider, border_radius=4)
                 
-                # Draw knob
+                # Draw rectangular knob instead of circle
                 effects_knob_x = effects_slider.left + int(effects_slider.width * sound_effects_volume)
-                pygame.draw.circle(screen, (140, 200, 255), (effects_knob_x, effects_slider.centery), slider_knob_radius)
-                pygame.draw.circle(screen, (200, 230, 255), (effects_knob_x, effects_slider.centery), slider_knob_radius - 2)
+                knob_rect = pygame.Rect(effects_knob_x - knob_width//2, effects_slider.centery - knob_height//2, 
+                                      knob_width, knob_height)
+                pygame.draw.rect(screen, (140, 200, 255), knob_rect, border_radius=2)
                 
                 # Draw triangles
                 draw_slider_triangles(screen, effects_slider)
+                
+                # Draw percentage text AFTER the slider and triangles
+                vol_label = footer_font.render(f"{int(sound_effects_volume * 100)}%", True, (180, 180, 180))
+                screen.blit(vol_label, (effects_slider.right + 25, effects_slider.top - 4))
         
         # Draw back button
         draw_fancy_button(screen, back_button, "Back to Menu", menu_font, 
@@ -987,7 +1246,14 @@ def handle_snake_theme_selection(click_pos, themes, preview_size, preview_margin
             
             if select_button.collidepoint(click_pos):
                 if click_sound: click_sound.play()
+                prev_theme = current_theme
                 customization.set_snake_theme(key)
+                
+                # Log the theme change
+                import datetime, sys
+                timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+                print(f"[{timestamp}] Snake theme changed: {prev_theme} → {key}")
+                sys.stdout.flush()
                 return True
     
     return False
@@ -1020,7 +1286,14 @@ def handle_food_theme_selection(click_pos, themes, preview_size, preview_margin,
             
             if select_button.collidepoint(click_pos):
                 if click_sound: click_sound.play()
+                prev_theme = current_theme
                 customization.set_food_theme(key)
+                
+                # Log the theme change
+                import datetime, sys
+                timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+                print(f"[{timestamp}] Food theme changed: {prev_theme} → {key}")
+                sys.stdout.flush()
                 return True
     
     return False

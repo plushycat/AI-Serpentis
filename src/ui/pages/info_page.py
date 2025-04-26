@@ -48,18 +48,18 @@ def show_info_page():
         {
             "title": "Game Modes",
             "content": [
-                f"{bullet} Classic: Traditional snake game experience",
-                f"{bullet} Fibonacci: Snake grows according to the Fibonacci sequence",
+                f"{bullet} Classic: Traditional snake game experience (recommended speed: 30 FPS)",
+                f"{bullet} Fibonacci: Snake grows according to the Fibonacci sequence (recommended speed: 10 FPS)",
                 f"{bullet} AI Mode: Watch AI play the game",
                 f"{bullet} AI Fibonacci: Watch AI tackle the Fibonacci challenge",
-                f"{bullet} VS Mode: Challenge AI in a split-screen battle"
+                f"{bullet} VS Mode: Challenge AI in a split-screen battle",
+                f"{bullet} Game speed settings (Player Modes) can be adjusted in the Settings > Gameplay"
             ]
         },
         {
             "title": "Credits",
             "content": [
                 f"{bullet} Game Design and Programming: Hemanth SSR (https://www.github.com/plushycat/AI-Serpentis)",
-                f"{bullet} Deep Q-Learning Implementation: Based on PyTorch",
                 f"{bullet} Assets including sound, fonts, audio etc",
                 f"{bullet} contain various sources under CC license"
             ]

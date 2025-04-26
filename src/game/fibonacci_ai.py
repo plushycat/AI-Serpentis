@@ -215,7 +215,12 @@ class FibonacciGameAI(SnakeGameAI):
             self.display.blit(score_text, [10, 10])
             
             if hasattr(self, 'record') and self.record:
-                record_text = self.main_font.render(f"Record: {self.record}", True, high_score_color)
+                if isinstance(self.record, tuple) and len(self.record) == 2:
+                    # Use the format (food_count, fib_value)
+                    record_text = self.main_font.render(f"Record: {self.record[0]} | {self.record[1]}", True, high_score_color)
+                else:
+                    # Fallback for old format
+                    record_text = self.main_font.render(f"Record: {self.record}", True, high_score_color)
                 self.display.blit(record_text, [self.width - record_text.get_width() - 10, 10])
             
             # Show next Fibonacci value

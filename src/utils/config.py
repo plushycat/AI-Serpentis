@@ -13,6 +13,29 @@ from src.game.player_vs_ai import get_player_position
 # File paths
 CONFIG_FILE = "statics/game_settings.json"
 
+def get_default_config():
+    """Return default configuration if none exists"""
+    return {
+        "appearance": {
+            "background_theme": "dark",
+            "enhanced_effects": True
+        },
+        "gameplay": {
+            "player_position": "right",
+            "debug_mode": False,
+            "classic_speed": 10,  # Separate speed for Classic mode
+            "fibonacci_speed": 8   # Separate speed for Fibonacci mode (slightly slower default)
+        },
+        "audio": {
+            "music_on": True,
+            "sound_effects_on": True,
+            "click_sounds_on": True,
+            "master_volume": 0.7,
+            "music_volume": 0.5,
+            "sound_effects_volume": 0.8
+        }
+    }
+
 def load_config():
     """Load all game configuration settings from a single file"""
     try:
@@ -21,19 +44,7 @@ def load_config():
                 return json.load(f)
         else:
             # Create default config if it doesn't exist
-            default_config = {
-                "appearance": {
-                    "background_theme": "dark",
-                    "enhanced_effects": True
-                },
-                "gameplay": {
-                    "player_position": get_player_position(),
-                    "debug_mode": False
-                },
-                "audio": {
-                    "music_on": True
-                }
-            }
+            default_config = get_default_config()
             
             # Ensure directory exists
             os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
@@ -46,11 +57,7 @@ def load_config():
     except Exception as e:
         print(f"Error loading config: {e}")
         # Return basic default config if there's an error
-        return {
-            "appearance": {"background_theme": "dark", "enhanced_effects": True},
-            "gameplay": {"player_position": "left", "debug_mode": False},
-            "audio": {"music_on": True}
-        }
+        return get_default_config()
 
 def save_config(config):
     """Save all game configuration settings to a single file"""

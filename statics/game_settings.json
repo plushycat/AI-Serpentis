@@ -4,15 +4,18 @@
         "enhanced_effects": true
     },
     "gameplay": {
-        "player_position": "right",
-        "debug_mode": false
+        "player_position": "left",
+        "debug_mode": false,
+        "game_speed": 8,
+        "classic_speed": 25,
+        "fibonacci_speed": 15
     },
     "audio": {
         "music_on": true,
+        "master_volume": 1.0,
+        "music_volume": 0.8,
+        "sound_effects_volume": 1.0,
         "sound_effects_on": true,
-        "master_volume": 0.9658536585365853,
-        "music_volume": 0.5048780487804878,
-        "sound_effects_volume": 0.5013333333333333,
         "click_sounds_on": true
     }
 }
