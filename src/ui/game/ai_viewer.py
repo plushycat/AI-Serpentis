@@ -12,6 +12,7 @@ from src.ai.transfer_fibonacci_ai import TransferredFibonacciAgent
 from src.game.customization import customization
 from src.utils.scores import load_high_scores, save_high_score
 from src.utils.input_utils import is_screenshot_key
+from src.utils.config import load_config, save_config  # Add this import
 
 # Import shared globals instead of from home_page
 from src.ui.shared_globals import (
@@ -21,11 +22,40 @@ from src.ui.shared_globals import (
 
 # File paths
 HIGHSCORE_FILE = "data/stats/highscores.json"
+CONFIG_FILE = "statics/game_settings.json"  # Add this constant
 WHITE = (255, 255, 255)
+
+# Helper function to ensure debug_mode is up-to-date
+def get_current_debug_mode():
+    """Get the current debug mode setting from config file"""
+    global debug_mode
+    try:
+        config = load_config()
+        if config and "gameplay" in config and "debug_mode" in config["gameplay"]:
+            debug_mode = config["gameplay"]["debug_mode"]
+    except Exception as e:
+        print(f"Error loading debug mode setting: {e}")
+    return debug_mode
+
+# Helper function to save debug mode changes
+def save_debug_mode_setting(new_value):
+    """Save the debug mode setting to config file"""
+    global debug_mode
+    try:
+        config = load_config()
+        if config and "gameplay" in config:
+            config["gameplay"]["debug_mode"] = new_value
+            save_config(config)
+            debug_mode = new_value
+    except Exception as e:
+        print(f"Error saving debug mode setting: {e}")
 
 def watch_ai_play():
     """Watch the trained AI play classic Snake"""
     global background_theme, screen, debug_mode, enhanced_effects
+    
+    # Get latest debug mode setting from config
+    debug_mode = get_current_debug_mode()
     
     # Initialize the AI agent
     agent = Agent()
@@ -39,7 +69,7 @@ def watch_ai_play():
     game.snake_theme = customization.get_current_snake_theme()
     game.food_theme = customization.get_current_food_theme()
     game.set_theme(background_theme)
-    game.debug_mode = debug_mode
+    game.debug_mode = debug_mode  # Initial debug mode state
     
     # For compatibility
     game.snake_color = game.snake_theme.head_color
@@ -143,6 +173,14 @@ def watch_ai_play():
                                 pygame.quit()
                                 sys.exit()
                         pygame.time.wait(100)
+                
+                # Add debug mode toggle with SPACE key
+                elif event.key == pygame.K_SPACE:
+                    debug_mode = not debug_mode  # Toggle global debug mode
+                    game.debug_mode = debug_mode  # Update game's debug mode
+                    # Save the changed setting
+                    save_debug_mode_setting(debug_mode)
+                    print(f"Debug mode: {'ON' if debug_mode else 'OFF'}")
         
         # If game over, save score and show game over screen
         if done:
@@ -282,6 +320,9 @@ def watch_fibonacci_ai_play():
     """Watch the transferred Fibonacci AI play"""
     global snake_color, background_theme, screen, debug_mode, enhanced_effects
     
+    # Get latest debug mode setting from config
+    debug_mode = get_current_debug_mode()
+    
     # Initialize agent
     agent = TransferredFibonacciAgent()
     
@@ -294,7 +335,7 @@ def watch_fibonacci_ai_play():
     game.snake_theme = customization.get_current_snake_theme()
     game.food_theme = customization.get_current_food_theme()
     game.set_theme(background_theme)
-    game.debug_mode = debug_mode
+    game.debug_mode = debug_mode  # Initial debug mode state
     
     # For compatibility
     game.snake_color = game.snake_theme.head_color
@@ -363,7 +404,7 @@ def watch_fibonacci_ai_play():
         fibonacci_ai_fib_record = max(high_scores["fibonacci_ai"]["fib_values"])
         
     # Set the record in the game
-    game.record = fibonacci_ai_high_score
+    game.record = (fibonacci_ai_high_score, fibonacci_ai_fib_record)  # Pass as tuple
     
     # Very high frame limit for watching
     game.frame_limit_multiplier = 1000
@@ -419,6 +460,14 @@ def watch_fibonacci_ai_play():
                                 pygame.quit()
                                 sys.exit()
                         pygame.time.wait(100)
+                
+                # Add debug mode toggle with SPACE key
+                elif event.key == pygame.K_SPACE:
+                    debug_mode = not debug_mode  # Toggle global debug mode 
+                    game.debug_mode = debug_mode  # Update game's debug mode
+                    # Save the changed setting
+                    save_debug_mode_setting(debug_mode)
+                    print(f"Debug mode: {'ON' if debug_mode else 'OFF'}")
         
         # If game over, save score and show game over screen
         if done:
@@ -488,7 +537,7 @@ def watch_fibonacci_ai_play():
             game_over_text = font_large.render("GAME OVER", True, (255, 50, 50))  # Always red
             score_text = font_small.render(f"Score: {score}", True, text_color)
             fib_score_text = font_small.render(f"Fibonacci Sum: {game.fib_score}", True, text_color)
-            record_text = font_small.render(f"Record: {fibonacci_ai_high_score}", True, text_color)
+            record_text = font_small.render(f"Record: {fibonacci_ai_high_score} | {fibonacci_ai_fib_record}", True, text_color)
             continue_text = font_small.render("Press any key to continue", True, secondary_color)
             
             # Position texts

@@ -48,28 +48,28 @@ def show_info_page():
         {
             "title": "Game Modes",
             "content": [
-                f"{bullet} Classic: Traditional snake game experience",
-                f"{bullet} Fibonacci: Snake grows according to the Fibonacci sequence",
-                f"{bullet} AI Mode: Watch our trained AI play the game",
-                f"{bullet} AI Fibonacci: Watch our AI tackle the Fibonacci challenge",
-                f"{bullet} VS Mode: Challenge our AI in a split-screen battle"
+                f"{bullet} Classic: Traditional snake game experience (recommended speed: 30 FPS)",
+                f"{bullet} Fibonacci: Snake grows according to the Fibonacci sequence (recommended speed: 10 FPS)",
+                f"{bullet} AI Mode: Watch AI play the game",
+                f"{bullet} AI Fibonacci: Watch AI tackle the Fibonacci challenge",
+                f"{bullet} VS Mode: Challenge AI in a split-screen battle",
+                f"{bullet} Game speed settings (Player Modes) can be adjusted in the Settings > Gameplay"
             ]
         },
         {
             "title": "Credits",
             "content": [
-                f"{bullet} Game Design and Programming: AI Serpentis Team",
-                f"{bullet} Deep Q-Learning Implementation: Based on PyTorch",
-                f"{bullet} Font: 'Game Over' by Freepik",
-                f"{bullet} Sound Effects: Various sources under CC license"
+                f"{bullet} Game Design and Programming: Hemanth SSR (https://www.github.com/plushycat/AI-Serpentis)",
+                f"{bullet} Assets including sound, fonts, audio etc",
+                f"{bullet} contain various sources under CC license"
             ]
         },
         {
             "title": "Special Thanks",
             "content": [
-                f"{bullet} Our awesome gaming community",
-                f"{bullet} The open-source AI research community",
-                f"{bullet} You, for playing our game!"
+                f"{bullet} You, the player!",
+                f"{bullet} The awesome gaming community",
+                f"{bullet} The source repository - https://www.github.com/armin2080/Snake-Game-AI"
             ]
         }
     ]

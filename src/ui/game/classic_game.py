@@ -5,7 +5,7 @@ from src.game.snake_game import SnakeGame
 from src.game.customization import customization
 from src.utils.scores import load_high_scores, save_high_score
 from src.utils.input_utils import is_screenshot_key
-
+from src.utils.config import load_config  
 # Import shared globals instead of from home_page
 from src.ui.shared_globals import (
     SCREEN_WIDTH, SCREEN_HEIGHT, snake_color, background_theme,
@@ -14,8 +14,12 @@ from src.ui.shared_globals import (
 
 def play_classic_game():
     """Play the classic snake game"""
+    # Get config to access game speed
+    config = load_config()
+    game_speed = config["gameplay"].get("classic_speed", 10)  # Use classic_speed setting
+    
     # Initialize game with customized settings
-    game = SnakeGame()
+    game = SnakeGame(speed=game_speed)  # Pass speed parameter here
     
     # Apply the enhanced effects setting
     game.enhanced_effects = enhanced_effects

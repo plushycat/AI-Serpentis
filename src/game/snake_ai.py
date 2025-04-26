@@ -321,7 +321,7 @@ class SnakeGameAI:
             # Show frame count and frame limit
             frame_limit = self.frame_limit_multiplier * len(self.snake)
             debug_text = self.small_font.render(f"Frames: {self.frame_iteration}/{frame_limit}", True, WHITE)
-            self.display.blit(debug_text, [0, 120])  # Positioned below other UI elements
+            self.display.blit(debug_text, [0, 120])
             
             # Mark the target food with a flashing indicator
             if self.frame_iteration % 30 < 15:  # Flashing effect

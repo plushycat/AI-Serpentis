@@ -35,44 +35,28 @@ def show_settings_help(current_page=0):
     bullet = "-"  # Simple dash instead of diamond symbol
     
     # Define help sections based on the current page
-    # Information from _main.py
-    general_sections = [
+    gameplay_sections = [
         {
-            "title": "Theme Settings",
+            "title": "Background Theme",
             "content": [
-                f"{bullet} Dark Theme: Black background.",
-                f"{bullet} Light Theme: White background."
+                f"{bullet} Dark Theme: Black background",
+                f"{bullet} Light Theme: White background"
             ]
         },
         {
-            "title": "Debug Mode",
+            "title": "Gameplay Settings",
             "content": [
-                f"{bullet} ON: Shows AI vision and decision-making information when watching AI play",
-                f"{bullet} OFF: Normal gameplay without technical overlays",
-                f"{bullet} Toggle with SPACE key during AI gameplay"
-            ]
-        },
-        {
-            "title": "Player Position",
-            "content": [
-                f"{bullet} Controls the side of the player screen in Player VS AI Mode:",
-                f"{bullet} Either to the left, or to the right of the split screen."
-            ]
-        },
-        {
-            "title": "Level-Up Effects",
-            "content": [
-                f"{bullet} Enhanced: Show flashy color overlay visual effect every 10 food collected.",
-                f"{bullet} Simple: Minimal visual effects for user preference."
+                f"{bullet} Debug Mode: Shows AI vision during AI gameplay",
+                f"{bullet} Player Position: Left/right side in VS Mode",
+                f"{bullet} Level-Up Effects: Visual effects when growing"
             ]
         },
         {
             "title": "Controls",
             "content": [
-                f"{bullet} Arrow Keys / WASD -> Control the snake direction",
-                f"{bullet} P -> Pause game",
-                f"{bullet} ESC -> Return to menu",
-                f"{bullet} Space -> Toggle debug overlay (if enabled)"
+                f"{bullet} Arrow Keys / WASD: Move snake",
+                f"{bullet} P: Pause game",
+                f"{bullet} ESC: Return to menu"
             ]
         }
     ]
@@ -81,10 +65,9 @@ def show_settings_help(current_page=0):
         {
             "title": "Snake Themes",
             "content": [
-                f"{bullet} Choose the appearance of your snake:",
-                f"{bullet} Click on any theme preview to select it",
-                f"{bullet} The currently selected theme has a green border",
-                f"{bullet} Changes take effect immediately in all game modes"
+                f"{bullet} Click any theme preview to select it",
+                f"{bullet} Green border shows current selection",
+                f"{bullet} Changes apply immediately"
             ]
         }
     ]
@@ -93,26 +76,43 @@ def show_settings_help(current_page=0):
         {
             "title": "Food Themes",
             "content": [
-                f"{bullet} Choose the appearance of the food:",
-                f"{bullet} Click on any theme preview to select it",
-                f"{bullet} The currently selected theme has a green border",
-                f"{bullet} Some themes have random colors that change",
-                f"{bullet} Changes take effect immediately in all game modes"
+                f"{bullet} Click any food preview to select it",
+                f"{bullet} Some themes have color-changing effects",
+                f"{bullet} Green border shows current selection"
+            ]
+        }
+    ]
+    
+    audio_sections = [
+        {
+            "title": "Audio Settings",
+            "content": [
+                f"{bullet} Master Volume: Controls overall game volume",
+                f"{bullet} Background Music: Toggle and adjust music volume",
+                f"{bullet} Sound Effects: Toggle and adjust game sound effects",
+                f"{bullet} UI Click Sounds: Toggle sounds when clicking buttons",
+                f"{bullet} All settings apply immediately"
             ]
         }
     ]
     
     # Choose which sections to display based on current page
-    if current_page == 0:
-        sections = general_sections
-        page_title = "General Settings Help"
-    elif current_page == 1:
+    if current_page == 0:  # Gameplay settings
+        sections = gameplay_sections
+        page_title = "Gameplay Settings"
+    elif current_page == 1:  # Snake theme settings
         sections = snake_theme_sections
-        page_title = "Snake Theme Help"
-    else:
+        page_title = "Snake Themes"
+    elif current_page == 2:  # Food theme settings
         sections = food_theme_sections
-        page_title = "Food Theme Help"
-    
+        page_title = "Food Themes"
+    elif current_page == 3:  # Audio settings
+        sections = audio_sections
+        page_title = "Audio Settings"
+    else:  # Default to gameplay if an invalid page is requested
+        sections = gameplay_sections
+        page_title = "Settings Help"
+
     while True:
         mouse_pos = pygame.mouse.get_pos()
         

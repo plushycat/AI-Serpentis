@@ -215,7 +215,12 @@ class FibonacciGameAI(SnakeGameAI):
             self.display.blit(score_text, [10, 10])
             
             if hasattr(self, 'record') and self.record:
-                record_text = self.main_font.render(f"Record: {self.record}", True, high_score_color)
+                if isinstance(self.record, tuple) and len(self.record) == 2:
+                    # Use the format (food_count, fib_value)
+                    record_text = self.main_font.render(f"Record: {self.record[0]} | {self.record[1]}", True, high_score_color)
+                else:
+                    # Fallback for old format
+                    record_text = self.main_font.render(f"Record: {self.record}", True, high_score_color)
                 self.display.blit(record_text, [self.width - record_text.get_width() - 10, 10])
             
             # Show next Fibonacci value
@@ -256,7 +261,8 @@ class FibonacciGameAI(SnakeGameAI):
             # Show frame count and frame limit
             frame_limit = self.frame_limit_multiplier * len(self.snake)
             debug_text = self.small_font.render(f"Frames: {self.frame_iteration}/{frame_limit}", True, WHITE)
-            self.display.blit(debug_text, [0, 120])
+            # Position at bottom right instead of top left
+            self.display.blit(debug_text, [self.width - debug_text.get_width() - 10, self.height - 60])
             
             # Mark the target food with a flashing indicator
             if self.frame_iteration % 30 < 15:  # Flashing effect

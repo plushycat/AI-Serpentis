@@ -4,17 +4,12 @@ This project implements a modern Snake Game featuring manual play, AI-controlled
 
 > Forked from [armin2080/Snake-Game-AI](https://github.com/armin2080/Snake-Game-AI) with significant enhancements.
 
-## 🎮 Demo
+## 🎮 Demo Video
 
-[![Demo Video](demo_serpentis.mp4)](demo_serpentis.mp4)
-
-*(File: `demo_serpentis.mp4` in root)*
-
+[https://github.com/user-attachments/assets/1b68bf50-60f1-4c06-9df4-b9c3b067056d](https://github.com/user-attachments/assets/1b68bf50-60f1-4c06-9df4-b9c3b067056d)
 ---
 
 ## ✨ Features
-
-### 🎮 Game Modes
 
 - **Classic Mode**: Manual control via Arrow Keys / WASD.
 - **Fibonacci Mode**: Each food increases length by the next 
@@ -34,7 +29,6 @@ Fibonacci number.
 
 - **Neural Network**: Feedforward DQN (`11 → 256 → 3`) with ReLU.
 - **Transfer Learning (Fibonacci AI Mode)**: A DQN agent trained via transfer learning. based on the above Neural Network.
-
 - **State Representation**: Danger sensors (front, left, right), current direction, relative food position.
 - **Actions**: `[Straight, Right Turn, Left Turn]`
 - **Reward Scheme**:

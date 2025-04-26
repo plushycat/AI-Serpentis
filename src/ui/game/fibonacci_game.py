@@ -18,15 +18,13 @@ from src.ui.shared_globals import (
 SPEED = 10  # Default value, adjust as needed
 
 def play_fibonacci_game():
-    # Calculate slower speed (60% of normal speed = 40% slower)
-    fibonacci_speed = int(SPEED * 0.6)
-    
-    # Initialize game with customized settings and slower speed
-    game = FibonacciSnakeGame(speed=fibonacci_speed)
-    
-    # Get background theme from unified config system
+    # Get config
     config = load_config()
     background_theme = config["appearance"]["background_theme"]
+    game_speed = config["gameplay"].get("fibonacci_speed", 8)  # Use fibonacci_speed setting
+    
+    # Initialize game with customized settings and configured speed
+    game = FibonacciSnakeGame(speed=game_speed)
     
     # Apply the background theme and other settings
     game.background_theme = background_theme
