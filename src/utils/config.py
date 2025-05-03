@@ -1,40 +1,40 @@
 import os
 import json
 import atexit
+import sys
 
-# Import shared globals instead of from home_page
-from src.ui.shared_globals import (
-    music_on, background_theme, debug_mode, enhanced_effects
-)
+# Default configuration values - define them here instead of importing
+DEFAULT_CONFIG = {
+    "appearance": {
+        "background_theme": "dark",
+        "enhanced_effects": True
+    },
+    "gameplay": {
+        "debug_mode": False,
+        "player_position": "right",  # Simply set default here instead of importing
+        "classic_speed": 10,
+        "fibonacci_speed": 8,
+        "game_speed": 10
+    },
+    "audio": {
+        "music_on": True,
+        "sound_effects_on": True,
+        "click_sounds_on": True,
+        "master_volume": 0.7,
+        "music_volume": 0.5,
+        "sound_effects_volume": 0.6
+    }
+}
 
-# Import player position function
-from src.game.player_vs_ai import get_player_position
+# REMOVE THIS IMPORT to break the circular dependency
+# from src.game.player_vs_ai import get_player_position
 
 # File paths
 CONFIG_FILE = "statics/game_settings.json"
 
 def get_default_config():
     """Return default configuration if none exists"""
-    return {
-        "appearance": {
-            "background_theme": "dark",
-            "enhanced_effects": True
-        },
-        "gameplay": {
-            "player_position": "right",
-            "debug_mode": False,
-            "classic_speed": 10,  # Separate speed for Classic mode
-            "fibonacci_speed": 8   # Separate speed for Fibonacci mode (slightly slower default)
-        },
-        "audio": {
-            "music_on": True,
-            "sound_effects_on": True,
-            "click_sounds_on": True,
-            "master_volume": 0.7,
-            "music_volume": 0.5,
-            "sound_effects_volume": 0.8
-        }
-    }
+    return DEFAULT_CONFIG
 
 def load_config():
     """Load all game configuration settings from a single file"""
@@ -72,12 +72,10 @@ def save_config(config):
 
 def save_all_settings():
     """Save all settings when program exits"""
+    # Load the current config, don't try to reference global variables
     try:
         config = load_config()
-        config["appearance"]["background_theme"] = background_theme
-        config["appearance"]["enhanced_effects"] = enhanced_effects
-        config["gameplay"]["debug_mode"] = debug_mode
-        config["audio"]["music_on"] = music_on
+        # No changes needed - just save the current config
         save_config(config)
         print("All settings saved successfully")
     except Exception as e:

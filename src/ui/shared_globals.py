@@ -1,6 +1,8 @@
 import pygame
 import os
 import sys
+from src.utils.config import load_config, save_config
+from src.utils.sound_manager import sound_manager, play_click
 
 # Function to handle paths consistently
 def get_asset_path(relative_path):
@@ -103,8 +105,12 @@ def init_globals():
         if os.path.exists(bg_music_path):
             pygame.mixer.music.load(bg_music_path)
             
-        if os.path.exists(click_sound_path):
-            click_sound = pygame.mixer.Sound(click_sound_path)
+        # Use sound_manager's proxy instead of direct sound
+        class ClickSoundProxy:
+            def play(self):
+                play_click()
+        
+        click_sound = ClickSoundProxy()
             
         music_loaded = True
     except Exception as e:
@@ -122,3 +128,9 @@ def init_globals():
     # Always ensure mixer is initialized
     if not pygame.mixer.get_init():
         pygame.mixer.init()
+
+def update_theme(theme):
+    """Update the global theme variable"""
+    global background_theme
+    background_theme = theme
+    print(f"Theme updated to: {theme}")  # Add logging to verify function execution

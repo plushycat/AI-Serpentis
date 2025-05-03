@@ -7,14 +7,15 @@ from src.game.customization import customization
 from src.utils.input_utils import is_screenshot_key
 from src.utils.config import load_config, save_config
 from src.ui.pages.settings_help_page import show_settings_help
+from src.utils.sound_manager import sound_manager, play_click
 
 # Import shared globals
 from src.ui.shared_globals import (
     SCREEN_WIDTH, SCREEN_HEIGHT, background_theme, enhanced_effects,
-    debug_mode, click_sound, screen, title_font, menu_font, footer_font,
+    debug_mode, screen, title_font, menu_font, footer_font,
     BUTTON_BASE_LEFT, BUTTON_BASE_RIGHT,
     BUTTON_HOVER_LEFT, BUTTON_HOVER_RIGHT,
-    dark_gradients, music_on
+    dark_gradients, music_on, update_theme
 )
 
 # Import UI components
@@ -23,161 +24,72 @@ from src.ui.components import (
     WHITE, YELLOW
 )
 
+from src.game.player_vs_ai import get_player_position, save_player_position
+
 def settings_page():
     """Display and manage game settings with sidebar navigation"""
-    global music_on, background_theme, debug_mode, enhanced_effects
+    global background_theme, debug_mode, enhanced_effects
     
-    # First, extend the config structure to support sound settings
+    # Use sound manager for audio settings
+    music_on = sound_manager.music_on
+    sound_effects_on = sound_manager.sound_effects_on
+    click_sounds_on = sound_manager.click_sounds_on
+    master_volume = sound_manager.master_volume
+    music_volume = sound_manager.music_volume
+    sound_effects_volume = sound_manager.sound_effects_volume
+    
+    # Load other settings from config
     config_file = "statics/game_settings.json"
     
     try:
-        if os.path.exists(config_file):
-            with open(config_file, 'r') as f:
-                config = json.load(f)
-            
-            # Add new audio settings if they don't exist
-            if "audio" in config:
-                if "sound_effects_on" not in config["audio"]:
-                    config["audio"]["sound_effects_on"] = True
-                if "master_volume" not in config["audio"]:
-                    config["audio"]["master_volume"] = 1.0
-                if "music_volume" not in config["audio"]:
-                    config["audio"]["music_volume"] = 0.8
-                if "sound_effects_volume" not in config["audio"]:
-                    config["audio"]["sound_effects_volume"] = 1.0
-        else:
-            # Create default config with audio settings
-            config = {
-                "appearance": {"background_theme": background_theme, "enhanced_effects": enhanced_effects},
-                "gameplay": {"player_position": "left", "debug_mode": False},
-                "audio": {
-                    "music_on": True,
-                    "sound_effects_on": True,
-                    "master_volume": 1.0,
-                    "music_volume": 0.8,
-                    "sound_effects_volume": 1.0
-                }
-            }
-            os.makedirs(os.path.dirname(config_file), exist_ok=True)
-    except:
-        # Default config if there's an error
-        config = {
-            "appearance": {"background_theme": "dark", "enhanced_effects": True},
-            "gameplay": {"player_position": "left", "debug_mode": False},
-            "audio": {
-                "music_on": True,
-                "master_volume": 1.0,
-                "music_volume": 0.8,
-                "sound_effects_volume": 1.0
-            }
-        }
+        config = load_config()
+        background_theme = config["appearance"]["background_theme"]
+        enhanced_effects = config["appearance"]["enhanced_effects"]
+        debug_mode = config["gameplay"]["debug_mode"]
+        classic_speed = config["gameplay"].get("classic_speed", 10)
+        fibonacci_speed = config["gameplay"].get("fibonacci_speed", 8)
+    except Exception as e:
+        print(f"Error loading config: {e}")
+        # Default values
+        background_theme = "dark"
+        enhanced_effects = True
+        debug_mode = False
+        classic_speed = 10
+        fibonacci_speed = 8
     
-    # Extract all audio settings from config including click sounds
-    sound_effects_on = config["audio"].get("sound_effects_on", True)
-    click_sounds_on = config["audio"].get("click_sounds_on", sound_effects_on)  # Default to same as sound effects
-    master_volume = config["audio"].get("master_volume", 1.0)
-    music_volume = config["audio"].get("music_volume", 0.8)
-    sound_effects_volume = config["audio"].get("sound_effects_volume", 1.0)
-    
-    # Add click sounds toggle setting 
-    click_sounds_on = sound_effects_on  # Initialize from sound_effects setting
-    
-    # Update save_settings_immediately function to include sound settings
+    # Define save_settings_immediately to use the sound manager for audio settings
     def save_settings_immediately():
-        # Store previous values to detect changes
-        prev_values = {
-            "background_theme": config["appearance"].get("background_theme"),
-            "enhanced_effects": config["appearance"].get("enhanced_effects"),
-            "debug_mode": config["gameplay"].get("debug_mode"),
-            "player_position": config["gameplay"].get("player_position"),
-            "music_on": config["audio"].get("music_on"),
-            "sound_effects_on": config["audio"].get("sound_effects_on"),
-            "click_sounds_on": config["audio"].get("click_sounds_on"),
-            "master_volume": config["audio"].get("master_volume"),
-            "music_volume": config["audio"].get("music_volume"),
-            "sound_effects_volume": config["audio"].get("sound_effects_volume"),
-            "classic_speed": config["gameplay"].get("classic_speed", 10),
-            "fibonacci_speed": config["gameplay"].get("fibonacci_speed", 8),
-        }
+        # Update sound manager settings
+        sound_manager.music_on = music_on
+        sound_manager.sound_effects_on = sound_effects_on
+        sound_manager.click_sounds_on = click_sounds_on
+        sound_manager.master_volume = master_volume
+        sound_manager.music_volume = music_volume
+        sound_manager.sound_effects_volume = sound_effects_volume
         
-        # Update config with new values
+        # Apply and save sound settings
+        sound_manager.apply_settings()
+        
+        # Update all settings in config
         config["appearance"]["background_theme"] = background_theme
         config["appearance"]["enhanced_effects"] = enhanced_effects
         config["gameplay"]["debug_mode"] = debug_mode
         config["gameplay"]["player_position"] = get_player_position()
-        config["audio"]["music_on"] = music_on
-        config["audio"]["sound_effects_on"] = sound_effects_on
-        config["audio"]["click_sounds_on"] = click_sounds_on
-        config["audio"]["master_volume"] = master_volume
-        config["audio"]["music_volume"] = music_volume
-        config["audio"]["sound_effects_volume"] = sound_effects_volume
         config["gameplay"]["classic_speed"] = classic_speed
         config["gameplay"]["fibonacci_speed"] = fibonacci_speed
         
-        # Import modules needed for logging
-        import datetime
-        import sys
+        # Also update audio settings in config object
+        config["audio"] = {
+            "music_on": music_on,
+            "sound_effects_on": sound_effects_on,
+            "click_sounds_on": click_sounds_on,
+            "master_volume": master_volume,
+            "music_volume": music_volume,
+            "sound_effects_volume": sound_effects_volume
+        }
         
-        # Get timestamp for logging
-        timestamp = datetime.datetime.now().strftime("%H:%M:%S")
-        
-        # Check for changes and log them
-        changes = []
-        if prev_values["background_theme"] != background_theme:
-            changes.append(f"Background Theme: {prev_values['background_theme']} → {background_theme}")
-        if prev_values["enhanced_effects"] != enhanced_effects:
-            changes.append(f"Enhanced Effects: {prev_values['enhanced_effects']} → {enhanced_effects}")
-        if prev_values["debug_mode"] != debug_mode:
-            changes.append(f"Debug Mode: {prev_values['debug_mode']} → {debug_mode}")
-        if prev_values["player_position"] != get_player_position():
-            changes.append(f"Player Position: {prev_values['player_position']} → {get_player_position()}")
-        if prev_values["music_on"] != music_on:
-            changes.append(f"Music: {prev_values['music_on']} → {music_on}")
-        if prev_values["sound_effects_on"] != sound_effects_on:
-            changes.append(f"Sound Effects: {prev_values['sound_effects_on']} → {sound_effects_on}")
-        if prev_values["click_sounds_on"] != click_sounds_on:
-            changes.append(f"UI Click Sounds: {prev_values['click_sounds_on']} → {click_sounds_on}")
-        
-        # For numeric values, only log if the difference is significant
-        if abs((prev_values["master_volume"] or 0) - master_volume) > 0.001:
-            changes.append(f"Master Volume: {int((prev_values['master_volume'] or 0) * 100)}% → {int(master_volume * 100)}%")
-        if abs((prev_values["music_volume"] or 0) - music_volume) > 0.001:
-            changes.append(f"Music Volume: {int((prev_values['music_volume'] or 0) * 100)}% → {int(music_volume * 100)}%")
-        if abs((prev_values["sound_effects_volume"] or 0) - sound_effects_volume) > 0.001:
-            changes.append(f"SFX Volume: {int((prev_values['sound_effects_volume'] or 0) * 100)}% → {int(sound_effects_volume * 100)}%")
-        if prev_values["classic_speed"] != classic_speed:
-            changes.append(f"Classic Speed: {prev_values['classic_speed']} → {classic_speed}")
-        if prev_values["fibonacci_speed"] != fibonacci_speed:
-            changes.append(f"Fibonacci Speed: {prev_values['fibonacci_speed']} → {fibonacci_speed}")
-        
-        try:
-            with open(config_file, 'w') as f:
-                json.dump(config, f, indent=2)
-            
-            # Log changes with timestamp
-            import datetime
-            timestamp = datetime.datetime.now().strftime("%H:%M:%S")
-            
-            # Always log something to confirm the function was called
-            if changes:
-                print(f"[{timestamp}] Settings changed: {', '.join(changes)}")
-            else:
-                print(f"[{timestamp}] Settings saved (no changes detected)")
-            
-            # Force flush stdout to ensure it appears in terminal
-            import sys
-            sys.stdout.flush()
-                
-            # Apply volume settings
-            try:
-                pygame.mixer.music.set_volume(master_volume * music_volume)
-            except Exception as e:
-                print(f"[{timestamp}] Error applying volume settings: {e}")
-                sys.stdout.flush()
-                    
-        except Exception as e:
-            print(f"[{timestamp}] Error saving settings: {e}")
-            sys.stdout.flush()
+        # Save everything in one go
+        save_config(config)
     
     clock = pygame.time.Clock()
     step = 0
@@ -495,42 +407,57 @@ def settings_page():
                     # Sidebar category navigation
                     for i, button in enumerate(category_buttons):
                         if button.collidepoint(event.pos):
-                            if click_sound: click_sound.play()
+                            play_click()
                             current_category = i
                     
                     # Handle appearance sub-tabs
                     if current_category == 0:
                         for i, button in enumerate(subtab_buttons):
                             if button.collidepoint(event.pos):
-                                if click_sound: click_sound.play()
+                                play_click()
                                 appearance_subtab = i
                     
                     # Gameplay buttons
                     if current_category == 1:
                         # Check column-specific buttons instead of full-width ones
                         if col_dark_button.collidepoint(event.pos):
-                            if click_sound: click_sound.play()
+                            play_click()
                             background_theme = "dark"
-                            save_settings_immediately()
+                            config["appearance"]["background_theme"] = background_theme
+                            save_config(config)  # Make sure this explicit call is here
+                            update_theme("dark")  # Update the global variable
                             
                         elif col_light_button.collidepoint(event.pos):
-                            if click_sound: click_sound.play()
-                            background_theme = "light"
-                            save_settings_immediately()
+                            play_click()
+                            background_theme = "light" 
+                            config["appearance"]["background_theme"] = background_theme
+                            save_config(config)  # Make sure this explicit call is here
+                            update_theme("light")  # Update the global variable
                             
                         elif col_debug_button.collidepoint(event.pos):
-                            if click_sound: click_sound.play()
+                            play_click()
                             debug_mode = not debug_mode
                             save_settings_immediately()
                             
                         elif col_vs_button.collidepoint(event.pos):
-                            if click_sound: click_sound.play()
-                            new_position = "left" if get_player_position() == "right" else "right"
+                            play_click()
+    
+                            # Get current position, toggle it, and save it
+                            current_position = get_player_position()
+                            new_position = "left" if current_position == "right" else "right"
+                            
+                            # Save using the function from player_vs_ai.py
                             save_player_position(new_position)
-                            save_settings_immediately()
+                            
+                            # Don't call save_settings_immediately() as it might overwrite our change
+                            # Instead, explicitly save the config
+                            config["gameplay"]["player_position"] = new_position
+                            save_config(config)
+                            
+                            print(f"Player position changed: {current_position} → {new_position}")
                             
                         elif col_effects_button.collidepoint(event.pos):
-                            if click_sound: click_sound.play()
+                            play_click()
                             enhanced_effects = not enhanced_effects
                             save_settings_immediately()
                         
@@ -585,8 +512,8 @@ def settings_page():
                             save_settings_immediately()
                             
                             # Play click sound feedback if enabled
-                            if click_sounds_on and click_sound:
-                                click_sound.play()
+                            if click_sounds_on:
+                                play_click()
                         
                         # Sound effects toggle checkbox
                         elif effects_checkbox.collidepoint(event.pos):
@@ -594,8 +521,8 @@ def settings_page():
                             save_settings_immediately()
                             
                             # Play click sound only if turning ON
-                            if sound_effects_on and click_sound:
-                                click_sound.play()
+                            if sound_effects_on:
+                                play_click()
                         
                         # UI Click sounds toggle checkbox
                         elif click_checkbox.collidepoint(event.pos):
@@ -606,8 +533,8 @@ def settings_page():
                             save_settings_immediately()
                             
                             # Play click sound only if turning ON
-                            if click_sounds_on and click_sound:
-                                click_sound.play()
+                            if click_sounds_on:
+                                play_click()
                         
                         # Handle slider dragging
                         elif pygame.mouse.get_pressed()[0]:
@@ -658,12 +585,12 @@ def settings_page():
                     
                     # Back and Help buttons
                     if back_button.collidepoint(event.pos):
-                        if click_sound: click_sound.play()
+                        play_click()
                         save_config(config)
                         return
                     
                     elif help_button.collidepoint(event.pos):
-                        if click_sound: click_sound.play()
+                        play_click()
                         # Map each tab to the correct help page index
                         if current_category == 0:  # Appearance
                             # If in Appearance category, show either Snake or Food theme help
@@ -1245,7 +1172,7 @@ def handle_snake_theme_selection(click_pos, themes, preview_size, preview_margin
             )
             
             if select_button.collidepoint(click_pos):
-                if click_sound: click_sound.play()
+                play_click()
                 prev_theme = current_theme
                 customization.set_snake_theme(key)
                 
@@ -1285,7 +1212,7 @@ def handle_food_theme_selection(click_pos, themes, preview_size, preview_margin,
             )
             
             if select_button.collidepoint(click_pos):
-                if click_sound: click_sound.play()
+                play_click()
                 prev_theme = current_theme
                 customization.set_food_theme(key)
                 
@@ -1299,14 +1226,12 @@ def handle_food_theme_selection(click_pos, themes, preview_size, preview_margin,
     return False
 
 
-def get_player_position():
-    """Get the current player position for VS mode"""
-    config = load_config()
-    return config["gameplay"].get("player_position", "left")
-
-
-def save_player_position(position):
-    """Save the player position setting"""
-    config = load_config()
-    config["gameplay"]["player_position"] = position
-    save_config(config)
+def get_current_theme():
+    """Get the current background theme from config file"""
+    try:
+        config = load_config()
+        if config and "appearance" in config and "background_theme" in config["appearance"]:
+            return config["appearance"]["background_theme"]
+    except Exception as e:
+        print(f"Error loading theme setting: {e}")
+    return "dark"  # Default fallback

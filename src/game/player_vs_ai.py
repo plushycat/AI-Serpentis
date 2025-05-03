@@ -163,7 +163,7 @@ def get_player_position():
     """Get player position preference (left or right) from the unified config system"""
     # Use the unified configuration system
     try:
-        from src.ui.main import load_config
+        from src.utils.config import load_config  # Update this line - import from src.utils.config, not src.ui.main
         config = load_config()
         return config.get("gameplay", {}).get("player_position", "left")
     except (ImportError, Exception) as e:
@@ -187,7 +187,7 @@ def save_player_position(position):
     """Save player position preference using the unified config system"""
     # Update the unified configuration system
     try:
-        from src.ui.main import load_config, save_config
+        from src.utils.config import load_config, save_config  # Update this line too
         config = load_config()
         config["gameplay"]["player_position"] = position
         save_config(config)

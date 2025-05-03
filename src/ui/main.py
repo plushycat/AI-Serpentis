@@ -2,6 +2,9 @@ import pygame
 import os
 import sys
 
+# Initialize sound manager FIRST - before any other sound initialization
+from src.utils.sound_manager import sound_manager
+
 # Initialize pygame
 pygame.init()
 

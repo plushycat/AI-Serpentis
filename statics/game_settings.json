@@ -1,6 +1,6 @@
 {
     "appearance": {
-        "background_theme": "dark",
+        "background_theme": "light",
         "enhanced_effects": true
     },
     "gameplay": {
@@ -8,14 +8,14 @@
         "debug_mode": false,
         "game_speed": 8,
         "classic_speed": 25,
-        "fibonacci_speed": 15
+        "fibonacci_speed": 19
     },
     "audio": {
         "music_on": true,
-        "master_volume": 1.0,
-        "music_volume": 0.8,
-        "sound_effects_volume": 1.0,
         "sound_effects_on": true,
-        "click_sounds_on": true
+        "click_sounds_on": true,
+        "master_volume": 0.18038740920096852,
+        "music_volume": 0.18886198547215496,
+        "sound_effects_volume": 0.18886198547215496
     }
 }
