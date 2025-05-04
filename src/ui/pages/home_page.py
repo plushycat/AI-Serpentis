@@ -16,7 +16,7 @@ from src.ui.shared_globals import (
     title_font, menu_font, footer_font, screen,
     BUTTON_BASE_LEFT, BUTTON_BASE_RIGHT,
     BUTTON_HOVER_LEFT, BUTTON_HOVER_RIGHT,
-    dark_gradients
+    dark_gradients, help_icon, scores_icon
 )
 
 from src.utils.config import load_config, save_config
@@ -82,20 +82,15 @@ def home_page():
             "rect": pygame.Rect(SCREEN_WIDTH//2 - 200, 600, 400, 60)}
     ]
     
-    # Create UI elements
-    scores_button = pygame.Rect(20, 20, 120, 40)
-    music_rect = pygame.Rect(SCREEN_WIDTH - 60, 20, 40, 40)
-    
+    # UI elements - increased from 48 to 56
+    music_rect = pygame.Rect(SCREEN_WIDTH - 76, 20, 56, 56)  # Keep music icon position 
+    scores_button = pygame.Rect(SCREEN_WIDTH - 152, 20, 56, 56)  # To the left of music
+    help_button = pygame.Rect(SCREEN_WIDTH - 228, 20, 56, 56)  # To the left of scores
+
     # Help button - define once outside the loop with correct size
     help_button_size = 50  # Larger size for better visibility 
-    help_button = pygame.Rect(20, SCREEN_HEIGHT - 70, help_button_size, help_button_size)
     help_color = (80, 100, 180)
     help_hover = (120, 140, 220)
-    
-    # Pre-render help button elements
-    question_text = menu_font.render("?", True, WHITE)  # Changed from green to white to match scores text
-    help_shadow = pygame.Surface((help_button_size, help_button_size), pygame.SRCALPHA)
-    help_shadow.fill((0, 0, 0, 30))
     
     # Initialize particles
     particles = [Particle() for _ in range(80)]
@@ -119,11 +114,6 @@ def home_page():
     button_surfaces = [None] * len(buttons)
     shadow_surfaces = [None] * len(buttons)
     
-    # Pre-render scores button
-    scores_text = footer_font.render("Scores", True, WHITE)
-    scores_shadow = pygame.Surface((scores_button.width, scores_button.height), pygame.SRCALPHA)
-    scores_shadow.fill((0, 0, 0, 30))
-    
     # Main loop
     while True:
         mouse_pos = pygame.mouse.get_pos()
@@ -140,26 +130,7 @@ def home_page():
         title_text = "AI Serpentis"
         title_x = (SCREEN_WIDTH - title_font.size(title_text)[0]) // 2
         glowing_text(screen, title_text, title_font, title_x, 80, YELLOW, step)
-        
-        # Draw high scores button with less processing every frame
-        scores_surface = pygame.Surface((scores_button.width, scores_button.height), pygame.SRCALPHA)
-        scores_color = (60, 90, 150) if scores_button.collidepoint(mouse_pos) else (40, 60, 100)
-        pygame.draw.rect(scores_surface, scores_color, 
-                    (0, 0, scores_button.width, scores_button.height), border_radius=6)
-        
-        # Add a slight shadow using pre-rendered shadow
-        screen.blit(scores_shadow, (scores_button.x + 2, scores_button.y + 2))
-        screen.blit(scores_surface, scores_button)
-        
-        # Add pulsing glow effect
-        glow_width = int(abs(math.sin(step / 15)) * 2) + 1
-        glow_rect = scores_button.inflate(4, 4)
-        pygame.draw.rect(screen, (80, 120, 200), glow_rect, glow_width, border_radius=6)
-        
-        # Center the text
-        text_rect = scores_text.get_rect(center=scores_button.center)
-        screen.blit(scores_text, text_rect)
-        
+                
         # Draw main menu buttons
         for i, button in enumerate(buttons):
             rect = button["rect"]
@@ -206,32 +177,36 @@ def home_page():
             text_rect = button_labels[i].get_rect(center=rect.center)
             screen.blit(button_labels[i], text_rect)
         
-        # Draw music toggle icon
-        screen.blit(music_on_icon if music_on else music_off_icon, music_rect.topleft)
+        # Draw scores button - center the icon in the button rect
+        scores_icon_rect = scores_icon.get_rect(center=scores_button.center)
+        screen.blit(scores_icon, scores_icon_rect)
+        if scores_button.collidepoint(mouse_pos):
+            # Add glow effect on hover - adjusted for 52x52 icons
+            glow_rect = scores_button.inflate(8, 8)
+            glow_width = int(abs(math.sin(step / 15)) * 2) + 1
+            pygame.draw.rect(screen, (80, 120, 200), glow_rect, glow_width, border_radius=7)
+
+        # Draw help button - center the icon in the button rect 
+        help_icon_rect = help_icon.get_rect(center=help_button.center)
+        screen.blit(help_icon, help_icon_rect)
+        if help_button.collidepoint(mouse_pos):
+            # Add glow effect on hover - adjusted for 52x52 icons
+            glow_rect = help_button.inflate(8, 8)
+            glow_width = int(abs(math.sin(step / 15)) * 2) + 1
+            pygame.draw.rect(screen, (80, 120, 200), glow_rect, glow_width, border_radius=7)
+
+        # Draw music toggle icon - center the icon in the button rect
+        music_icon = music_on_icon if music_on else music_off_icon
+        music_icon_rect = music_icon.get_rect(center=music_rect.center)
+        screen.blit(music_icon, music_icon_rect)
+        if music_rect.collidepoint(mouse_pos):
+            # Add glow effect on hover - adjusted for 52x52 icons
+            glow_rect = music_rect.inflate(8, 8)
+            glow_width = int(abs(math.sin(step / 15)) * 2) + 1
+            pygame.draw.rect(screen, (80, 120, 200), glow_rect, glow_width, border_radius=7)
         
         # Draw footer
         screen.blit(footer_surf, footer_rect)
-        
-        # Draw help button with improved animation (same style as scores button)
-        help_surface = pygame.Surface((help_button.width, help_button.height), pygame.SRCALPHA)
-        
-        # Change color based on hover state (same as scores button)
-        current_help_color = help_hover if help_button.collidepoint(mouse_pos) else help_color
-        pygame.draw.rect(help_surface, current_help_color, 
-                    (0, 0, help_button.width, help_button.height), border_radius=20)
-        
-        # Add shadow for depth
-        screen.blit(help_shadow, (help_button.x + 2, help_button.y + 2))
-        screen.blit(help_surface, help_button)
-        
-        # Add pulsing glow effect like scores button
-        help_glow_width = int(abs(math.sin(step / 15)) * 2) + 1  # Reduced from (3)+2 to (2)+1
-        help_glow_rect = help_button.inflate(4, 4)  # Reduced from (8,8) to (4,4)
-        pygame.draw.rect(screen, (80, 120, 200), help_glow_rect, help_glow_width, border_radius=20)
-        
-        # Center the question mark in the button
-        question_rect = question_text.get_rect(center=help_button.center)
-        screen.blit(question_text, question_rect)
         
         pygame.display.update()
         
