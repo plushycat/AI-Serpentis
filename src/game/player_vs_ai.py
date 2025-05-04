@@ -18,79 +18,61 @@ class VSPlayerGame(SnakeGame):
     
     def __init__(self, width=640, height=480, speed=SPEED, display_surface=None):
         """Initialize with speed parameter"""
-        super().__init__(width=width, height=height, display_surface=display_surface)
-        self.speed = speed  # Store speed attribute explicitly
-    
+        super().__init__(width, height, display_surface, speed)
+        
     def play_step(self, direction=None):
         """Modified play_step that accepts external direction input"""
-        self.frame_iteration += 1
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
-                
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_p:
-                    paused = True
-                    
-                    # Create semi-transparent overlay
-                    overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-                    overlay.fill((0, 0, 0, 120) if self.background_theme == "dark" else (255, 255, 255, 120))
-                    self.display.blit(overlay, (0, 0))
-                    
-                    # Dynamic text color based on theme
-                    pause_color = (255, 255, 255) if self.background_theme == "dark" else (0, 0, 100)
-                    
-                    pause_text = self.sub_font.render('PAUSED - Press P to continue', True, pause_color)
-                    self.display.blit(pause_text, (self.width//2 - pause_text.get_width()//2, self.height//2))
-                    pygame.display.update()
-                    
-                    while paused:
-                        for pause_event in pygame.event.get():
-                            if pause_event.type == pygame.KEYDOWN and pause_event.key == pygame.K_p:
-                                paused = False
-                            elif pause_event.type == pygame.QUIT:
-                                pygame.quit()
-                                quit()
-                        pygame.time.delay(100)
-
-        # Apply external direction if provided
+        # Save current direction
         if direction is not None:
             self.direction = direction
-            
-        # Move the snake in the current direction
+        
+        # Move snake
         self._move(self.direction)
         self.snake.insert(0, self.head)
-
-        # Check for collisions
-        if self._is_collision():
-            if hasattr(self, 'game_over_sound') and self.game_over_sound:
-                self.game_over_sound.play()
-            return True, self.score
         
-        # Check if the snake eats food
-        if self.head == self.food:
-            if hasattr(self, 'eat_sound') and self.eat_sound:
-                self.eat_sound.play()
-            self.score += 1
-            self._place_food()  # This will generate a new random color if needed
+        # Check for game over
+        game_over = False
+        if self._is_collision():
+            game_over = True
+            # Use sound_manager instead of direct sound
+            from src.utils.sound_manager import play_sound
+            play_sound("game_over")
+            return game_over, self.score
             
-            # Play level up sound every 10 points
+        # Check if snake eats food
+        if self.head == self.food:
+            # Use sound_manager for eat sound
+            from src.utils.sound_manager import play_sound
+            play_sound("eat")
+            
+            self.score += 1
+            self._place_food()
+            
+            # Check if level up should be played
             if self.score % 10 == 0 and self.score > 0:
-                if hasattr(self, 'level_up_sound') and self.level_up_sound:
-                    self.level_up_sound.play()
+                play_sound("level_up")
         else:
             self.snake.pop()
             
-            # Update food color if it's a rainbow theme
-            if self.food_theme.random_colors and self.frame_iteration % 60 == 0:
-                self.food_theme.new_random_color()
-        
-        # Override parent's _update_ui with our own minimal version
         self._update_ui_simple()
         self.clock.tick(self.speed)
-        return False, self.score
-    
+        return game_over, self.score
+        
+    def _is_collision(self, pt=None):
+        """Override collision detection to implement without sound effects"""
+        if pt is None:
+            pt = self.head
+            
+        # Hit boundary
+        if pt.x > self.width - BLOCK_SIZE or pt.x < 0 or pt.y > self.height - BLOCK_SIZE or pt.y < 0:
+            return True
+            
+        # Hit snake body
+        if pt in self.snake[1:]:
+            return True
+            
+        return False
+
     def _update_ui_simple(self):
         """A minimal UI update that skips drawing scores and other elements"""
         # Apply background based on theme
@@ -133,6 +115,30 @@ class VSAIGame(SnakeGameAI):
         food_color = self.food_theme.get_food_color(self.frame_iteration)
         pygame.draw.circle(self.display, food_color, 
                          (self.food.x + BLOCK_SIZE // 2, self.food.y + BLOCK_SIZE // 2), 10)
+
+class VSAIGameNoFlip(VSAIGame):
+    def _update_ui(self):
+        """Override to provide minimal UI without display flip"""
+        # Apply background based on theme
+        if self.background_theme == "dark":
+            self.display.fill((0, 0, 20))  # Very dark blue
+        else:
+            self.display.fill((240, 240, 240))  # Very light gray
+
+        # Draw snake with custom theme
+        for i, point in enumerate(self.snake):
+            segment_color = self.snake_theme.get_segment_color(i)
+            pygame.draw.rect(self.display, segment_color, pygame.Rect(point.x, point.y, BLOCK_SIZE, BLOCK_SIZE))
+
+        # Draw food with custom theme
+        food_color = self.food_theme.get_food_color(self.frame_iteration)
+        pygame.draw.circle(self.display, food_color, 
+                         (self.food.x + BLOCK_SIZE // 2, self.food.y + BLOCK_SIZE // 2), 10)
+        # No pygame.display.flip() call here
+
+    def _show_level_up(self):
+        """Override to prevent double level-up animations"""
+        pass  # Do nothing - the effect is handled by the parent function
 
 # For high score handling
 def load_high_scores():
@@ -354,6 +360,10 @@ def player_vs_ai():
             pygame.draw.circle(self.display, food_color, 
                              (self.food.x + BLOCK_SIZE // 2, self.food.y + BLOCK_SIZE // 2), 10)
             # No pygame.display.flip() call here
+    
+        def _show_level_up(self):
+            """Override to prevent double level-up animations"""
+            pass  # Do nothing - the effect is handled by the parent function
     
     # Create permanent UI elements with more elements pre-rendered
     permanent_bg = pygame.Surface((screen_width, screen_height))

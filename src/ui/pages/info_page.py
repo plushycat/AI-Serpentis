@@ -48,7 +48,7 @@ def show_info_page():
         {
             "title": "Game Modes",
             "content": [
-                f"{bullet} Classic: Traditional snake game experience (recommended speed: 30 FPS)",
+                f"{bullet} Classic: Traditional snake game experience (recommended speed: 25-30 FPS)",
                 f"{bullet} Fibonacci: Snake grows according to the Fibonacci sequence (recommended speed: 10 FPS)",
                 f"{bullet} AI Mode: Watch AI play the game",
                 f"{bullet} AI Fibonacci: Watch AI tackle the Fibonacci challenge",

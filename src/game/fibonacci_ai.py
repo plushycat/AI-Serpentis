@@ -26,6 +26,11 @@ class FibonacciGameAI(SnakeGameAI):
         self.fib_score = 0  # Total Fibonacci value collected
         self.viewing_mode = False  # Flag for viewer mode UI
         
+    # Add this method to set the theme directly
+    def set_theme(self, theme):
+        """Update the background theme"""
+        self.background_theme = theme
+        
     def reset(self):
         """Override reset to include Fibonacci-specific reset logic"""
         super().reset()

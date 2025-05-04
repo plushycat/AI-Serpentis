@@ -5,6 +5,7 @@ import numpy as np
 from utils import draw_gradient
 from src.game.customization import customization
 from src.utils.sound_manager import sound_manager, play_sound
+from src.utils.config import load_config
 
 pygame.init()
 pygame.mixer.init()
@@ -64,7 +65,6 @@ class SnakeGameAI:
         
         # Keep for compatibility
         self.snake_color = self.snake_theme.head_color
-        self.background_theme = "dark"  # Default background theme
         
         self.frame_limit_multiplier = 500  # Increased frame limit - customizable parameter
         self.recent_positions = []  # Track recent positions to detect loops
@@ -91,6 +91,10 @@ class SnakeGameAI:
             self.main_font = pygame.font.SysFont("Arial", 60)
             self.sub_font = pygame.font.SysFont("Arial", 48)
             self.small_font = pygame.font.SysFont("Arial", 36)
+
+        # Load theme from config
+        config = load_config()
+        self.background_theme = config.get("appearance", {}).get("background_theme", "dark")
 
         self.reset()
 
@@ -292,6 +296,12 @@ class SnakeGameAI:
         """
         Updates the game display with the current state.
         """
+        # Use the correct background color based on theme
+        if self.background_theme == "light":
+            self.display.fill((240, 240, 245))  # Light background
+        else:
+            self.display.fill((20, 20, 30))  # Dark background (default)
+
         # Select background and text colors based on theme
         if self.background_theme == "dark":
             draw_gradient(self.display, (0, 0, 50), (0, 0, 0), self.width, self.height)

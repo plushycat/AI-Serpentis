@@ -6,6 +6,8 @@ from src.game.customization import customization
 from utils import draw_gradient 
 import os
 import json
+from src.utils.sound_manager import play_sound
+from src.utils.config import load_config
 
 pygame.init()
 pygame.mixer.init()
@@ -71,7 +73,10 @@ class SnakeGame:
         
         # Keep for compatibility
         self.snake_color = self.snake_theme.head_color
-        self.background_theme = "dark"  # Default background theme
+        
+        # Load theme from config
+        config = load_config()
+        self.background_theme = config.get("appearance", {}).get("background_theme", "dark")
         
         # Init display
         pygame.display.set_caption('Snake Game - Classic Mode')
@@ -245,27 +250,25 @@ class SnakeGame:
         return False, self.score
     
     def _is_collision(self):
-        # Check if the snake hits itself
+        # If collision detected, use sound manager instead of direct sound
         if self.head in self.snake[1:]:
-            self.game_over_sound.play()
+            play_sound("game_over")
             print(f"Game Over: Snake collision")
             return True
         return False
         
     def _update_ui(self):
-        # Apply background based on theme
-        if self.background_theme == "dark":
-            draw_gradient(self.display, (0, 0, 50), (0, 0, 0), self.width, self.height)
-            # Dark theme colors
-            main_text_color = WHITE
-            high_score_color = YELLOW
-            controls_color = (180, 180, 180)  # Light gray
+        # Use the correct background color based on theme
+        if self.background_theme == "light":
+            self.display.fill((240, 240, 245))  # Light background
+            score_color = (0, 100, 0)  # Dark green for light theme
+            high_score_color = (150, 100, 0)  # Dark gold for light theme
+            controls_color = (80, 80, 80)  # Dark gray for light theme
         else:
-            draw_gradient(self.display, (200, 200, 200), (255, 255, 255), self.width, self.height)
-            # Light theme colors
-            main_text_color = (0, 0, 100)  # Dark blue
-            high_score_color = (180, 100, 0)  # Dark orange
-            controls_color = (80, 80, 80)  # Dark gray
+            self.display.fill((20, 20, 30))  # Dark background (default)
+            score_color = WHITE  # White for dark theme
+            high_score_color = YELLOW  # Yellow for dark theme
+            controls_color = (180, 180, 180)  # Light gray for dark theme
 
         # Draw snake with custom theme
         for i, point in enumerate(self.snake):
@@ -277,17 +280,17 @@ class SnakeGame:
         pygame.draw.circle(self.display, food_color, 
                           (self.food.x + BLOCK_SIZE // 2, self.food.y + BLOCK_SIZE // 2), 10)
 
-        # Display score with consistent font and dynamic color
-        score_text = self.main_font.render("Score: " + str(self.score), True, main_text_color)
+        # Display score with theme-appropriate color
+        score_text = self.main_font.render("Score: " + str(self.score), True, score_color)
         self.display.blit(score_text, [0, 0])
         
-        # Draw just the high score value directly using self.record
+        # Draw high score with theme-appropriate color
         if hasattr(self, 'record'):
             high_score_text = self.sub_font.render(f"High Score: {self.record}", True, high_score_color)
             high_score_rect = high_score_text.get_rect(topright=(self.width - 10, 10))
             self.display.blit(high_score_text, high_score_rect)
         
-        # Add controls help text at bottom left with dynamic color
+        # Add controls help text with theme-appropriate color
         controls_text = self.small_font.render("ESC - Back to Menu | P - Pause | Arrow Keys/WASD - Move", True, controls_color)
         self.display.blit(controls_text, [10, self.height - 30])
 

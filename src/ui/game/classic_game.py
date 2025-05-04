@@ -14,12 +14,13 @@ from src.ui.shared_globals import (
 
 def play_classic_game():
     """Play the classic snake game"""
-    # Get config to access game speed
+    # Get config to access game speed and background theme directly
     config = load_config()
-    game_speed = config["gameplay"].get("classic_speed", 10)  # Use classic_speed setting
+    game_speed = config["gameplay"].get("classic_speed", 10)
+    current_theme = config["appearance"].get("background_theme", "dark")  # Get theme directly from config
     
     # Initialize game with customized settings
-    game = SnakeGame(speed=game_speed)  # Pass speed parameter here
+    game = SnakeGame(speed=game_speed)
     
     # Apply the enhanced effects setting
     game.enhanced_effects = enhanced_effects
@@ -65,7 +66,7 @@ def play_classic_game():
     # Initialize with current customization settings
     game.snake_theme = customization.get_current_snake_theme()
     game.food_theme = customization.get_current_food_theme()
-    game.set_theme(background_theme)
+    game.set_theme(current_theme)  # Use the theme loaded directly from config
     
     # For compatibility with older code
     game.snake_color = game.snake_theme.head_color
@@ -89,20 +90,30 @@ def play_classic_game():
                 font_small = pygame.font.SysFont("Arial", 36)
                 font_medal = pygame.font.SysFont("Arial", 48)
             
-            game_over_text = font_large.render("GAME OVER", True, (255, 50, 50))
-            score_text = font_small.render(f"Your Score: {score}", True, (255, 255, 255))
-            continue_text = font_small.render("Press any key to continue", True, (200, 200, 200))
+            # Select colors based on theme
+            if game.background_theme == "dark":
+                text_color = (255, 255, 255)  # White for dark theme
+                secondary_color = (180, 180, 180)  # Light gray
+                celebration_color = (255, 215, 0)  # Gold for dark theme
+            else:
+                text_color = (0, 100, 0)  # Dark green for light theme
+                secondary_color = (60, 60, 60)  # Dark gray
+                celebration_color = (0, 150, 0)  # Green for light theme
+
+            game_over_text = font_large.render("GAME OVER", True, (255, 50, 50))  # Always red
+            score_text = font_small.render(f"Your Score: {score}", True, text_color)
+            record_text = font_small.render(f"Record: {max(classic_high_score, score)}", True, text_color)
+            continue_text = font_small.render("Press any key to continue", True, secondary_color)
             
             # Prepare new high score celebration if applicable
             if is_new_high:
-                new_record_text = font_medal.render("NEW HIGH SCORE!", True, (255, 215, 0))  # Gold color
+                new_record_text = font_medal.render("NEW HIGH SCORE!", True, celebration_color)  # Celebration color based on theme
                 
             # Position texts
             game_over_rect = game_over_text.get_rect(center=(game.width//2, game.height//2 - 100))
             score_rect = score_text.get_rect(center=(game.width//2, game.height//2))
             
             # Use a simple integer for the high score display
-            record_text = font_small.render(f"Record: {max(classic_high_score, score)}", True, (255, 255, 255))
             record_rect = record_text.get_rect(center=(game.width//2, game.height//2 + 50))
             
             if is_new_high:

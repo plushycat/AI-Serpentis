@@ -57,12 +57,17 @@ def watch_ai_play():
     # Get latest debug mode setting from config
     debug_mode = get_current_debug_mode()
     
+    # Load theme from config
+    config = load_config()
+    background_theme = config.get("appearance", {}).get("background_theme", "dark")
+    
     # Initialize the AI agent
     agent = Agent()
     
     # Initialize game with 1280x720 resolution for better viewing
     game = SnakeGameAI(width=1280, height=720)
     game.viewing_mode = True  # Enable viewer mode UI
+    game.background_theme = background_theme  # Set the theme
     
     # Apply customization settings
     game.enhanced_effects = enhanced_effects
@@ -323,12 +328,17 @@ def watch_fibonacci_ai_play():
     # Get latest debug mode setting from config
     debug_mode = get_current_debug_mode()
     
+    # Load theme from config
+    config = load_config()
+    background_theme = config.get("appearance", {}).get("background_theme", "dark")
+    
     # Initialize agent
     agent = TransferredFibonacciAgent()
     
     # Initialize game with 1280x720 resolution for better viewing
     game = FibonacciGameAI(width=1280, height=720)
     game.viewing_mode = True  # Enable viewer mode UI
+    game.background_theme = background_theme  # Set the theme
     
     # Apply customization settings
     game.enhanced_effects = enhanced_effects
