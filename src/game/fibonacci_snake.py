@@ -4,10 +4,10 @@ from src.game.snake_game import SnakeGame, BLOCK_SIZE, SPEED, Point
 
 class FibonacciSnakeGame(SnakeGame):
     def __init__(self, width=1280, height=720, speed=None, display_surface=None):
-        # Call parent constructor to initialize the basic game
-        super().__init__(width, height, display_surface)
+        # Pass speed to parent constructor
+        super().__init__(width, height, display_surface, speed=speed)
         
-        # Use custom speed if provided, otherwise use default
+        # Also set it on this instance for clarity
         self.speed = speed if speed is not None else SPEED
         
         # Override snake initialization - start with just the head

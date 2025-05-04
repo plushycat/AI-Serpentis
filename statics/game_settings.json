@@ -1,6 +1,6 @@
 {
     "appearance": {
-        "background_theme": "light",
+        "background_theme": "dark",
         "enhanced_effects": true
     },
     "gameplay": {
@@ -8,7 +8,7 @@
         "debug_mode": false,
         "game_speed": 8,
         "classic_speed": 25,
-        "fibonacci_speed": 19
+        "fibonacci_speed": 10
     },
     "audio": {
         "music_on": true,

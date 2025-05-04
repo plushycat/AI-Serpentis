@@ -42,7 +42,7 @@ font_path = "assets/fonts/game_over.ttf"
 font = pygame.font.Font(font_path, 60)
 
 class SnakeGame:
-    def __init__(self, width=1280, height=720, speed=None, display_surface=None):
+    def __init__(self, width=1280, height=720, display_surface=None, speed=None):
         self.width = width
         self.height = height
         
@@ -52,7 +52,7 @@ class SnakeGame:
         else:
             self.display = display_surface
 
-        # Use custom speed if provided, otherwise use default
+        # Use provided speed or default
         self.speed = speed if speed is not None else SPEED
         
         self.score = 0
@@ -104,11 +104,62 @@ class SnakeGame:
         self.enhanced_effects = True  # Default to enhanced effects
 
     def _place_food(self):
+        """
+        Places food at a random location on the grid.
+        Ensures the food does not spawn on the snake or text overlay areas.
+        """
+        # Define forbidden areas (rectangles to avoid)
+        forbidden_areas = [
+            # Top score area (0-200 x 0-50)
+            pygame.Rect(0, 0, 200, 50),
+            
+            # Top right corner for high score display
+            pygame.Rect(self.width - 300, 0, 300, 50),
+            
+            # Bottom area for controls text
+            pygame.Rect(0, self.height - 40, self.width, 40),
+            
+            # Center area for potential level up messages
+            pygame.Rect(self.width//2 - 150, self.height//2 - 50, 300, 100)
+        ]
+        
+        # Fibonacci mode needs additional forbidden areas
+        if hasattr(self, 'fibonacci_sequence'):
+            # Center top for Fibonacci metrics
+            forbidden_areas.append(pygame.Rect(self.width//2 - 250, 0, 500, 60))
+        
+        # Try to place food in a valid location
+        max_attempts = 50  # Prevent infinite recursion
+        for _ in range(max_attempts):
+            x = random.randint(0, (self.width - BLOCK_SIZE) // BLOCK_SIZE) * BLOCK_SIZE 
+            y = random.randint(0, (self.height - BLOCK_SIZE) // BLOCK_SIZE) * BLOCK_SIZE
+            food_rect = pygame.Rect(x, y, BLOCK_SIZE, BLOCK_SIZE)
+            
+            # Check if food collides with any forbidden area
+            if any(food_rect.colliderect(area) for area in forbidden_areas):
+                continue  # Try again with new coordinates
+                
+            # Check if food is on the snake
+            potential_food = Point(x, y)
+            if potential_food in self.snake:
+                continue  # Try again with new coordinates
+                
+            # We found a valid position
+            self.food = potential_food
+            
+            # Generate a new random food color if that feature is enabled
+            if hasattr(self, 'food_theme') and self.food_theme.random_colors:
+                self.food_theme.new_random_color()
+                
+            return
+            
+        # If we've exhausted attempts, just place it somewhere not on the snake
+        # (fallback to original behavior)
         x = random.randint(0, (self.width - BLOCK_SIZE) // BLOCK_SIZE) * BLOCK_SIZE 
         y = random.randint(0, (self.height - BLOCK_SIZE) // BLOCK_SIZE) * BLOCK_SIZE
         self.food = Point(x, y)
         if self.food in self.snake:
-            self._place_food()
+            self._place_food()  # Last resort recursive call
         
     def play_step(self):
         self.frame_iteration += 1
