@@ -3,6 +3,7 @@ import random
 import numpy as np
 from enum import Enum
 from collections import namedtuple
+from src.utils.sound_manager import play_sound
 from src.game.snake_ai import SnakeGameAI, Point, RIGHT, LEFT, UP, DOWN, BLOCK_SIZE, WHITE, BLACK, RED, BLUE, BLUE2, GREEN, YELLOW
 from utils import draw_gradient
 
@@ -153,12 +154,11 @@ class FibonacciGameAI(SnakeGameAI):
             self.total_fibonacci_growth += current_fib_value
                 
             # Play sound effects
-            if hasattr(self, 'eat_sound'):
-                self.eat_sound.play()
-                
+            play_sound("eat")  # Changed from self.eat_sound.play()
+            
             # Play level up sound every 5 Fibonacci positions
-            if self.fib_index > 0 and self.fib_index % 5 == 0 and hasattr(self, 'level_up_sound'):
-                self.level_up_sound.play()
+            if self.fib_index > 0 and self.fib_index % 5 == 0:
+                play_sound("level_up")  # Changed from self.level_up_sound.play()
                 
             # Place new food
             self._place_food()

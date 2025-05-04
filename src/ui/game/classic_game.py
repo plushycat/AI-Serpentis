@@ -14,6 +14,10 @@ from src.ui.shared_globals import (
 
 def play_classic_game():
     """Play the classic snake game"""
+    # Add near the top of the function
+    from src.utils.sound_manager import sound_manager
+    sound_manager.refresh_settings()
+    
     # Get config to access game speed and background theme directly
     config = load_config()
     game_speed = config["gameplay"].get("classic_speed", 10)

@@ -1,9 +1,14 @@
 import pygame
+from src.utils.sound_manager import play_sound
 from utils import draw_gradient 
 from src.game.snake_game import SnakeGame, BLOCK_SIZE, SPEED, Point
 
 class FibonacciSnakeGame(SnakeGame):
     def __init__(self, width=1280, height=720, speed=None, display_surface=None):
+        # Add this at the beginning of __init__ method
+        from src.utils.sound_manager import sound_manager
+        sound_manager.refresh_settings()
+        
         # Pass speed to parent constructor
         super().__init__(width, height, display_surface, speed=speed)
         
@@ -100,7 +105,7 @@ class FibonacciSnakeGame(SnakeGame):
 
         # Check if the snake eats food
         if self.head == self.food:
-            self.eat_sound.play()
+            play_sound("eat")  # Changed from self.eat_sound.play()
             self.score += 1
             self._place_food()
             ate_food_this_step = True
@@ -123,9 +128,8 @@ class FibonacciSnakeGame(SnakeGame):
             
             # Play level up sound every 10 points
             if self.score % 10 == 0 and self.score > 0:
-                if hasattr(self, 'level_up_sound') and self.level_up_sound:
-                    self.level_up_sound.play()
-                    self._show_level_up()
+                play_sound("level_up")  # Changed from self.level_up_sound.play()
+                self._show_level_up()
         
         # Handle tail removal logic
         # For the first food (Fibonacci value 0), we ALWAYS remove the tail

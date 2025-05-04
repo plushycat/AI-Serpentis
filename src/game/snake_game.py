@@ -45,6 +45,10 @@ font = pygame.font.Font(font_path, 60)
 
 class SnakeGame:
     def __init__(self, width=1280, height=720, display_surface=None, speed=None):
+        # Add this at the beginning of __init__ method
+        from src.utils.sound_manager import sound_manager
+        sound_manager.refresh_settings()
+        
         self.width = width
         self.height = height
         
@@ -230,17 +234,14 @@ class SnakeGame:
 
         # Check if the snake eats food
         if self.head == self.food:
-            self.eat_sound.play()
+            play_sound("eat")  # Changed from self.eat_sound.play()
             self.score += 1
             self._place_food()  # This will generate a new random color if needed
             
             # Play level up sound every 10 points
             if self.score % 10 == 0 and self.score > 0:
-                if hasattr(self, 'level_up_sound') and self.level_up_sound:
-                    self.level_up_sound.play()
-                    
-                    # Show level up animation
-                    self._show_level_up()
+                play_sound("level_up")  # Changed from self.level_up_sound.play()
+                self._show_level_up()
         else:
             self.snake.pop()
             
@@ -263,18 +264,21 @@ class SnakeGame:
         return False
         
     def _update_ui(self):
-        # Use the correct background color based on theme
-        if self.background_theme == "light":
-            self.display.fill((240, 240, 245))  # Light background
-            score_color = (0, 100, 0)  # Dark green for light theme
-            high_score_color = (150, 100, 0)  # Dark gold for light theme
-            controls_color = (80, 80, 80)  # Dark gray for light theme
+        # Apply background based on theme
+        if self.background_theme == "dark":
+            draw_gradient(self.display, (0, 0, 50), (0, 0, 0), self.width, self.height)
+            # Dark theme colors
+            main_text_color = WHITE
+            high_score_color = YELLOW
+            controls_color = (180, 180, 180)  # Light gray
         else:
-            self.display.fill((20, 20, 30))  # Dark background (default)
-            score_color = WHITE  # White for dark theme
-            high_score_color = YELLOW  # Yellow for dark theme
-            controls_color = (180, 180, 180)  # Light gray for dark theme
-
+            draw_gradient(self.display, (200, 200, 200), (255, 255, 255), self.width, self.height)
+            # Light theme colors
+            main_text_color = (0, 0, 100)  # Dark blue
+            high_score_color = (180, 100, 0)  # Dark orange
+            controls_color = (80, 80, 80)  # Dark gray
+        
+        # Rest of the method remains unchanged...
         # Draw snake with custom theme
         for i, point in enumerate(self.snake):
             segment_color = self.snake_theme.get_segment_color(i)
@@ -286,7 +290,7 @@ class SnakeGame:
                           (self.food.x + BLOCK_SIZE // 2, self.food.y + BLOCK_SIZE // 2), 10)
 
         # Display score with theme-appropriate color
-        score_text = self.main_font.render("Score: " + str(self.score), True, score_color)
+        score_text = self.main_font.render("Score: " + str(self.score), True, main_text_color)
         self.display.blit(score_text, [0, 0])
         
         # Draw high score with theme-appropriate color
@@ -353,7 +357,7 @@ class SnakeGame:
         level_text = self.main_font.render(f"LEVEL UP!", True, text_color)
         self.display.blit(level_text, 
                         (self.width//2 - level_text.get_width()//2, 
-                         self.height//2 - level_text.get_height()//2))
+                        self.height//2 - level_text.get_height()//2))
         
         pygame.display.update()
         # Pause briefly so the player can see the level up message

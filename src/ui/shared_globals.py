@@ -35,6 +35,8 @@ music_on_icon = None
 music_off_icon = None
 help_icon = None
 scores_icon = None
+settings_icon = None
+quit_icon = None
 current_gradient = 0
 next_gradient = 1
 gradient_blend = 0.0
@@ -63,7 +65,7 @@ def init_globals():
     """Initialize global variables that require pygame to be initialized"""
     global title_font, menu_font, footer_font, screen
     global music_on_icon, music_off_icon, click_sound, music_loaded
-    global help_icon, scores_icon
+    global help_icon, scores_icon, settings_icon, quit_icon
     
     # Initialize screen
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -132,6 +134,29 @@ def init_globals():
             text_surf = temp_font.render("?", True, (255, 255, 255))
             text_rect = text_surf.get_rect(center=(ICON_SIZE[0]//2, ICON_SIZE[1]//2))
             help_icon.blit(text_surf, text_rect)
+        
+        # Add these lines to your init_globals() function
+        settings_icon_path = get_asset_path("assets/images/settings.png")
+        quit_icon_path = get_asset_path("assets/images/quit.png")
+
+        # Load settings and quit icons
+        if os.path.exists(settings_icon_path) and os.path.exists(quit_icon_path):
+            settings_icon = pygame.image.load(settings_icon_path)
+            quit_icon = pygame.image.load(quit_icon_path)
+            # Scale to icon size
+            settings_icon = scale_preserving_aspect_ratio(settings_icon, ICON_SIZE)
+            quit_icon = scale_preserving_aspect_ratio(quit_icon, ICON_SIZE)
+        else:
+            # Create fallback icons
+            print("Warning: Settings or quit icon images not found. Using fallback.")
+            settings_icon = pygame.Surface(ICON_SIZE, pygame.SRCALPHA)
+            quit_icon = pygame.Surface(ICON_SIZE, pygame.SRCALPHA)
+            # Draw gear for settings
+            pygame.draw.circle(settings_icon, (180, 180, 220), (ICON_SIZE[0]//2, ICON_SIZE[1]//2), ICON_SIZE[0]//2-4)
+            pygame.draw.circle(settings_icon, (60, 60, 80), (ICON_SIZE[0]//2, ICON_SIZE[1]//2), ICON_SIZE[0]//4)
+            # Draw X for quit
+            pygame.draw.line(quit_icon, (220, 100, 100), (10, 10), (ICON_SIZE[0]-10, ICON_SIZE[1]-10), 5)
+            pygame.draw.line(quit_icon, (220, 100, 100), (ICON_SIZE[0]-10, 10), (10, ICON_SIZE[1]-10), 5)
         
         # Use sound_manager's proxy instead of direct sound
         class ClickSoundProxy:

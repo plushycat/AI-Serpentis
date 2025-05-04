@@ -53,6 +53,9 @@ class SnakeGameAI:
         avg: Average score.
         iteration: Current training iteration.
         """
+        from src.utils.sound_manager import sound_manager
+        sound_manager.refresh_settings()
+        
         self.width = width
         self.height = height
         self.record = record
