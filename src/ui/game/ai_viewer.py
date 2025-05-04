@@ -149,10 +149,7 @@ def watch_ai_play():
                 pygame.quit()
                 sys.exit()
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    if click_sound: click_sound.play()
-                    done = True
-                elif event.key == pygame.K_p:
+                if event.key == pygame.K_p or event.key == pygame.K_ESCAPE:
                     if click_sound: click_sound.play()
                     paused = True
                     
@@ -161,19 +158,23 @@ def watch_ai_play():
                     overlay.fill((0, 0, 0, 120))  # Semi-transparent black
                     game.display.blit(overlay, (0, 0))
                     
-                    # Draw pause text
-                    pause_text = game.sub_font.render('PAUSED - Press P to continue', True, WHITE)
-                    game.display.blit(pause_text, (game.width//2 - pause_text.get_width()//2, game.height//2))
+                    # Draw pause text with updated instructions
+                    pause_text = game.sub_font.render('PAUSED', True, WHITE)
+                    resume_text = game.small_font.render('Press R to resume, ESC to exit', True, WHITE)
+                    
+                    game.display.blit(pause_text, (game.width//2 - pause_text.get_width()//2, game.height//2 - 30))
+                    game.display.blit(resume_text, (game.width//2 - resume_text.get_width()//2, game.height//2 + 20))
                     pygame.display.update()
                     
                     # Pause loop
                     while paused:
                         for pause_event in pygame.event.get():
-                            if pause_event.type == pygame.KEYDOWN and pause_event.key == pygame.K_p:
-                                paused = False
-                            elif pause_event.type == pygame.KEYDOWN and pause_event.key == pygame.K_ESCAPE:
-                                done = True
-                                paused = False
+                            if pause_event.type == pygame.KEYDOWN:
+                                if pause_event.key == pygame.K_r:
+                                    paused = False
+                                elif pause_event.key == pygame.K_ESCAPE:
+                                    done = True
+                                    paused = False
                             elif pause_event.type == pygame.QUIT:
                                 pygame.quit()
                                 sys.exit()
@@ -424,16 +425,18 @@ def watch_fibonacci_ai_play():
     # Game loop
     done = False
     paused = False
+    state_old = agent.get_state(game)  # Initialize state_old
     
     while not done:
-        # Get current state
-        state = agent.get_state(game)
-        
-        # Get AI move
-        final_move = agent.get_action(state)
+        # Handle AI move selection
+        final_move = agent.get_action(state_old)
         
         # Perform move and get new state
         reward, done, score = game.play_step(final_move)
+        state_new = agent.get_state(game)
+        
+        # Update state
+        state_old = state_new
         
         # Handle events
         for event in pygame.event.get():
@@ -441,10 +444,7 @@ def watch_fibonacci_ai_play():
                 pygame.quit()
                 sys.exit()
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    if click_sound: click_sound.play()
-                    done = True
-                elif event.key == pygame.K_p:
+                if event.key == pygame.K_p or event.key == pygame.K_ESCAPE:
                     if click_sound: click_sound.play()
                     paused = True
                     
@@ -453,19 +453,23 @@ def watch_fibonacci_ai_play():
                     overlay.fill((0, 0, 0, 120))  # Semi-transparent black
                     game.display.blit(overlay, (0, 0))
                     
-                    # Draw pause text
-                    pause_text = game.sub_font.render('PAUSED - Press P to continue', True, WHITE)
-                    game.display.blit(pause_text, (game.width//2 - pause_text.get_width()//2, game.height//2))
+                    # Draw pause text with updated instructions
+                    pause_text = game.sub_font.render('PAUSED', True, WHITE)
+                    resume_text = game.small_font.render('Press R to resume, ESC to exit', True, WHITE)
+                    
+                    game.display.blit(pause_text, (game.width//2 - pause_text.get_width()//2, game.height//2 - 30))
+                    game.display.blit(resume_text, (game.width//2 - resume_text.get_width()//2, game.height//2 + 20))
                     pygame.display.update()
                     
                     # Pause loop
                     while paused:
                         for pause_event in pygame.event.get():
-                            if pause_event.type == pygame.KEYDOWN and pause_event.key == pygame.K_p:
-                                paused = False
-                            elif pause_event.type == pygame.KEYDOWN and pause_event.key == pygame.K_ESCAPE:
-                                done = True
-                                paused = False
+                            if pause_event.type == pygame.KEYDOWN:
+                                if pause_event.key == pygame.K_r:
+                                    paused = False
+                                elif pause_event.key == pygame.K_ESCAPE:
+                                    done = True
+                                    paused = False
                             elif pause_event.type == pygame.QUIT:
                                 pygame.quit()
                                 sys.exit()

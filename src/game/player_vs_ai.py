@@ -595,12 +595,8 @@ def player_vs_ai():
                 return
             
             if event.type == pygame.KEYDOWN:
-                # Handle escape key - return to main menu
-                if event.key == pygame.K_ESCAPE:
-                    running = False
-                
-                # Handle pause
-                if event.key == pygame.K_p:
+                # Handle escape key - now also pauses
+                if event.key == pygame.K_ESCAPE or event.key == pygame.K_p:
                     paused = True
                     
                     # Draw pause overlay
@@ -611,7 +607,8 @@ def player_vs_ai():
                     pause_text = main_font.render("PAUSED", True, (255, 255, 255))
                     screen.blit(pause_text, (screen_width//2 - pause_text.get_width()//2, screen_height//2 - 30))
                     
-                    continue_text = small_font.render("Press P to continue", True, (200, 200, 200))
+                    # Updated instructions
+                    continue_text = small_font.render("Press R to resume, ESC to exit", True, (200, 200, 200))
                     screen.blit(continue_text, (screen_width//2 - continue_text.get_width()//2, screen_height//2 + 30))
                     
                     pygame.display.flip()
@@ -624,9 +621,9 @@ def player_vs_ai():
                                 return
                             
                             if pause_event.type == pygame.KEYDOWN:
-                                if pause_event.key == pygame.K_p:
+                                if pause_event.key == pygame.K_r:  # R to resume
                                     paused = False
-                                elif pause_event.key == pygame.K_ESCAPE:
+                                elif pause_event.key == pygame.K_ESCAPE:  # ESC to exit
                                     running = False
                                     paused = False
                         

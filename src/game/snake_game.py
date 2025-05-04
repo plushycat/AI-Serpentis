@@ -175,7 +175,7 @@ class SnakeGame:
                 pygame.quit()
                 quit()
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_p:  # Press 'P' to pause
+                if event.key == pygame.K_p or event.key == pygame.K_ESCAPE:  # Either P or ESC pauses
                     paused = True
                     
                     # Create semi-transparent overlay for better contrast
@@ -186,20 +186,27 @@ class SnakeGame:
                     # Dynamic text color based on theme
                     pause_color = WHITE if self.background_theme == "dark" else (0, 0, 100)
                     
-                    pause_text = self.sub_font.render('PAUSED - Press P to continue', True, pause_color)
-                    self.display.blit(pause_text, (self.width//2 - pause_text.get_width()//2, self.height//2))
+                    # Updated pause text with R to resume and ESC to exit
+                    pause_text = self.sub_font.render('PAUSED', True, pause_color)
+                    resume_text = self.small_font.render('Press R to resume, ESC to exit', True, pause_color)
+                    
+                    self.display.blit(pause_text, (self.width//2 - pause_text.get_width()//2, self.height//2 - 30))
+                    self.display.blit(resume_text, (self.width//2 - resume_text.get_width()//2, self.height//2 + 20))
                     pygame.display.update()
+                    
                     while paused:
                         for pause_event in pygame.event.get():
-                            if pause_event.type == pygame.KEYDOWN and pause_event.key == pygame.K_p:
-                                paused = False
-                            elif pause_event.type == pygame.KEYDOWN and pause_event.key == pygame.K_ESCAPE:
-                                pygame.quit()
-                                quit()
+                            if pause_event.type == pygame.KEYDOWN:
+                                if pause_event.key == pygame.K_r:  # R to resume
+                                    paused = False
+                                elif pause_event.key == pygame.K_ESCAPE:  # ESC in pause to exit
+                                    return True, self.score  # Return game over and score
                             elif pause_event.type == pygame.QUIT:
                                 pygame.quit()
                                 quit()
                         pygame.time.wait(100)
+                
+                # Continue with direction handling
                 elif event.key in (pygame.K_LEFT, pygame.K_a):  # Left arrow or 'A'
                     if self.direction != RIGHT:  # Prevent 180-degree turns
                         self.direction = LEFT
@@ -212,8 +219,6 @@ class SnakeGame:
                 elif event.key in (pygame.K_DOWN, pygame.K_s):  # Down arrow or 'S'
                     if self.direction != UP:  # Prevent 180-degree turns
                         self.direction = DOWN
-                elif event.key == pygame.K_ESCAPE:  # Escape key to quit
-                    return True, self.score
 
         # Move the snake
         self._move(self.direction)
@@ -291,7 +296,7 @@ class SnakeGame:
             self.display.blit(high_score_text, high_score_rect)
         
         # Add controls help text with theme-appropriate color
-        controls_text = self.small_font.render("ESC - Back to Menu | P - Pause | Arrow Keys/WASD - Move", True, controls_color)
+        controls_text = self.small_font.render("ESC or P - Pause | Arrow Keys / WASD - Move", True, controls_color)
         self.display.blit(controls_text, [10, self.height - 30])
 
         pygame.display.flip()

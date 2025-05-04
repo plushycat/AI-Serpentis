@@ -65,8 +65,8 @@ class FibonacciGameAI(SnakeGameAI):
                 quit()
                 
             if event.type == pygame.KEYDOWN:
-                # Handle pause
-                if event.key == pygame.K_p:
+                # Handle pause with both P and ESC
+                if event.key == pygame.K_p or event.key == pygame.K_ESCAPE:
                     paused = True
     
                     # Create semi-transparent overlay for better contrast
@@ -76,15 +76,24 @@ class FibonacciGameAI(SnakeGameAI):
     
                     # Dynamic text color based on theme
                     pause_color = WHITE if self.background_theme == "dark" else (0, 0, 100)
-    
-                    pause_text = self.sub_font.render('PAUSED - Press P to continue', True, pause_color)
-                    self.display.blit(pause_text, (self.width//2 - pause_text.get_width()//2, self.height//2))
+                    
+                    # Updated pause text with instructions
+                    pause_text = self.sub_font.render('PAUSED', True, pause_color)
+                    resume_text = self.small_font.render('Press R to resume, ESC to exit', True, pause_color)
+                    
+                    self.display.blit(pause_text, (self.width//2 - pause_text.get_width()//2, self.height//2 - 30))
+                    self.display.blit(resume_text, (self.width//2 - resume_text.get_width()//2, self.height//2 + 20))
                     pygame.display.update()
     
                     while paused:
                         for pause_event in pygame.event.get():
-                            if pause_event.type == pygame.KEYDOWN and pause_event.key == pygame.K_p:
-                                paused = False
+                            if pause_event.type == pygame.KEYDOWN:
+                                if pause_event.key == pygame.K_r:  # R to resume
+                                    paused = False
+                                elif pause_event.key == pygame.K_ESCAPE:  # ESC to exit
+                                    game_over = True
+                                    reward = -10
+                                    return reward, game_over, self.score
                             elif pause_event.type == pygame.QUIT:
                                 pygame.quit()
                                 quit()
@@ -241,7 +250,7 @@ class FibonacciGameAI(SnakeGameAI):
             self.display.blit(fib_score_text, [10, 120])
             
             # Add controls help text
-            controls_text = self.small_font.render("ESC - Back to Menu | P - Pause", True, controls_color)
+            controls_text = self.small_font.render("ESC or P - Pause | R - Resume", True, controls_color)
             self.display.blit(controls_text, [10, self.height - 30])
         else:
             # Full UI for training mode

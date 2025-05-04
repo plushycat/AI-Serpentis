@@ -34,7 +34,7 @@ class FibonacciSnakeGame(SnakeGame):
                 pygame.quit()
                 quit()
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_p:  # Press 'P' to pause
+                if event.key == pygame.K_p or event.key == pygame.K_ESCAPE:  # Changed to support both P and ESC
                     paused = True
                     
                     # Create semi-transparent overlay for better contrast
@@ -45,21 +45,30 @@ class FibonacciSnakeGame(SnakeGame):
                     # Dynamic text color based on theme
                     pause_color = (255, 255, 255) if self.background_theme == "dark" else (0, 0, 100)
                     
-                    pause_text = self.sub_font.render('PAUSED - Press P to continue', True, pause_color)
-                    self.display.blit(pause_text, (self.width//2 - pause_text.get_width()//2, self.height//2))
+                    # Updated pause text with R to resume and ESC to exit instructions
+                    pause_text = self.sub_font.render('PAUSED', True, pause_color)
+                    resume_text = self.small_font.render('Press R to resume, ESC to exit', True, pause_color)
+                    
+                    self.display.blit(pause_text, (self.width//2 - pause_text.get_width()//2, self.height//2 - 30))
+                    self.display.blit(resume_text, (self.width//2 - resume_text.get_width()//2, self.height//2 + 20))
                     pygame.display.update()
                     
                     while paused:
                         for pause_event in pygame.event.get():
-                            if pause_event.type == pygame.KEYDOWN and pause_event.key == pygame.K_p:
-                                paused = False
-                            elif pause_event.type == pygame.KEYDOWN and pause_event.key == pygame.K_ESCAPE:
-                                pygame.quit()
-                                quit()
+                            if pause_event.type == pygame.KEYDOWN:
+                                if pause_event.key == pygame.K_r:  # R to resume
+                                    paused = False
+                                elif pause_event.key == pygame.K_ESCAPE:  # ESC to exit
+                                    # Get current Fibonacci values for score return
+                                    current_fib_index = max(0, self.fib_index - 1)
+                                    current_fib_value = self.fibonacci_sequence[current_fib_index]
+                                    return True, (self.score, current_fib_value)
                             elif pause_event.type == pygame.QUIT:
                                 pygame.quit()
                                 quit()
                         pygame.time.wait(100)
+                    
+                # Continue with direction handling
                 elif event.key in (pygame.K_LEFT, pygame.K_a):
                     if self.direction != 1:  # RIGHT
                         self.direction = 2  # LEFT
@@ -189,7 +198,7 @@ class FibonacciSnakeGame(SnakeGame):
             self.display.blit(high_score_text, high_score_rect)
         
         # Add controls help text
-        controls_text = self.small_font.render("ESC - Back to Menu | P - Pause | Arrow Keys/WASD - Move", True, controls_color)
+        controls_text = self.small_font.render("ESC or P - Pause | R - Resume | Arrow Keys/WASD - Move", True, controls_color)
         self.display.blit(controls_text, [10, self.height - 30])
         
         # Calculate exact total length (initial head + all growth)
