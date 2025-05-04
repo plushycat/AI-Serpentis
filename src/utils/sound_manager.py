@@ -23,15 +23,18 @@ class SoundManager:
     music_volume = 0.5
     sound_effects_volume = 0.6
     
-    @classmethod
-    def get_instance(cls):
-        """Get or create singleton instance"""
-        if cls._instance is None:
-            cls._instance = SoundManager()
-        return cls._instance
-    
     def __init__(self):
-        """Initialize sound manager (only runs once)"""
+        """Initialize the sound manager singleton"""
+        self.sounds = {}
+        self.initialized = False
+        self.config = None
+        self.master_volume = 1.0
+        self.music_volume = 1.0
+        self.sfx_volume = 1.0
+        
+        # Flag to track if music is already playing
+        self.music_started = False
+
         if SoundManager._initialized:
             return
             
@@ -60,6 +63,22 @@ class SoundManager:
         
         SoundManager._initialized = True
         self._log("Sound manager initialized successfully")
+    
+    @classmethod
+    def get_instance(cls):
+        """Get or create singleton instance"""
+        if cls._instance is None:
+            cls._instance = SoundManager()
+        return cls._instance
+    
+    def initialize(self):
+        """Initialize the sound system - call this after pygame.init()"""
+        if self.initialized:
+            return  # Prevent double initialization
+            
+        self.initialized = True
+        self._load_resources()
+        self._load_config()
     
     def load_settings(self):
         """Load sound settings from the unified config file"""
@@ -136,6 +155,10 @@ class SoundManager:
             self._load_game_sound("eat", "assets/sounds/eat-food.mp3")
             self._load_game_sound("game_over", "assets/sounds/game-over.mp3")
             self._load_game_sound("level_up", "assets/sounds/level_up.mp3")
+            
+            # Add these sounds for the countdown
+            self._load_game_sound("countdown_tick", "assets/sounds/countdown.mp3")
+            self._load_game_sound("pvai_begin", "assets/sounds/pvai_begin.mp3")
         except Exception as e:
             self._log(f"Error loading sound resources: {e}")
     
@@ -272,6 +295,29 @@ class SoundManager:
         except Exception as e:
             self._log(f"Error playing click sound: {e}")
             return False
+    
+    def play_music(self):
+        """Play background music if enabled in settings"""
+        if not self.initialized:
+            return
+            
+        # Check if music is already playing to prevent double play
+        if self.music_started:
+            return
+            
+        # Set the flag to indicate we've started music
+        self.music_started = True
+        
+        config = load_config()
+        music_on = config.get("audio", {}).get("music_on", True)
+        
+        if music_on:
+            try:
+                # Stop any currently playing music first
+                pygame.mixer.music.stop()
+                pygame.mixer.music.play(-1)  # Loop indefinitely
+            except Exception as e:
+                print(f"Error playing music: {e}")
     
     def _log(self, message):
         """Log a message with timestamp"""

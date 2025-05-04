@@ -10,6 +10,7 @@ from src.game.snake_ai import SnakeGameAI
 from src.game.customization import customization
 from src.utils.input_utils import is_screenshot_key
 from src.utils.scores import save_vs_high_score
+from src.utils.sound_manager import sound_manager, play_sound
 
 # Create a special SnakeGame subclass for VS mode
 class VSPlayerGame(SnakeGame):
@@ -281,17 +282,6 @@ def player_vs_ai():
         small_font = pygame.font.SysFont("Arial", 36)  # Increased from 28 to 36
         labels_font = pygame.font.SysFont("Arial", 42)  # New larger font for YOU/AI labels
     
-    # Load sounds with error handling
-    try:
-        eat_sound = pygame.mixer.Sound("assets/sounds/eat-food.mp3")
-        game_over_sound = pygame.mixer.Sound("assets/sounds/game-over.wav")
-        level_up_sound = pygame.mixer.Sound("assets/sounds/level-up.wav")
-    except:
-        print("Warning: Sound file(s) not found.")
-        eat_sound = None
-        game_over_sound = None
-        level_up_sound = None
-    
     # Setup AI agent model
     model = Linear_QNet(11, 256, 3)
     
@@ -495,24 +485,10 @@ def player_vs_ai():
     # Add countdown before starting the game
     def show_countdown():
         """Display 5-4-3-2-1 countdown before game starts. Return False if canceled."""
-        # Try to load countdown sounds ONCE outside the loop
-        try:
-            tick_sound = pygame.mixer.Sound("assets/sounds/countdown.mp3")
-            begin_sound = pygame.mixer.Sound("assets/sounds/pvai_begin.mp3")
-            # Set volume to avoid being too loud
-            tick_sound.set_volume(0.7)
-            begin_sound.set_volume(0.8)
-        except Exception as e:
-            print(f"Warning: Could not load countdown sounds: {e}")
-            tick_sound = None
-            begin_sound = None
         
-        # Helper function to stop sounds when exiting
         def cleanup_sounds():
-            if tick_sound:
-                tick_sound.stop()
-            if begin_sound:
-                begin_sound.stop()
+            # Stop all currently playing sound effects
+            pygame.mixer.stop()  # This stops all playing channels
             
         # Create semi-transparent overlay for the countdown
         overlay = pygame.Surface((screen_width, screen_height), pygame.SRCALPHA)
@@ -523,9 +499,8 @@ def player_vs_ai():
         screen.blit(overlay, (0, 0))
         screen.blit(ready_text, (screen_width//2 - ready_text.get_width()//2, screen_height//2 - 100))
         
-        # Play the countdown tick sound IMMEDIATELY
-        if tick_sound:
-            tick_sound.play()
+        # Play the countdown tick sound using sound_manager
+        play_sound("countdown_tick")
         
         pygame.display.flip()
         
@@ -576,9 +551,8 @@ def player_vs_ai():
         screen.blit(overlay, (0, 0))
         screen.blit(go_text, go_rect)
         
-        # Play begin sound ONCE when the countdown finishes
-        if begin_sound:
-            begin_sound.play()
+        # Play begin sound using sound_manager
+        play_sound("pvai_begin")
             
         pygame.display.flip()
         
@@ -731,15 +705,13 @@ def player_vs_ai():
             
             # Play sounds for player and show level up if needed
             if player_score > prev_player_score:  # Score increased
-                if eat_sound:
-                    eat_sound.play()
+                play_sound("eat")  # Instead of eat_sound.play()
                 if player_score % 10 == 0 and player_score > 0:
-                    if level_up_sound:
-                        level_up_sound.play()
+                    play_sound("level_up")  # Instead of level_up_sound.play()
                     show_level_up(is_player=True)  # Show level up animation for player
             
-            if player_game_over and game_over_sound:
-                game_over_sound.play()
+            if player_game_over:
+                play_sound("game_over")  # Instead of game_over_sound.play()
         
         if not ai_game_over:
             # Save previous score to check for level up
@@ -754,11 +726,9 @@ def player_vs_ai():
             
             # Play sounds for AI and show level up if needed
             if ai_score > prev_ai_score:  # Score increased
-                if eat_sound:
-                    eat_sound.play()
+                play_sound("eat")  # Instead of eat_sound.play()
                 if ai_score % 10 == 0 and ai_score > 0:
-                    if level_up_sound:
-                        level_up_sound.play()
+                    play_sound("level_up")  # Instead of level_up_sound.play()
                     show_level_up(is_player=False)  # Show level up animation for AI
         
         # Draw score numbers that change each frame

@@ -20,6 +20,7 @@ from src.ui.shared_globals import (
 )
 
 from src.utils.config import load_config, save_config
+from src.utils.sound_manager import sound_manager
 
 # Import game modules at function level to avoid circular imports
 def get_game_modules():
@@ -58,17 +59,8 @@ def home_page():
     music_on = config["audio"]["music_on"]
     debug_mode = config["gameplay"]["debug_mode"]
     
-    # Set music state based on config
-    if music_on and music_loaded:
-        try:
-            pygame.mixer.music.play(-1)
-        except pygame.error:
-            print("Warning: Unable to play music.")
-    else:
-        try:
-            pygame.mixer.music.stop()
-        except pygame.error:
-            pass
+    # Play music ONCE - the sound manager will now track if it's already started
+    sound_manager.play_music()
     
     clock = pygame.time.Clock()
     

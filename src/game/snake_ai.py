@@ -4,6 +4,7 @@ from collections import namedtuple
 import numpy as np
 from utils import draw_gradient
 from src.game.customization import customization
+from src.utils.sound_manager import sound_manager, play_sound
 
 pygame.init()
 pygame.mixer.init()
@@ -56,14 +57,6 @@ class SnakeGameAI:
         self.record = record
         self.avg = avg
         self.iteration = iteration
-        self.eat_sound = pygame.mixer.Sound('assets/sounds/eat-food.mp3')
-        self.game_over_sound = pygame.mixer.Sound('assets/sounds/game-over.mp3')
-        # Add level up sound
-        try:
-            self.level_up_sound = pygame.mixer.Sound('assets/sounds/level_up.mp3')
-        except:
-            print("Warning: Level up sound file not found")
-            self.level_up_sound = None
         
         # Using customization for snake appearance
         self.snake_theme = customization.get_current_snake_theme()
@@ -188,7 +181,7 @@ class SnakeGameAI:
         if self.is_collision():
             game_over = True
             reward = -10
-            self.game_over_sound.play()
+            play_sound("game_over")  # Use sound_manager instead of self.game_over_sound.play()
             print(f"AI Game Over: Collision detected")
             return reward, game_over, self.score
         
@@ -206,15 +199,12 @@ class SnakeGameAI:
             self.score += 1
             reward = 10
             self._place_food()
-            self.eat_sound.play()
+            play_sound("eat")  # Use sound_manager instead of self.eat_sound.play()
             
             # Play level up sound every 10 points
             if self.score % 10 == 0 and self.score > 0 and reward > 0:
-                if hasattr(self, 'level_up_sound') and self.level_up_sound:
-                    self.level_up_sound.play()
-                    # Also show a level up message if in viewing mode
-                    if self.viewing_mode:
-                        self._show_level_up()
+                play_sound("level_up")
+                self._show_level_up()
             
             # Reset frame iteration when food is eaten to prevent timeout
             self.frame_iteration = 0
@@ -251,7 +241,7 @@ class SnakeGameAI:
         if pt is None:
             pt = self.head
         if pt in self.snake[1:]:  # Collision with the snake's body
-            self.game_over_sound.play()
+            play_sound("game_over")  # Use sound_manager instead of self.game_over_sound.play()
             return True
 
         return False

@@ -2,7 +2,11 @@ import pygame
 import os
 import sys
 from src.utils.config import load_config, save_config
-from src.utils.sound_manager import sound_manager, play_click
+
+# Global function for late binding
+def play_click():
+    from src.utils.sound_manager import play_click as _play_click
+    return _play_click()
 
 # Function to handle paths consistently
 def get_asset_path(relative_path):
@@ -98,13 +102,6 @@ def init_globals():
             music_on_icon.fill((0, 200, 0))  # Green
             music_off_icon.fill((200, 0, 0))  # Red
         
-        # Load and prepare background music
-        bg_music_path = get_asset_path("assets/sounds/bg_music.mp3")
-        click_sound_path = get_asset_path("assets/sounds/ui_click.mp3")
-        
-        if os.path.exists(bg_music_path):
-            pygame.mixer.music.load(bg_music_path)
-            
         # Use sound_manager's proxy instead of direct sound
         class ClickSoundProxy:
             def play(self):
@@ -128,6 +125,10 @@ def init_globals():
     # Always ensure mixer is initialized
     if not pygame.mixer.get_init():
         pygame.mixer.init()
+    
+    # Late-bind the sound manager
+    from src.utils.sound_manager import sound_manager
+    # Now safe to use sound_manager
 
 def update_theme(theme):
     """Update the global theme variable"""
