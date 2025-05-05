@@ -1,6 +1,7 @@
 import pygame
 import sys
 import math
+import os
 
 from src.ui.components import (
     draw_smooth_gradient, glowing_text, draw_button, draw_fancy_button,
@@ -16,7 +17,7 @@ from src.ui.shared_globals import (
     title_font, menu_font, footer_font, screen,
     BUTTON_BASE_LEFT, BUTTON_BASE_RIGHT,
     BUTTON_HOVER_LEFT, BUTTON_HOVER_RIGHT,
-    dark_gradients, help_icon, scores_icon
+    dark_gradients, help_icon, scores_icon, get_asset_path
 )
 
 from src.utils.config import load_config, save_config
@@ -48,7 +49,7 @@ def home_page():
     """Main home page/menu function with mobile-style card animation"""
     global music_on, background_theme, enhanced_effects, debug_mode
     global current_gradient, next_gradient, gradient_blend
-    global settings_icon, quit_icon  # Add this line
+    global settings_icon, quit_icon
     
     # Import game modules dynamically
     modules = get_game_modules()
@@ -57,21 +58,24 @@ def home_page():
     config = load_config()
     background_theme = config["appearance"]["background_theme"]
     enhanced_effects = config["appearance"]["enhanced_effects"]
-    music_on = config["audio"]["music_on"]
     debug_mode = config["gameplay"]["debug_mode"]
+    
+    # UPDATED: Always sync with sound manager state rather than config
+    # This ensures we're using the sound manager's state as the source of truth
+    music_on = sound_manager.music_on
     
     # Play music ONCE - the sound manager will now track if it's already started
     sound_manager.play_music()
     
     clock = pygame.time.Clock()
     
-    # Set up buttons with gameplay options only
+    # Set up buttons with gameplay options and their corresponding images
     buttons = [
-        {"text": "Play Classic Mode", "action": modules["play_classic_game"]},
-        {"text": "Play Fibonacci Mode", "action": modules["play_fibonacci_game"]},
-        {"text": "Player vs AI", "action": modules["player_vs_ai"]},
-        {"text": "Watch AI (Classic)", "action": modules["watch_ai_play"]},
-        {"text": "Watch AI (Fibonacci)", "action": modules["watch_fibonacci_ai_play"]}
+        {"text": "Play Classic Mode", "action": modules["play_classic_game"], "image": "snake.png"},
+        {"text": "Play Fibonacci Mode", "action": modules["play_fibonacci_game"], "image": "fibsnake.png"},
+        {"text": "Player vs AI", "action": modules["player_vs_ai"], "image": "pvai.png"},
+        {"text": "Watch AI (Classic)", "action": modules["watch_ai_play"], "image": "aisnake.png"},
+        {"text": "Watch AI (Fibonacci)", "action": modules["watch_fibonacci_ai_play"], "image": "aifib.png"}
     ]
     
     # Add utility buttons in bottom right
@@ -96,9 +100,9 @@ def home_page():
     scores_button = pygame.Rect(SCREEN_WIDTH - 152, 20, 56, 56) 
     help_button = pygame.Rect(SCREEN_WIDTH - 228, 20, 56, 56)
     
-    # Central position for the cards - moved up before arrows use it
+    # Central position for the cards - moved up to make room for text below
     center_x = SCREEN_WIDTH // 2
-    center_y = SCREEN_HEIGHT // 2
+    center_y = SCREEN_HEIGHT // 2 - 30  # Move cards up to make room for text below
     
     # Navigation arrows - larger and more visible
     arrow_width = 40
@@ -159,10 +163,26 @@ def home_page():
     indicator_spacing = 20
     indicator_y = SCREEN_HEIGHT - 70
     
+    # Load card background images
+    card_images = []
+    for button in buttons:
+        image_path = os.path.join(get_asset_path("assets/images"), button["image"])
+        try:
+            img = pygame.image.load(image_path).convert_alpha()
+            card_images.append(img)
+        except (pygame.error, FileNotFoundError) as e:
+            print(f"Could not load image {image_path}: {e}")
+            # Add None as placeholder if image can't be loaded
+            card_images.append(None)
+    
     # Main loop
     while True:
         frame_start_time = pygame.time.get_ticks()
         mouse_pos = pygame.mouse.get_pos()
+        
+        # ADDED: Sync with sound manager state on every frame
+        # This ensures the UI always reflects the current state
+        music_on = sound_manager.music_on
         
         # Update background effects
         draw_smooth_gradient(screen, current_gradient, next_gradient, gradient_blend)
@@ -213,7 +233,7 @@ def home_page():
                 # Create card surface
                 card_surface = pygame.Surface((card_size, card_size), pygame.SRCALPHA)
                 
-                # Fill with enhanced gradient
+                # Fill with enhanced gradient as base (for fallback or overlay)
                 for x in range(card_size):
                     ratio = x / card_size
                     cubic_ratio = ratio * ratio * (3 - 2 * ratio)  # Smooth interpolation
@@ -221,6 +241,36 @@ def home_page():
                     g = int(BUTTON_BASE_LEFT[1] * (1 - cubic_ratio) + BUTTON_BASE_RIGHT[1] * cubic_ratio)
                     b = int(BUTTON_BASE_LEFT[2] * (1 - cubic_ratio) + BUTTON_BASE_RIGHT[2] * cubic_ratio)
                     pygame.draw.line(card_surface, (r, g, b), (x, 0), (x, card_size))
+                
+                # If we have a valid image for this card, use it as background
+                if i < len(card_images) and card_images[i] is not None:
+                    card_img = card_images[i]
+                    
+                    # Scale image to fit card while maintaining aspect ratio
+                    img_rect = card_img.get_rect()
+                    scale_factor = max(card_size / img_rect.width, card_size / img_rect.height)
+                    new_width = int(img_rect.width * scale_factor)
+                    new_height = int(img_rect.height * scale_factor)
+                    
+                    # Scale image to be slightly larger than card
+                    scaled_img = pygame.transform.smoothscale(card_img, (new_width, new_height))
+                    
+                    # Center image in card
+                    img_rect = scaled_img.get_rect(center=(card_size//2, card_size//2))
+                    
+                    # Create a new surface with a semi-transparent gradient overlay
+                    overlay = pygame.Surface((card_size, card_size), pygame.SRCALPHA)
+                    for x in range(card_size):
+                        ratio = x / card_size
+                        cubic_ratio = ratio * ratio * (3 - 2 * ratio)
+                        r = int(BUTTON_BASE_LEFT[0] * (1 - cubic_ratio) + BUTTON_BASE_RIGHT[0] * cubic_ratio)
+                        g = int(BUTTON_BASE_LEFT[1] * (1 - cubic_ratio) + BUTTON_BASE_RIGHT[1] * cubic_ratio)
+                        b = int(BUTTON_BASE_LEFT[2] * (1 - cubic_ratio) + BUTTON_BASE_RIGHT[2] * cubic_ratio)
+                        pygame.draw.line(overlay, (r, g, b, 100), (x, 0), (x, card_size))
+                    
+                    # Blit the image then overlay the gradient
+                    card_surface.blit(scaled_img, img_rect)
+                    card_surface.blit(overlay, (0, 0))
                 
                 # Add stronger inner border highlight
                 pygame.draw.rect(card_surface, (255, 255, 255, 40), 
@@ -341,25 +391,18 @@ def home_page():
             # Draw card
             screen.blit(card_data["card"], card_data["rect"])
             
-            # Add inward animation effect for center card on hover
+            # Add hover effect for center card - LEGACY STYLE IMPLEMENTATION
             if abs(card_data["offset"]) < 0.5 and card_data["rect"].collidepoint(mouse_pos):
-                # Create inward animation effect - outline moving inward
-                pulse_factor = (math.sin(step / 8) + 1) / 2  # 0 to 1 range
-                # Start with larger rectangle and animate inward
-                inner_rect_size = int(10 + 10 * pulse_factor)
+                # Calculate glow width using sine wave for natural pulsation (1-5px range)
+                glow_width = int(abs(math.sin(step / 15)) * 4) + 1
                 
-                # Draw multiple inward-moving outlines with thicker lines
-                # Use grayish white color matching the card border
-                outline_color = (23, 26, 24)  # Light gray matching card edge
+                # Create slightly larger rectangle for the outline (10px larger)
+                glow_rect = card_data["rect"].inflate(10, 10)
                 
-                for i in range(3):
-                    inset = inner_rect_size - (i * 3)
-                    if inset > 0:
-                        inward_rect = card_data["rect"].inflate(-inset, -inset)
-                        # Increased thickness from 2 to 4 pixels
-                        pygame.draw.rect(screen, outline_color, inward_rect, 4, border_radius=18)
+                # Draw the pulsating outline with hover color and rounded corners
+                pygame.draw.rect(screen, (0, 0, 0, 100), glow_rect, glow_width, border_radius=25)
             
-            # Draw text with improved scaling
+            # Draw text BELOW the card instead of on it
             text = card_data["text"]
             if card_data["scale"] < 1.0:
                 scaled_text = pygame.transform.smoothscale(
@@ -376,7 +419,8 @@ def home_page():
                 temp_text.fill((255, 255, 255, card_data["alpha"]), None, pygame.BLEND_RGBA_MULT)
                 scaled_text = temp_text
                 
-            text_rect = scaled_text.get_rect(center=card_data["rect"].center)
+            # Position text below the card with appropriate spacing
+            text_rect = scaled_text.get_rect(midtop=(card_data["rect"].centerx, card_data["rect"].bottom + 15))
             screen.blit(scaled_text, text_rect)
         
         # Draw navigation arrows on the sides
@@ -502,16 +546,11 @@ def home_page():
         quit_icon_rect = quit_icon.get_rect(center=quit_button.center)
         screen.blit(quit_icon, quit_icon_rect)
         
-        # Draw keyboard/swipe instructions
-        hint_text = "LEFT/RIGHT: Navigate - SPACE: Select"
-        hint_surf = footer_font.render(hint_text, True, (170, 170, 170))
-        hint_rect = hint_surf.get_rect(midbottom=(SCREEN_WIDTH//2, SCREEN_HEIGHT - 100))
-        screen.blit(hint_surf, hint_rect)
-        
-        # Draw footer
+        # Draw footer text
         screen.blit(footer_surf, footer_rect)
         
-        pygame.display.update()
+        # Update display
+        pygame.display.flip()
         
         # Event handling
         for e in pygame.event.get():
@@ -519,79 +558,72 @@ def home_page():
                 # Save config before quitting
                 config["audio"]["music_on"] = music_on
                 save_config(config)
-                ensure_settings_saved()  # Add this line
                 pygame.quit()
                 sys.exit()
-                
-            # Mouse dragging for mobile-like swiping
-            if e.type == pygame.MOUSEBUTTONDOWN:
-                # Only process clicks for mouse buttons 1-3 (not scroll wheel)
-                if e.button <= 3:  # Exclude scroll wheel (buttons 4 and 5)
-                    pos = e.pos
-                    
-                    # Handle utility buttons
-                    if music_rect.collidepoint(pos):
-                        if click_sound: click_sound.play()
-                        music_on = not music_on
-                        config["audio"]["music_on"] = music_on
-                        if music_on:
-                            pygame.mixer.music.play(-1)
-                        else:
-                            pygame.mixer.music.stop()
-                            
-                    elif scores_button.collidepoint(pos):
-                        if click_sound: click_sound.play()
-                        modules["high_scores_page"]()
-                        
-                    elif help_button.collidepoint(pos):
-                        if click_sound: click_sound.play()
-                        modules["show_info_page"]()
-                    
-                    # Handle bottom right utility buttons
-                    elif settings_button.collidepoint(pos):
-                        if click_sound: click_sound.play()
-                        modules["settings_page"]()
-                        
-                    elif quit_button.collidepoint(pos):
-                        if click_sound: click_sound.play()
-                        # Save config before quitting
-                        config["audio"]["music_on"] = music_on
-                        save_config(config)
-                        pygame.quit()
-                        sys.exit()
-                    
-                    # Handle arrow navigation
-                    elif left_arrow_rect.collidepoint(pos) and not animation_active:
-                        if click_sound: click_sound.play()
-                        animation_active = True
-                        animation_time = 0.05  # Start with non-zero time for immediate movement
-                        animation_direction = -1  
-                        target_page = (current_page - 1) % num_buttons
-                        # Add stronger immediate visual feedback
-                        page_offset = -0.15  # Increased from -0.05 for immediate visible movement
-                    
-                    elif right_arrow_rect.collidepoint(pos) and not animation_active:
-                        if click_sound: click_sound.play()
-                        animation_active = True
-                        animation_time = 0.05  # Start with non-zero time for immediate movement
-                        animation_direction = 1 
-                        target_page = (current_page + 1) % num_buttons
-                        # Add stronger immediate visual feedback
-                        page_offset = 0.15  # Increased from 0.05 for immediate visible movement
-                    
-                    # Handle card selection - only active during non-animation
-                    else:
-                        if not animation_active:
-                            idx = current_page
-                            if buttons[idx].get("rect") and buttons[idx]["rect"].collidepoint(pos):
-                                if click_sound: click_sound.play()
-                                buttons[idx]["action"]()
-                    
-                    # Store drag starting point for swipe detection
-                    if e.button == 1:  # Left mouse button
-                        drag_start = pos[0]
-                        is_dragging = True
             
+            elif e.type == pygame.MOUSEBUTTONDOWN:
+                pos = e.pos
+                
+                # Handle top right utility buttons
+                if music_rect.collidepoint(pos):
+                    if click_sound: click_sound.play()
+                    sound_manager.toggle_music()
+                    music_on = sound_manager.music_on
+                    ensure_settings_saved()
+                
+                elif scores_button.collidepoint(pos):
+                    if click_sound: click_sound.play()
+                    modules["high_scores_page"]()
+                
+                elif help_button.collidepoint(pos):
+                    if click_sound: click_sound.play()
+                    modules["show_info_page"]()
+                
+                # Handle bottom right utility buttons
+                elif settings_button.collidepoint(pos):
+                    if click_sound: click_sound.play()
+                    modules["settings_page"]()
+                    
+                elif quit_button.collidepoint(pos):
+                    if click_sound: click_sound.play()
+                    # Save config before quitting
+                    config["audio"]["music_on"] = music_on
+                    save_config(config)
+                    pygame.quit()
+                    sys.exit()
+                
+                # Handle arrow navigation
+                elif left_arrow_rect.collidepoint(pos) and not animation_active:
+                    if click_sound: click_sound.play()
+                    animation_active = True
+                    animation_time = 0.05  # Start with non-zero time for immediate movement
+                    animation_direction = -1  
+                    target_page = (current_page - 1) % num_buttons
+                    # Add stronger immediate visual feedback
+                    page_offset = -0.15  # Increased from -0.05 for immediate visible movement
+                
+                elif right_arrow_rect.collidepoint(pos) and not animation_active:
+                    if click_sound: click_sound.play()
+                    animation_active = True
+                    animation_time = 0.05  # Start with non-zero time for immediate movement
+                    animation_direction = 1 
+                    target_page = (current_page + 1) % num_buttons
+                    # Add stronger immediate visual feedback
+                    page_offset = 0.15  # Increased from 0.05 for immediate visible movement
+                
+                # Handle card selection - only active during non-animation
+                else:
+                    if not animation_active:
+                        idx = current_page
+                        if buttons[idx].get("rect") and buttons[idx]["rect"].collidepoint(pos):
+                            if click_sound: click_sound.play()
+                            buttons[idx]["action"]()
+                
+                # Store drag starting point for swipe detection
+                if e.button == 1:  # Left mouse button
+                    drag_start = pos[0]
+                    is_dragging = True
+        
             elif e.type == pygame.MOUSEBUTTONUP:
                 if e.button == 1 and 'is_dragging' in locals() and is_dragging:
                     # Calculate swipe distance
@@ -618,7 +650,7 @@ def home_page():
                             animation_time = 0.0
                     
                     is_dragging = False
-            
+        
             # Keyboard navigation
             if e.type == pygame.KEYDOWN and not animation_active:
                 if e.key == pygame.K_LEFT:

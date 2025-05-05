@@ -126,8 +126,8 @@ class FibonacciSnakeGame(SnakeGame):
                 next_val = self.fibonacci_sequence[-1] + self.fibonacci_sequence[-2]
                 self.fibonacci_sequence.append(next_val)
             
-            # Play level up sound every 10 points
-            if self.score % 10 == 0 and self.score > 0:
+            # Play level up sound every 5 points instead of 10
+            if self.score % 5 == 0 and self.score > 0:
                 play_sound("level_up")  # Changed from self.level_up_sound.play()
                 self._show_level_up()
         

@@ -15,7 +15,8 @@ from src.ui.shared_globals import (
     debug_mode, screen, title_font, menu_font, footer_font,
     BUTTON_BASE_LEFT, BUTTON_BASE_RIGHT,
     BUTTON_HOVER_LEFT, BUTTON_HOVER_RIGHT,
-    dark_gradients, music_on, update_theme
+    dark_gradients, music_on, update_theme, help_icon,
+    music_on_icon, music_off_icon, scores_icon  # Add these icons
 )
 
 # Import UI components
@@ -26,11 +27,15 @@ from src.ui.components import (
 
 from src.game.player_vs_ai import get_player_position, save_player_position
 
+# Add import for high scores page navigation
+from src.ui.pages.scores_page import high_scores_page
+
 def settings_page():
     """Display and manage game settings with sidebar navigation"""
     global background_theme, debug_mode, enhanced_effects
     
-    # Use sound manager for audio settings
+    # UPDATED: Always use sound manager as source of truth
+    # Don't rely on config file for current state
     music_on = sound_manager.music_on
     sound_effects_on = sound_manager.sound_effects_on
     click_sounds_on = sound_manager.click_sounds_on
@@ -186,15 +191,8 @@ def settings_page():
     back_button = pygame.Rect(SCREEN_WIDTH - back_button_width - page_margin, SCREEN_HEIGHT - 65, back_button_width, back_button_height)
     
     # Help button - keep in bottom left corner
-    help_button_size = 50
-    help_button = pygame.Rect(page_margin, SCREEN_HEIGHT - 70, help_button_size, help_button_size)
-    help_color = (80, 100, 180)
-    help_hover = (120, 140, 220)
-    
-    # Pre-render help button elements
-    question_text = menu_font.render("?", True, WHITE)
-    help_shadow = pygame.Surface((help_button_size, help_button_size), pygame.SRCALPHA)
-    help_shadow.fill((0, 0, 0, 30))
+    help_button_size = 56  # Match home page size
+    help_button = pygame.Rect(SCREEN_WIDTH - 228, 20, help_button_size, help_button_size)  # Match home page position
     
     # Define theme preview dimensions - bigger boxes, 3 per row
     preview_size = 200  # Increased from 160  
@@ -344,6 +342,15 @@ def settings_page():
     # Setup both sliders
     classic_speed_slider = pygame.Rect(classic_speed_group.left + 30, classic_speed_group.top + 55, classic_speed_group.width - 100, slider_height)
     fibonacci_speed_slider = pygame.Rect(fibonacci_speed_group.left + 30, fibonacci_speed_group.top + 55, fibonacci_speed_group.width - 100, slider_height)
+
+    # Add utility buttons in top right (matching home page)
+    button_size = 56
+    help_button_size = 56  # Match home page size
+    help_button = pygame.Rect(SCREEN_WIDTH - 228, 20, help_button_size, help_button_size)  # Match home page position
+
+    # Add music toggle and scores buttons
+    music_rect = pygame.Rect(SCREEN_WIDTH - 76, 20, button_size, button_size)
+    scores_button = pygame.Rect(SCREEN_WIDTH - 152, 20, button_size, button_size)
 
     while True:
         prev_mouse_pressed = mouse_pressed
@@ -604,6 +611,17 @@ def settings_page():
                             show_settings_help(0)  # 0=Gameplay settings
                         elif current_category == 2:  # Audio
                             show_settings_help(3)  # 3=Audio settings
+                    
+                    # Handle music toggle
+                    if music_rect.collidepoint(event.pos):
+                        play_click()
+                        sound_manager.toggle_music()
+                        music_on = sound_manager.music_on
+                        
+                    # Handle scores button
+                    if scores_button.collidepoint(event.pos):
+                        play_click()
+                        high_scores_page()  # Navigate to scores page
             
             if event.type == pygame.MOUSEMOTION:
                 if pygame.mouse.get_pressed()[0] and active_slider:  # Left button pressed
@@ -991,7 +1009,7 @@ def settings_page():
                 # Draw rectangular knob instead of circle
                 effects_knob_x = effects_slider.left + int(effects_slider.width * sound_effects_volume)
                 knob_rect = pygame.Rect(effects_knob_x - knob_width//2, effects_slider.centery - knob_height//2, 
-                                      knob_width, knob_height)
+                                    knob_width, knob_height)
                 pygame.draw.rect(screen, (140, 200, 255), knob_rect, border_radius=2)
                 
                 # Draw triangles
@@ -1005,25 +1023,52 @@ def settings_page():
         draw_fancy_button(screen, back_button, "Back to Menu", menu_font, 
                         back_button_color, back_button_hover, mouse_pos, step)
         
-        # Draw help button
-        help_surface = pygame.Surface((help_button.width, help_button.height), pygame.SRCALPHA)
-        current_help_color = help_hover if help_button.collidepoint(mouse_pos) else help_color
-        pygame.draw.rect(help_surface, current_help_color, 
-                       (0, 0, help_button.width, help_button.height), border_radius=20)
+        # Draw help button (using same style as home page)
+        if help_icon is not None:
+            help_icon_rect = help_icon.get_rect(center=help_button.center)
+            screen.blit(help_icon, help_icon_rect)
+        else:
+            # Fallback if icon is missing
+            pygame.draw.rect(screen, (80, 100, 180), help_button, 0, border_radius=7)
+            fallback_text = menu_font.render("?", True, WHITE)
+            text_rect = fallback_text.get_rect(center=help_button.center)
+            screen.blit(fallback_text, text_rect)
         
-        # Add shadow for help button
-        screen.blit(help_shadow, (help_button.x + 2, help_button.y + 2))
-        screen.blit(help_surface, help_button)
+        # Add hover effect matching home page
+        if help_button.collidepoint(mouse_pos):
+            pygame.draw.rect(screen, (80, 120, 200), help_button, 2, border_radius=7)
         
-        # Add pulsing glow effect
-        help_glow_width = int(abs(math.sin(step / 15)) * 2) + 1
-        help_glow_rect = help_button.inflate(4, 4)
-        pygame.draw.rect(screen, (80, 120, 200), help_glow_rect, help_glow_width, border_radius=20)
-        
-        # Center the question mark in the button
-        question_rect = question_text.get_rect(center=help_button.center)
-        screen.blit(question_text, question_rect)
-        
+        # Draw music toggle button
+        if music_on and music_on_icon:
+            music_icon_rect = music_on_icon.get_rect(center=music_rect.center)
+            screen.blit(music_on_icon, music_icon_rect)
+        elif not music_on and music_off_icon:
+            music_icon_rect = music_off_icon.get_rect(center=music_rect.center)
+            screen.blit(music_off_icon, music_icon_rect)
+        else:
+            # Fallback if icon is missing
+            pygame.draw.rect(screen, (80, 100, 180), music_rect, 0, border_radius=7)
+            fallback_text = menu_font.render("M", True, WHITE)
+            text_rect = fallback_text.get_rect(center=music_rect.center)
+            screen.blit(fallback_text, text_rect)
+
+        # Draw scores button
+        if scores_icon:
+            scores_icon_rect = scores_icon.get_rect(center=scores_button.center)
+            screen.blit(scores_icon, scores_icon_rect)
+        else:
+            # Fallback if icon is missing
+            pygame.draw.rect(screen, (80, 100, 180), scores_button, 0, border_radius=7)
+            fallback_text = menu_font.render("S", True, WHITE)
+            text_rect = fallback_text.get_rect(center=scores_button.center)
+            screen.blit(fallback_text, text_rect)
+
+        # Add hover effects for utility buttons
+        if music_rect.collidepoint(mouse_pos):
+            pygame.draw.rect(screen, (80, 120, 200), music_rect, 2, border_radius=7)
+        if scores_button.collidepoint(mouse_pos):
+            pygame.draw.rect(screen, (80, 120, 200), scores_button, 2, border_radius=7)
+
         pygame.display.update()
         step += 1
         clock.tick(60)

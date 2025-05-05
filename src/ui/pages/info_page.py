@@ -42,7 +42,7 @@ def show_info_page():
                 f"{bullet} Use arrow keys or WASD to control the snake",
                 f"{bullet} Eat food to grow longer",
                 f"{bullet} Avoid hitting walls or yourself",
-                f"{bullet} Press P to pause, ESC to exit"
+                f"{bullet} Press P or ESC to pause the game"
             ]
         },
         {

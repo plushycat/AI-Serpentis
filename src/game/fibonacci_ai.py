@@ -156,9 +156,10 @@ class FibonacciGameAI(SnakeGameAI):
             # Play sound effects
             play_sound("eat")  # Changed from self.eat_sound.play()
             
-            # Play level up sound every 5 Fibonacci positions
-            if self.fib_index > 0 and self.fib_index % 5 == 0:
+            # Play level up sound every 5 food collected
+            if self.score > 0 and self.score % 5 == 0:
                 play_sound("level_up")  # Changed from self.level_up_sound.play()
+                self._show_level_up()  # This will call our implemented method
                 
             # Place new food
             self._place_food()
