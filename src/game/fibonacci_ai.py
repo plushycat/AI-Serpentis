@@ -3,6 +3,7 @@ import random
 import numpy as np
 from enum import Enum
 from collections import namedtuple
+from src.utils.sound_manager import play_sound
 from src.game.snake_ai import SnakeGameAI, Point, RIGHT, LEFT, UP, DOWN, BLOCK_SIZE, WHITE, BLACK, RED, BLUE, BLUE2, GREEN, YELLOW
 from utils import draw_gradient
 
@@ -25,6 +26,11 @@ class FibonacciGameAI(SnakeGameAI):
         self.total_fibonacci_growth = 0
         self.fib_score = 0  # Total Fibonacci value collected
         self.viewing_mode = False  # Flag for viewer mode UI
+        
+    # Add this method to set the theme directly
+    def set_theme(self, theme):
+        """Update the background theme"""
+        self.background_theme = theme
         
     def reset(self):
         """Override reset to include Fibonacci-specific reset logic"""
@@ -60,8 +66,8 @@ class FibonacciGameAI(SnakeGameAI):
                 quit()
                 
             if event.type == pygame.KEYDOWN:
-                # Handle pause
-                if event.key == pygame.K_p:
+                # Handle pause with both P and ESC
+                if event.key == pygame.K_p or event.key == pygame.K_ESCAPE:
                     paused = True
     
                     # Create semi-transparent overlay for better contrast
@@ -71,15 +77,24 @@ class FibonacciGameAI(SnakeGameAI):
     
                     # Dynamic text color based on theme
                     pause_color = WHITE if self.background_theme == "dark" else (0, 0, 100)
-    
-                    pause_text = self.sub_font.render('PAUSED - Press P to continue', True, pause_color)
-                    self.display.blit(pause_text, (self.width//2 - pause_text.get_width()//2, self.height//2))
+                    
+                    # Updated pause text with instructions
+                    pause_text = self.sub_font.render('PAUSED', True, pause_color)
+                    resume_text = self.small_font.render('Press R to resume, ESC to exit', True, pause_color)
+                    
+                    self.display.blit(pause_text, (self.width//2 - pause_text.get_width()//2, self.height//2 - 30))
+                    self.display.blit(resume_text, (self.width//2 - resume_text.get_width()//2, self.height//2 + 20))
                     pygame.display.update()
     
                     while paused:
                         for pause_event in pygame.event.get():
-                            if pause_event.type == pygame.KEYDOWN and pause_event.key == pygame.K_p:
-                                paused = False
+                            if pause_event.type == pygame.KEYDOWN:
+                                if pause_event.key == pygame.K_r:  # R to resume
+                                    paused = False
+                                elif pause_event.key == pygame.K_ESCAPE:  # ESC to exit
+                                    game_over = True
+                                    reward = -10
+                                    return reward, game_over, self.score
                             elif pause_event.type == pygame.QUIT:
                                 pygame.quit()
                                 quit()
@@ -139,12 +154,12 @@ class FibonacciGameAI(SnakeGameAI):
             self.total_fibonacci_growth += current_fib_value
                 
             # Play sound effects
-            if hasattr(self, 'eat_sound'):
-                self.eat_sound.play()
-                
-            # Play level up sound every 5 Fibonacci positions
-            if self.fib_index > 0 and self.fib_index % 5 == 0 and hasattr(self, 'level_up_sound'):
-                self.level_up_sound.play()
+            play_sound("eat")  # Changed from self.eat_sound.play()
+            
+            # Play level up sound every 5 food collected
+            if self.score > 0 and self.score % 5 == 0:
+                play_sound("level_up")  # Changed from self.level_up_sound.play()
+                self._show_level_up()  # This will call our implemented method
                 
             # Place new food
             self._place_food()
@@ -236,7 +251,7 @@ class FibonacciGameAI(SnakeGameAI):
             self.display.blit(fib_score_text, [10, 120])
             
             # Add controls help text
-            controls_text = self.small_font.render("ESC - Back to Menu | P - Pause", True, controls_color)
+            controls_text = self.small_font.render("ESC or P - Pause | R - Resume", True, controls_color)
             self.display.blit(controls_text, [10, self.height - 30])
         else:
             # Full UI for training mode

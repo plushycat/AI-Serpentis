@@ -6,6 +6,8 @@ from src.game.customization import customization
 from utils import draw_gradient 
 import os
 import json
+from src.utils.sound_manager import play_sound
+from src.utils.config import load_config
 
 pygame.init()
 pygame.mixer.init()
@@ -42,7 +44,11 @@ font_path = "assets/fonts/game_over.ttf"
 font = pygame.font.Font(font_path, 60)
 
 class SnakeGame:
-    def __init__(self, width=1280, height=720, speed=None, display_surface=None):
+    def __init__(self, width=1280, height=720, display_surface=None, speed=None):
+        # Add this at the beginning of __init__ method
+        from src.utils.sound_manager import sound_manager
+        sound_manager.refresh_settings()
+        
         self.width = width
         self.height = height
         
@@ -52,7 +58,7 @@ class SnakeGame:
         else:
             self.display = display_surface
 
-        # Use custom speed if provided, otherwise use default
+        # Use provided speed or default
         self.speed = speed if speed is not None else SPEED
         
         self.score = 0
@@ -71,7 +77,10 @@ class SnakeGame:
         
         # Keep for compatibility
         self.snake_color = self.snake_theme.head_color
-        self.background_theme = "dark"  # Default background theme
+        
+        # Load theme from config
+        config = load_config()
+        self.background_theme = config.get("appearance", {}).get("background_theme", "dark")
         
         # Init display
         pygame.display.set_caption('Snake Game - Classic Mode')
@@ -104,11 +113,62 @@ class SnakeGame:
         self.enhanced_effects = True  # Default to enhanced effects
 
     def _place_food(self):
+        """
+        Places food at a random location on the grid.
+        Ensures the food does not spawn on the snake or text overlay areas.
+        """
+        # Define forbidden areas (rectangles to avoid)
+        forbidden_areas = [
+            # Top score area (0-200 x 0-50)
+            pygame.Rect(0, 0, 200, 50),
+            
+            # Top right corner for high score display
+            pygame.Rect(self.width - 300, 0, 300, 50),
+            
+            # Bottom area for controls text
+            pygame.Rect(0, self.height - 40, self.width, 40),
+            
+            # Center area for potential level up messages
+            pygame.Rect(self.width//2 - 150, self.height//2 - 50, 300, 100)
+        ]
+        
+        # Fibonacci mode needs additional forbidden areas
+        if hasattr(self, 'fibonacci_sequence'):
+            # Center top for Fibonacci metrics
+            forbidden_areas.append(pygame.Rect(self.width//2 - 250, 0, 500, 60))
+        
+        # Try to place food in a valid location
+        max_attempts = 50  # Prevent infinite recursion
+        for _ in range(max_attempts):
+            x = random.randint(0, (self.width - BLOCK_SIZE) // BLOCK_SIZE) * BLOCK_SIZE 
+            y = random.randint(0, (self.height - BLOCK_SIZE) // BLOCK_SIZE) * BLOCK_SIZE
+            food_rect = pygame.Rect(x, y, BLOCK_SIZE, BLOCK_SIZE)
+            
+            # Check if food collides with any forbidden area
+            if any(food_rect.colliderect(area) for area in forbidden_areas):
+                continue  # Try again with new coordinates
+                
+            # Check if food is on the snake
+            potential_food = Point(x, y)
+            if potential_food in self.snake:
+                continue  # Try again with new coordinates
+                
+            # We found a valid position
+            self.food = potential_food
+            
+            # Generate a new random food color if that feature is enabled
+            if hasattr(self, 'food_theme') and self.food_theme.random_colors:
+                self.food_theme.new_random_color()
+                
+            return
+            
+        # If we've exhausted attempts, just place it somewhere not on the snake
+        # (fallback to original behavior)
         x = random.randint(0, (self.width - BLOCK_SIZE) // BLOCK_SIZE) * BLOCK_SIZE 
         y = random.randint(0, (self.height - BLOCK_SIZE) // BLOCK_SIZE) * BLOCK_SIZE
         self.food = Point(x, y)
         if self.food in self.snake:
-            self._place_food()
+            self._place_food()  # Last resort recursive call
         
     def play_step(self):
         self.frame_iteration += 1
@@ -119,7 +179,7 @@ class SnakeGame:
                 pygame.quit()
                 quit()
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_p:  # Press 'P' to pause
+                if event.key == pygame.K_p or event.key == pygame.K_ESCAPE:  # Either P or ESC pauses
                     paused = True
                     
                     # Create semi-transparent overlay for better contrast
@@ -130,20 +190,27 @@ class SnakeGame:
                     # Dynamic text color based on theme
                     pause_color = WHITE if self.background_theme == "dark" else (0, 0, 100)
                     
-                    pause_text = self.sub_font.render('PAUSED - Press P to continue', True, pause_color)
-                    self.display.blit(pause_text, (self.width//2 - pause_text.get_width()//2, self.height//2))
+                    # Updated pause text with R to resume and ESC to exit
+                    pause_text = self.sub_font.render('PAUSED', True, pause_color)
+                    resume_text = self.small_font.render('Press R to resume, ESC to exit', True, pause_color)
+                    
+                    self.display.blit(pause_text, (self.width//2 - pause_text.get_width()//2, self.height//2 - 30))
+                    self.display.blit(resume_text, (self.width//2 - resume_text.get_width()//2, self.height//2 + 20))
                     pygame.display.update()
+                    
                     while paused:
                         for pause_event in pygame.event.get():
-                            if pause_event.type == pygame.KEYDOWN and pause_event.key == pygame.K_p:
-                                paused = False
-                            elif pause_event.type == pygame.KEYDOWN and pause_event.key == pygame.K_ESCAPE:
-                                pygame.quit()
-                                quit()
+                            if pause_event.type == pygame.KEYDOWN:
+                                if pause_event.key == pygame.K_r:  # R to resume
+                                    paused = False
+                                elif pause_event.key == pygame.K_ESCAPE:  # ESC in pause to exit
+                                    return True, self.score  # Return game over and score
                             elif pause_event.type == pygame.QUIT:
                                 pygame.quit()
                                 quit()
                         pygame.time.wait(100)
+                
+                # Continue with direction handling
                 elif event.key in (pygame.K_LEFT, pygame.K_a):  # Left arrow or 'A'
                     if self.direction != RIGHT:  # Prevent 180-degree turns
                         self.direction = LEFT
@@ -156,8 +223,6 @@ class SnakeGame:
                 elif event.key in (pygame.K_DOWN, pygame.K_s):  # Down arrow or 'S'
                     if self.direction != UP:  # Prevent 180-degree turns
                         self.direction = DOWN
-                elif event.key == pygame.K_ESCAPE:  # Escape key to quit
-                    return True, self.score
 
         # Move the snake
         self._move(self.direction)
@@ -169,17 +234,14 @@ class SnakeGame:
 
         # Check if the snake eats food
         if self.head == self.food:
-            self.eat_sound.play()
+            play_sound("eat")  # Changed from self.eat_sound.play()
             self.score += 1
             self._place_food()  # This will generate a new random color if needed
             
             # Play level up sound every 10 points
             if self.score % 10 == 0 and self.score > 0:
-                if hasattr(self, 'level_up_sound') and self.level_up_sound:
-                    self.level_up_sound.play()
-                    
-                    # Show level up animation
-                    self._show_level_up()
+                play_sound("level_up")  # Changed from self.level_up_sound.play()
+                self._show_level_up()
         else:
             self.snake.pop()
             
@@ -194,9 +256,9 @@ class SnakeGame:
         return False, self.score
     
     def _is_collision(self):
-        # Check if the snake hits itself
+        # If collision detected, use sound manager instead of direct sound
         if self.head in self.snake[1:]:
-            self.game_over_sound.play()
+            play_sound("game_over")
             print(f"Game Over: Snake collision")
             return True
         return False
@@ -215,7 +277,8 @@ class SnakeGame:
             main_text_color = (0, 0, 100)  # Dark blue
             high_score_color = (180, 100, 0)  # Dark orange
             controls_color = (80, 80, 80)  # Dark gray
-
+        
+        # Rest of the method remains unchanged...
         # Draw snake with custom theme
         for i, point in enumerate(self.snake):
             segment_color = self.snake_theme.get_segment_color(i)
@@ -226,18 +289,18 @@ class SnakeGame:
         pygame.draw.circle(self.display, food_color, 
                           (self.food.x + BLOCK_SIZE // 2, self.food.y + BLOCK_SIZE // 2), 10)
 
-        # Display score with consistent font and dynamic color
+        # Display score with theme-appropriate color
         score_text = self.main_font.render("Score: " + str(self.score), True, main_text_color)
         self.display.blit(score_text, [0, 0])
         
-        # Draw just the high score value directly using self.record
+        # Draw high score with theme-appropriate color
         if hasattr(self, 'record'):
             high_score_text = self.sub_font.render(f"High Score: {self.record}", True, high_score_color)
             high_score_rect = high_score_text.get_rect(topright=(self.width - 10, 10))
             self.display.blit(high_score_text, high_score_rect)
         
-        # Add controls help text at bottom left with dynamic color
-        controls_text = self.small_font.render("ESC - Back to Menu | P - Pause | Arrow Keys/WASD - Move", True, controls_color)
+        # Add controls help text with theme-appropriate color
+        controls_text = self.small_font.render("ESC or P - Pause | Arrow Keys / WASD - Move", True, controls_color)
         self.display.blit(controls_text, [10, self.height - 30])
 
         pygame.display.flip()
@@ -294,7 +357,7 @@ class SnakeGame:
         level_text = self.main_font.render(f"LEVEL UP!", True, text_color)
         self.display.blit(level_text, 
                         (self.width//2 - level_text.get_width()//2, 
-                         self.height//2 - level_text.get_height()//2))
+                        self.height//2 - level_text.get_height()//2))
         
         pygame.display.update()
         # Pause briefly so the player can see the level up message

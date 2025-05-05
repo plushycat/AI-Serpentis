@@ -2,10 +2,7 @@ import pygame
 import os
 import datetime
 import json
-from src.utils.config import load_config, save_config
-
-# File path for sound settings
-CONFIG_FILE = "statics/game_settings.json"
+from src.utils.config import load_config, save_config, CONFIG_FILE  # Import the path constant
 
 class SoundManager:
     """Centralized sound management system for the game"""
@@ -13,25 +10,25 @@ class SoundManager:
     _instance = None
     _initialized = False
     _sounds = {}
-    _config = None
-    
-    # Sound settings with defaults
-    music_on = True
-    sound_effects_on = True
-    click_sounds_on = True
-    master_volume = 0.7
-    music_volume = 0.5
-    sound_effects_volume = 0.6
-    
-    @classmethod
-    def get_instance(cls):
-        """Get or create singleton instance"""
-        if cls._instance is None:
-            cls._instance = SoundManager()
-        return cls._instance
     
     def __init__(self):
-        """Initialize sound manager (only runs once)"""
+        """Initialize the sound manager singleton"""
+        # Initialize these core attributes only once
+        if not hasattr(self, 'sounds'):
+            self.sounds = {}
+            self.initialized = False
+            self.config = None
+            self.music_started = False
+            
+            # Set these as placeholders only - they will be overwritten by load_settings()
+            self.music_on = None
+            self.sound_effects_on = None
+            self.click_sounds_on = None 
+            self.master_volume = None
+            self.music_volume = None
+            self.sound_effects_volume = None
+
+        # Return early if already fully initialized
         if SoundManager._initialized:
             return
             
@@ -46,7 +43,8 @@ class SoundManager:
                 self._log(f"Error initializing mixer: {e}")
                 return
         
-        # Load settings from config file
+        # IMPORTANT: Load settings from config FIRST - before any other operations
+        # This ensures we have user preferences before applying them
         self.load_settings()
         
         # Load sound resources
@@ -61,34 +59,64 @@ class SoundManager:
         SoundManager._initialized = True
         self._log("Sound manager initialized successfully")
     
+    @classmethod
+    def get_instance(cls):
+        """Get or create singleton instance"""
+        if cls._instance is None:
+            cls._instance = SoundManager()
+        return cls._instance
+    
+    def initialize(self):
+        """Initialize the sound system - call this after pygame.init()"""
+        if self.initialized:
+            return  # Prevent double initialization
+            
+        self.initialized = True
+        self._load_resources()
+        self.load_settings()  # Correct method name
+    
     def load_settings(self):
         """Load sound settings from the unified config file"""
         try:
-            if os.path.exists(CONFIG_FILE):
-                with open(CONFIG_FILE, 'r') as f:
-                    config = json.load(f)
-                    # Check if audio settings exist in the config
-                    if "audio" in config:
-                        audio = config["audio"]
-                        self.music_on = audio.get("music_on", self.music_on)
-                        self.sound_effects_on = audio.get("sound_effects_on", self.sound_effects_on)
-                        self.click_sounds_on = audio.get("click_sounds_on", self.click_sounds_on)
-                        self.master_volume = audio.get("master_volume", self.master_volume)
-                        self.music_volume = audio.get("music_volume", self.music_volume)
-                        self.sound_effects_volume = audio.get("sound_effects_volume", self.sound_effects_volume)
-                    else:
-                        self._log("No audio section found in config, using defaults")
+            # IMPORTANT: Load directly from config - don't rely on cached values
+            config = load_config()
+            
+            # Always use values from config, with class defaults as fallback
+            if "audio" in config:
+                audio = config["audio"]
+                self.music_on = audio.get("music_on", True)
+                self.sound_effects_on = audio.get("sound_effects_on", True)
+                self.click_sounds_on = audio.get("click_sounds_on", True)
+                self.master_volume = audio.get("master_volume", 0.7)
+                self.music_volume = audio.get("music_volume", 0.5)
+                self.sound_effects_volume = audio.get("sound_effects_volume", 0.6)
+                
+                # Debug print to verify loading
+                self._log(f"Loaded settings: master={self.master_volume:.2f}, music={self.music_volume:.2f}, sfx={self.sound_effects_volume:.2f}")
+            else:
+                # This else branch was incomplete - adding proper defaults here
+                self._log("No audio section found in config, using defaults")
+                self.music_on = True
+                self.sound_effects_on = True
+                self.click_sounds_on = True
+                self.master_volume = 0.7
+                self.music_volume = 0.5
+                self.sound_effects_volume = 0.6
         except Exception as e:
             self._log(f"Error loading sound settings: {e}")
+            # Still set defaults even on error
+            self.music_on = True
+            self.sound_effects_on = True
+            self.click_sounds_on = True
+            self.master_volume = 0.7
+            self.music_volume = 0.5
+            self.sound_effects_volume = 0.6
     
     def save_settings(self):
         """Save sound settings to the unified config file"""
         try:
-            # Load the current config first
-            config = {}
-            if os.path.exists(CONFIG_FILE):
-                with open(CONFIG_FILE, 'r') as f:
-                    config = json.load(f)
+            # Load current config using the shared config module
+            config = load_config()
             
             # Update or create the audio section
             if "audio" not in config:
@@ -102,16 +130,44 @@ class SoundManager:
             config["audio"]["music_volume"] = self.music_volume
             config["audio"]["sound_effects_volume"] = self.sound_effects_volume
             
-            # Ensure directory exists
-            os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
-            
-            # Save the updated config
-            with open(CONFIG_FILE, 'w') as f:
-                json.dump(config, f, indent=4)
+            # Save using the config module function
+            save_success = save_config(config)
+            if not save_success:
+                self._log("ERROR: Failed to save config file")
+                return False
                 
-            self._log("Sound settings saved successfully")
+            # Perform complete verification
+            try:
+                verification = load_config()
+                if "audio" not in verification:
+                    self._log("ERROR: Audio section missing from saved config")
+                    return False
+                    
+                # Verify all audio settings, not just master volume
+                audio = verification["audio"]
+                all_match = (
+                    audio.get("music_on") == self.music_on and
+                    audio.get("sound_effects_on") == self.sound_effects_on and
+                    audio.get("click_sounds_on") == self.click_sounds_on and
+                    audio.get("master_volume") == self.master_volume and
+                    audio.get("music_volume") == self.music_volume and
+                    audio.get("sound_effects_volume") == self.sound_effects_volume
+                )
+                
+                if all_match:
+                    self._log("Sound settings saved and verified successfully")
+                    return True
+                else:
+                    self._log("WARNING: Settings verification failed - values don't match")
+                    return False
+                    
+            except Exception as e:
+                self._log(f"Error verifying saved settings: {e}")
+                return False
+                
         except Exception as e:
             self._log(f"Error saving sound settings: {e}")
+            return False
     
     def _load_resources(self):
         """Load all sound resources"""
@@ -136,6 +192,10 @@ class SoundManager:
             self._load_game_sound("eat", "assets/sounds/eat-food.mp3")
             self._load_game_sound("game_over", "assets/sounds/game-over.mp3")
             self._load_game_sound("level_up", "assets/sounds/level_up.mp3")
+            
+            # Add these sounds for the countdown
+            self._load_game_sound("countdown_tick", "assets/sounds/countdown.mp3")
+            self._load_game_sound("pvai_begin", "assets/sounds/pvai_begin.mp3")
         except Exception as e:
             self._log(f"Error loading sound resources: {e}")
     
@@ -251,27 +311,65 @@ class SoundManager:
     
     def play_sound(self, sound_name):
         """Play a sound effect if sound effects are enabled"""
+        # Use instance variables instead of reloading config
         if not self.sound_effects_on or sound_name not in self._sounds:
             return False
         
         try:
+            # Apply current volume from instance variables
+            effective_volume = self.master_volume * self.sound_effects_volume
+            self._sounds[sound_name].set_volume(effective_volume)
+            
+            # Play the sound with current settings
             self._sounds[sound_name].play()
             return True
         except Exception as e:
             self._log(f"Error playing sound '{sound_name}': {e}")
             return False
-    
+
     def play_click(self):
         """Play UI click sound if enabled"""
+        # Use instance variables instead of reloading config
         if not self.click_sounds_on or "click" not in self._sounds:
             return False
         
         try:
+            # Apply current volume from instance variables
+            effective_volume = self.master_volume * self.sound_effects_volume
+            self._sounds["click"].set_volume(effective_volume)
             self._sounds["click"].play()
             return True
         except Exception as e:
             self._log(f"Error playing click sound: {e}")
             return False
+    
+    def play_music(self):
+        """Play background music if enabled in settings"""
+        if not self.initialized:
+            return
+            
+        # Check if music is already playing to prevent double play
+        if self.music_started:
+            return
+            
+        # Set the flag to indicate we've started music
+        self.music_started = True
+        
+        # Use instance variable instead of reloading from disk
+        if self.music_on:
+            try:
+                # Stop any currently playing music first
+                pygame.mixer.music.stop()
+                pygame.mixer.music.play(-1)  # Loop indefinitely
+                self._log("Started playing background music")
+            except Exception as e:
+                self._log(f"Error playing music: {e}")
+    
+    def refresh_settings(self):
+        """Reload settings from config and apply them"""
+        self.load_settings()
+        self.apply_settings()
+        self._log("Sound settings refreshed from config")
     
     def _log(self, message):
         """Log a message with timestamp"""
@@ -302,3 +400,28 @@ def toggle_sound_effects():
 def toggle_click_sounds():
     """Toggle UI click sounds on/off"""
     return sound_manager.toggle_click_sounds()
+
+def ensure_settings_saved():
+    """Ensure all sound settings are properly saved before exit"""
+    print("ENSURE_SETTINGS_SAVED called - saving sound settings before exit")
+    result = sound_manager.save_settings()
+    print(f"Save result: {result}")
+    
+    # Double-check that the settings were actually written
+    try:
+        from src.utils.config import CONFIG_FILE
+        print(f"Config file location: {os.path.abspath(CONFIG_FILE)}")
+        if os.path.exists(CONFIG_FILE):
+            print(f"Config file exists and is {os.path.getsize(CONFIG_FILE)} bytes")
+            with open(CONFIG_FILE, 'r') as f:
+                config = json.load(f)
+                if "audio" in config:
+                    print("Audio settings in config file:", config["audio"])
+                else:
+                    print("No audio section in config file!")
+        else:
+            print("Config file does not exist!")
+    except Exception as e:
+        print(f"Error verifying config file: {e}")
+    
+    return result

@@ -42,13 +42,13 @@ def show_info_page():
                 f"{bullet} Use arrow keys or WASD to control the snake",
                 f"{bullet} Eat food to grow longer",
                 f"{bullet} Avoid hitting walls or yourself",
-                f"{bullet} Press P to pause, ESC to exit"
+                f"{bullet} Press P or ESC to pause the game"
             ]
         },
         {
             "title": "Game Modes",
             "content": [
-                f"{bullet} Classic: Traditional snake game experience (recommended speed: 30 FPS)",
+                f"{bullet} Classic: Traditional snake game experience (recommended speed: 25-30 FPS)",
                 f"{bullet} Fibonacci: Snake grows according to the Fibonacci sequence (recommended speed: 10 FPS)",
                 f"{bullet} AI Mode: Watch AI play the game",
                 f"{bullet} AI Fibonacci: Watch AI tackle the Fibonacci challenge",

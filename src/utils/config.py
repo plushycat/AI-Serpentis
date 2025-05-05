@@ -30,7 +30,9 @@ DEFAULT_CONFIG = {
 # from src.game.player_vs_ai import get_player_position
 
 # File paths
-CONFIG_FILE = "statics/game_settings.json"
+# Get the directory where the script is located
+SCRIPT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+CONFIG_FILE = os.path.join(SCRIPT_DIR, "statics", "game_settings.json")
 
 def get_default_config():
     """Return default configuration if none exists"""
@@ -60,15 +62,40 @@ def load_config():
         return get_default_config()
 
 def save_config(config):
-    """Save all game configuration settings to a single file"""
+    """Save configuration to file with proper error handling and disk syncing"""
     try:
         # Ensure directory exists
         os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
         
-        with open(CONFIG_FILE, 'w') as f:
+        # Use atomic write pattern with temporary file
+        temp_path = CONFIG_FILE + '.tmp'
+        
+        # Write to temp file first
+        with open(temp_path, 'w') as f:
             json.dump(config, f, indent=4)
+            f.flush()  # Flush to OS buffer
+            os.fsync(f.fileno())  # Force write from OS buffer to disk
+            
+        # Atomic replace - this is safer than direct writes
+        if os.path.exists(CONFIG_FILE):
+            # On Windows, replace is needed (rename doesn't overwrite by default)
+            os.replace(temp_path, CONFIG_FILE)
+        else:
+            os.rename(temp_path, CONFIG_FILE)
+            
+        # Verify the file was written correctly
+        try:
+            with open(CONFIG_FILE, 'r') as f:
+                # Just try to read it to confirm it's valid JSON
+                json.load(f)
+        except Exception as e:
+            print(f"Warning: Config verification failed: {e}")
+            return False
+            
+        return True
     except Exception as e:
         print(f"Error saving config: {e}")
+        return False
 
 def save_all_settings():
     """Save all settings when program exits"""

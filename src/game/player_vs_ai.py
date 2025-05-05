@@ -10,6 +10,7 @@ from src.game.snake_ai import SnakeGameAI
 from src.game.customization import customization
 from src.utils.input_utils import is_screenshot_key
 from src.utils.scores import save_vs_high_score
+from src.utils.sound_manager import sound_manager, play_sound
 
 # Create a special SnakeGame subclass for VS mode
 class VSPlayerGame(SnakeGame):
@@ -17,79 +18,61 @@ class VSPlayerGame(SnakeGame):
     
     def __init__(self, width=640, height=480, speed=SPEED, display_surface=None):
         """Initialize with speed parameter"""
-        super().__init__(width=width, height=height, display_surface=display_surface)
-        self.speed = speed  # Store speed attribute explicitly
-    
+        super().__init__(width, height, display_surface, speed)
+        
     def play_step(self, direction=None):
         """Modified play_step that accepts external direction input"""
-        self.frame_iteration += 1
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
-                
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_p:
-                    paused = True
-                    
-                    # Create semi-transparent overlay
-                    overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-                    overlay.fill((0, 0, 0, 120) if self.background_theme == "dark" else (255, 255, 255, 120))
-                    self.display.blit(overlay, (0, 0))
-                    
-                    # Dynamic text color based on theme
-                    pause_color = (255, 255, 255) if self.background_theme == "dark" else (0, 0, 100)
-                    
-                    pause_text = self.sub_font.render('PAUSED - Press P to continue', True, pause_color)
-                    self.display.blit(pause_text, (self.width//2 - pause_text.get_width()//2, self.height//2))
-                    pygame.display.update()
-                    
-                    while paused:
-                        for pause_event in pygame.event.get():
-                            if pause_event.type == pygame.KEYDOWN and pause_event.key == pygame.K_p:
-                                paused = False
-                            elif pause_event.type == pygame.QUIT:
-                                pygame.quit()
-                                quit()
-                        pygame.time.delay(100)
-
-        # Apply external direction if provided
+        # Save current direction
         if direction is not None:
             self.direction = direction
-            
-        # Move the snake in the current direction
+        
+        # Move snake
         self._move(self.direction)
         self.snake.insert(0, self.head)
-
-        # Check for collisions
-        if self._is_collision():
-            if hasattr(self, 'game_over_sound') and self.game_over_sound:
-                self.game_over_sound.play()
-            return True, self.score
         
-        # Check if the snake eats food
-        if self.head == self.food:
-            if hasattr(self, 'eat_sound') and self.eat_sound:
-                self.eat_sound.play()
-            self.score += 1
-            self._place_food()  # This will generate a new random color if needed
+        # Check for game over
+        game_over = False
+        if self._is_collision():
+            game_over = True
+            # Use sound_manager instead of direct sound
+            from src.utils.sound_manager import play_sound
+            play_sound("game_over")
+            return game_over, self.score
             
-            # Play level up sound every 10 points
+        # Check if snake eats food
+        if self.head == self.food:
+            # Use sound_manager for eat sound
+            from src.utils.sound_manager import play_sound
+            play_sound("eat")
+            
+            self.score += 1
+            self._place_food()
+            
+            # Check if level up should be played
             if self.score % 10 == 0 and self.score > 0:
-                if hasattr(self, 'level_up_sound') and self.level_up_sound:
-                    self.level_up_sound.play()
+                play_sound("level_up")
         else:
             self.snake.pop()
             
-            # Update food color if it's a rainbow theme
-            if self.food_theme.random_colors and self.frame_iteration % 60 == 0:
-                self.food_theme.new_random_color()
-        
-        # Override parent's _update_ui with our own minimal version
         self._update_ui_simple()
         self.clock.tick(self.speed)
-        return False, self.score
-    
+        return game_over, self.score
+        
+    def _is_collision(self, pt=None):
+        """Override collision detection to implement without sound effects"""
+        if pt is None:
+            pt = self.head
+            
+        # Hit boundary
+        if pt.x > self.width - BLOCK_SIZE or pt.x < 0 or pt.y > self.height - BLOCK_SIZE or pt.y < 0:
+            return True
+            
+        # Hit snake body
+        if pt in self.snake[1:]:
+            return True
+            
+        return False
+
     def _update_ui_simple(self):
         """A minimal UI update that skips drawing scores and other elements"""
         # Apply background based on theme
@@ -132,6 +115,30 @@ class VSAIGame(SnakeGameAI):
         food_color = self.food_theme.get_food_color(self.frame_iteration)
         pygame.draw.circle(self.display, food_color, 
                          (self.food.x + BLOCK_SIZE // 2, self.food.y + BLOCK_SIZE // 2), 10)
+
+class VSAIGameNoFlip(VSAIGame):
+    def _update_ui(self):
+        """Override to provide minimal UI without display flip"""
+        # Apply background based on theme
+        if self.background_theme == "dark":
+            self.display.fill((0, 0, 20))  # Very dark blue
+        else:
+            self.display.fill((240, 240, 240))  # Very light gray
+
+        # Draw snake with custom theme
+        for i, point in enumerate(self.snake):
+            segment_color = self.snake_theme.get_segment_color(i)
+            pygame.draw.rect(self.display, segment_color, pygame.Rect(point.x, point.y, BLOCK_SIZE, BLOCK_SIZE))
+
+        # Draw food with custom theme
+        food_color = self.food_theme.get_food_color(self.frame_iteration)
+        pygame.draw.circle(self.display, food_color, 
+                         (self.food.x + BLOCK_SIZE // 2, self.food.y + BLOCK_SIZE // 2), 10)
+        # No pygame.display.flip() call here
+
+    def _show_level_up(self):
+        """Override to prevent double level-up animations"""
+        pass  # Do nothing - the effect is handled by the parent function
 
 # For high score handling
 def load_high_scores():
@@ -281,17 +288,6 @@ def player_vs_ai():
         small_font = pygame.font.SysFont("Arial", 36)  # Increased from 28 to 36
         labels_font = pygame.font.SysFont("Arial", 42)  # New larger font for YOU/AI labels
     
-    # Load sounds with error handling
-    try:
-        eat_sound = pygame.mixer.Sound("assets/sounds/eat-food.mp3")
-        game_over_sound = pygame.mixer.Sound("assets/sounds/game-over.wav")
-        level_up_sound = pygame.mixer.Sound("assets/sounds/level-up.wav")
-    except:
-        print("Warning: Sound file(s) not found.")
-        eat_sound = None
-        game_over_sound = None
-        level_up_sound = None
-    
     # Setup AI agent model
     model = Linear_QNet(11, 256, 3)
     
@@ -364,6 +360,10 @@ def player_vs_ai():
             pygame.draw.circle(self.display, food_color, 
                              (self.food.x + BLOCK_SIZE // 2, self.food.y + BLOCK_SIZE // 2), 10)
             # No pygame.display.flip() call here
+    
+        def _show_level_up(self):
+            """Override to prevent double level-up animations"""
+            pass  # Do nothing - the effect is handled by the parent function
     
     # Create permanent UI elements with more elements pre-rendered
     permanent_bg = pygame.Surface((screen_width, screen_height))
@@ -495,24 +495,10 @@ def player_vs_ai():
     # Add countdown before starting the game
     def show_countdown():
         """Display 5-4-3-2-1 countdown before game starts. Return False if canceled."""
-        # Try to load countdown sounds ONCE outside the loop
-        try:
-            tick_sound = pygame.mixer.Sound("assets/sounds/countdown.mp3")
-            begin_sound = pygame.mixer.Sound("assets/sounds/pvai_begin.mp3")
-            # Set volume to avoid being too loud
-            tick_sound.set_volume(0.7)
-            begin_sound.set_volume(0.8)
-        except Exception as e:
-            print(f"Warning: Could not load countdown sounds: {e}")
-            tick_sound = None
-            begin_sound = None
         
-        # Helper function to stop sounds when exiting
         def cleanup_sounds():
-            if tick_sound:
-                tick_sound.stop()
-            if begin_sound:
-                begin_sound.stop()
+            # Stop all currently playing sound effects
+            pygame.mixer.stop()  # This stops all playing channels
             
         # Create semi-transparent overlay for the countdown
         overlay = pygame.Surface((screen_width, screen_height), pygame.SRCALPHA)
@@ -523,9 +509,8 @@ def player_vs_ai():
         screen.blit(overlay, (0, 0))
         screen.blit(ready_text, (screen_width//2 - ready_text.get_width()//2, screen_height//2 - 100))
         
-        # Play the countdown tick sound IMMEDIATELY
-        if tick_sound:
-            tick_sound.play()
+        # Play the countdown tick sound using sound_manager
+        play_sound("countdown_tick")
         
         pygame.display.flip()
         
@@ -576,9 +561,8 @@ def player_vs_ai():
         screen.blit(overlay, (0, 0))
         screen.blit(go_text, go_rect)
         
-        # Play begin sound ONCE when the countdown finishes
-        if begin_sound:
-            begin_sound.play()
+        # Play begin sound using sound_manager
+        play_sound("pvai_begin")
             
         pygame.display.flip()
         
@@ -611,12 +595,8 @@ def player_vs_ai():
                 return
             
             if event.type == pygame.KEYDOWN:
-                # Handle escape key - return to main menu
-                if event.key == pygame.K_ESCAPE:
-                    running = False
-                
-                # Handle pause
-                if event.key == pygame.K_p:
+                # Handle escape key - now also pauses
+                if event.key == pygame.K_ESCAPE or event.key == pygame.K_p:
                     paused = True
                     
                     # Draw pause overlay
@@ -627,7 +607,8 @@ def player_vs_ai():
                     pause_text = main_font.render("PAUSED", True, (255, 255, 255))
                     screen.blit(pause_text, (screen_width//2 - pause_text.get_width()//2, screen_height//2 - 30))
                     
-                    continue_text = small_font.render("Press P to continue", True, (200, 200, 200))
+                    # Updated instructions
+                    continue_text = small_font.render("Press R to resume, ESC to exit", True, (200, 200, 200))
                     screen.blit(continue_text, (screen_width//2 - continue_text.get_width()//2, screen_height//2 + 30))
                     
                     pygame.display.flip()
@@ -640,9 +621,9 @@ def player_vs_ai():
                                 return
                             
                             if pause_event.type == pygame.KEYDOWN:
-                                if pause_event.key == pygame.K_p:
+                                if pause_event.key == pygame.K_r:  # R to resume
                                     paused = False
-                                elif pause_event.key == pygame.K_ESCAPE:
+                                elif pause_event.key == pygame.K_ESCAPE:  # ESC to exit
                                     running = False
                                     paused = False
                         
@@ -731,15 +712,13 @@ def player_vs_ai():
             
             # Play sounds for player and show level up if needed
             if player_score > prev_player_score:  # Score increased
-                if eat_sound:
-                    eat_sound.play()
+                play_sound("eat")  # Instead of eat_sound.play()
                 if player_score % 10 == 0 and player_score > 0:
-                    if level_up_sound:
-                        level_up_sound.play()
+                    play_sound("level_up")  # Instead of level_up_sound.play()
                     show_level_up(is_player=True)  # Show level up animation for player
             
-            if player_game_over and game_over_sound:
-                game_over_sound.play()
+            if player_game_over:
+                play_sound("game_over")  # Instead of game_over_sound.play()
         
         if not ai_game_over:
             # Save previous score to check for level up
@@ -754,11 +733,9 @@ def player_vs_ai():
             
             # Play sounds for AI and show level up if needed
             if ai_score > prev_ai_score:  # Score increased
-                if eat_sound:
-                    eat_sound.play()
+                play_sound("eat")  # Instead of eat_sound.play()
                 if ai_score % 10 == 0 and ai_score > 0:
-                    if level_up_sound:
-                        level_up_sound.play()
+                    play_sound("level_up")  # Instead of level_up_sound.play()
                     show_level_up(is_player=False)  # Show level up animation for AI
         
         # Draw score numbers that change each frame

@@ -4,6 +4,8 @@ from collections import namedtuple
 import numpy as np
 from utils import draw_gradient
 from src.game.customization import customization
+from src.utils.sound_manager import sound_manager, play_sound
+from src.utils.config import load_config
 
 pygame.init()
 pygame.mixer.init()
@@ -51,19 +53,14 @@ class SnakeGameAI:
         avg: Average score.
         iteration: Current training iteration.
         """
+        from src.utils.sound_manager import sound_manager
+        sound_manager.refresh_settings()
+        
         self.width = width
         self.height = height
         self.record = record
         self.avg = avg
         self.iteration = iteration
-        self.eat_sound = pygame.mixer.Sound('assets/sounds/eat-food.mp3')
-        self.game_over_sound = pygame.mixer.Sound('assets/sounds/game-over.mp3')
-        # Add level up sound
-        try:
-            self.level_up_sound = pygame.mixer.Sound('assets/sounds/level_up.mp3')
-        except:
-            print("Warning: Level up sound file not found")
-            self.level_up_sound = None
         
         # Using customization for snake appearance
         self.snake_theme = customization.get_current_snake_theme()
@@ -71,7 +68,6 @@ class SnakeGameAI:
         
         # Keep for compatibility
         self.snake_color = self.snake_theme.head_color
-        self.background_theme = "dark"  # Default background theme
         
         self.frame_limit_multiplier = 500  # Increased frame limit - customizable parameter
         self.recent_positions = []  # Track recent positions to detect loops
@@ -99,6 +95,10 @@ class SnakeGameAI:
             self.sub_font = pygame.font.SysFont("Arial", 48)
             self.small_font = pygame.font.SysFont("Arial", 36)
 
+        # Load theme from config
+        config = load_config()
+        self.background_theme = config.get("appearance", {}).get("background_theme", "dark")
+
         self.reset()
 
     def reset(self):
@@ -116,18 +116,60 @@ class SnakeGameAI:
     def _place_food(self):
         """
         Places food at a random location on the grid.
-        Ensures the food does not spawn on the snake.
+        Ensures the food does not spawn on the snake or text overlay areas.
         """
-        x = random.randint(0, (self.width-BLOCK_SIZE)//BLOCK_SIZE) * BLOCK_SIZE
-        y = random.randint(0, (self.height-BLOCK_SIZE)//BLOCK_SIZE) * BLOCK_SIZE
-        self.food = Point(x, y)
-        
-        # Generate a new random food color if that feature is enabled
-        if self.food_theme.random_colors:
-            self.food_theme.new_random_color()
+        # Define forbidden areas (rectangles to avoid)
+        forbidden_areas = [
+            # Top score area
+            pygame.Rect(0, 0, 200, 50),
             
-        if self.food in self.snake:  # Prevent food spawning on the snake
-            self._place_food()
+            # Top right for record display
+            pygame.Rect(self.width - 300, 0, 300, 50),
+            
+            # Bottom area for controls/debug info
+            pygame.Rect(0, self.height - 60, self.width, 60),
+            
+            # Center area for potential level up messages
+            pygame.Rect(self.width//2 - 150, self.height//2 - 50, 300, 100)
+        ]
+        
+        # Fibonacci mode needs additional forbidden areas
+        if hasattr(self, 'fibonacci_sequence'):
+            # Center top for Fibonacci metrics
+            forbidden_areas.append(pygame.Rect(self.width//2 - 250, 0, 500, 60))
+        
+        # Try to place food in a valid location
+        max_attempts = 50  # Prevent infinite recursion
+        for _ in range(max_attempts):
+            x = random.randint(0, (self.width - BLOCK_SIZE) // BLOCK_SIZE) * BLOCK_SIZE 
+            y = random.randint(0, (self.height - BLOCK_SIZE) // BLOCK_SIZE) * BLOCK_SIZE
+            food_rect = pygame.Rect(x, y, BLOCK_SIZE, BLOCK_SIZE)
+            
+            # Check if food collides with any forbidden area
+            if any(food_rect.colliderect(area) for area in forbidden_areas):
+                continue  # Try again with new coordinates
+                
+            # Check if food is on the snake
+            potential_food = Point(x, y)
+            if potential_food in self.snake:
+                continue  # Try again with new coordinates
+                
+            # We found a valid position
+            self.food = potential_food
+            
+            # Generate a new random food color if that feature is enabled
+            if hasattr(self, 'food_theme') and self.food_theme.random_colors:
+                self.food_theme.new_random_color()
+                
+            return
+            
+        # If we've exhausted attempts, just place it somewhere not on the snake
+        # (fallback to original behavior)
+        x = random.randint(0, (self.width - BLOCK_SIZE) // BLOCK_SIZE) * BLOCK_SIZE 
+        y = random.randint(0, (self.height - BLOCK_SIZE) // BLOCK_SIZE) * BLOCK_SIZE
+        self.food = Point(x, y)
+        if self.food in self.snake:
+            self._place_food()  # Last resort recursive call
 
     def play_step(self, action):
         """
@@ -188,7 +230,7 @@ class SnakeGameAI:
         if self.is_collision():
             game_over = True
             reward = -10
-            self.game_over_sound.play()
+            play_sound("game_over")  # Use sound_manager instead of self.game_over_sound.play()
             print(f"AI Game Over: Collision detected")
             return reward, game_over, self.score
         
@@ -206,15 +248,12 @@ class SnakeGameAI:
             self.score += 1
             reward = 10
             self._place_food()
-            self.eat_sound.play()
+            play_sound("eat")  # Use sound_manager instead of self.eat_sound.play()
             
             # Play level up sound every 10 points
             if self.score % 10 == 0 and self.score > 0 and reward > 0:
-                if hasattr(self, 'level_up_sound') and self.level_up_sound:
-                    self.level_up_sound.play()
-                    # Also show a level up message if in viewing mode
-                    if self.viewing_mode:
-                        self._show_level_up()
+                play_sound("level_up")
+                self._show_level_up()
             
             # Reset frame iteration when food is eaten to prevent timeout
             self.frame_iteration = 0
@@ -251,7 +290,7 @@ class SnakeGameAI:
         if pt is None:
             pt = self.head
         if pt in self.snake[1:]:  # Collision with the snake's body
-            self.game_over_sound.play()
+            play_sound("game_over")  # Use sound_manager instead of self.game_over_sound.play()
             return True
 
         return False
@@ -260,6 +299,12 @@ class SnakeGameAI:
         """
         Updates the game display with the current state.
         """
+        # Use the correct background color based on theme
+        if self.background_theme == "light":
+            self.display.fill((240, 240, 245))  # Light background
+        else:
+            self.display.fill((20, 20, 30))  # Dark background (default)
+
         # Select background and text colors based on theme
         if self.background_theme == "dark":
             draw_gradient(self.display, (0, 0, 50), (0, 0, 0), self.width, self.height)
@@ -300,7 +345,7 @@ class SnakeGameAI:
             self.display.blit(record_text, [self.width - record_text.get_width() - 10, 10])
             
             # Add controls help text
-            controls_text = self.small_font.render("ESC - Back to Menu | P - Pause", True, controls_color)
+            controls_text = self.small_font.render("ESC or P - Pause", True, controls_color)
             self.display.blit(controls_text, [10, self.height - 30])
         else:
             # Full UI for training mode

@@ -55,8 +55,7 @@ def show_settings_help(current_page=0):
             "title": "Controls",
             "content": [
                 f"{bullet} Arrow Keys / WASD: Move snake",
-                f"{bullet} P: Pause game",
-                f"{bullet} ESC: Return to menu"
+                f"{bullet} P or ESC: Pause game"
             ]
         }
     ]
