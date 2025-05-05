@@ -20,7 +20,7 @@ from src.ui.shared_globals import (
 )
 
 from src.utils.config import load_config, save_config
-from src.utils.sound_manager import sound_manager
+from src.utils.sound_manager import sound_manager, ensure_settings_saved
 
 # Import game modules at function level to avoid circular imports
 def get_game_modules():
@@ -519,6 +519,7 @@ def home_page():
                 # Save config before quitting
                 config["audio"]["music_on"] = music_on
                 save_config(config)
+                ensure_settings_saved()  # Add this line
                 pygame.quit()
                 sys.exit()
                 

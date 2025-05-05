@@ -59,6 +59,10 @@ def settings_page():
     
     # Define save_settings_immediately to use the sound manager for audio settings
     def save_settings_immediately():
+        """Save settings and synchronize with SoundManager"""
+        print(f"Saving audio settings: music={music_on}, sfx={sound_effects_on}, clicks={click_sounds_on}, " +
+              f"volumes: master={master_volume:.2f}, music={music_volume:.2f}, sfx={sound_effects_volume:.2f}")
+        
         # Update sound manager settings
         sound_manager.music_on = music_on
         sound_manager.sound_effects_on = sound_effects_on
@@ -67,10 +71,16 @@ def settings_page():
         sound_manager.music_volume = music_volume
         sound_manager.sound_effects_volume = sound_effects_volume
         
-        # Apply and save sound settings
+        # Apply settings to hear changes immediately
         sound_manager.apply_settings()
         
-        # Update all settings in config
+        # Call sound manager's save_settings() and verify it was successful
+        save_success = sound_manager.save_settings()
+        if not save_success:
+            print("WARNING: Failed to save audio settings")
+        
+        # Update appearance and gameplay settings in config
+        config = load_config()  # Get fresh config to avoid overwriting sound settings
         config["appearance"]["background_theme"] = background_theme
         config["appearance"]["enhanced_effects"] = enhanced_effects
         config["gameplay"]["debug_mode"] = debug_mode
@@ -78,18 +88,13 @@ def settings_page():
         config["gameplay"]["classic_speed"] = classic_speed
         config["gameplay"]["fibonacci_speed"] = fibonacci_speed
         
-        # Also update audio settings in config object
-        config["audio"] = {
-            "music_on": music_on,
-            "sound_effects_on": sound_effects_on,
-            "click_sounds_on": click_sounds_on,
-            "master_volume": master_volume,
-            "music_volume": music_volume,
-            "sound_effects_volume": sound_effects_volume
-        }
+        # Save non-audio settings
+        save_result = save_config(config)
         
-        # Save everything in one go
-        save_config(config)
+        if save_result:
+            print("Settings saved successfully")
+        else:
+            print("WARNING: Failed to save settings")
     
     clock = pygame.time.Clock()
     step = 0
@@ -586,7 +591,7 @@ def settings_page():
                     # Back and Help buttons
                     if back_button.collidepoint(event.pos):
                         play_click()
-                        save_config(config)
+                        save_settings_immediately()
                         return
                     
                     elif help_button.collidepoint(event.pos):
@@ -647,12 +652,14 @@ def settings_page():
                         fibonacci_speed = max(min_speed, min(max_speed, fibonacci_speed))
             
             if event.type == pygame.MOUSEBUTTONUP:
-                if active_slider:  # Save settings when releasing the slider
+                if active_slider:
+                    # Always save regardless of which slider was active
                     save_settings_immediately()
+                    print(f"Settings saved after adjusting {active_slider}")
                     active_slider = None
             
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                save_config(config)
+                save_settings_immediately()
                 return
         
         # When mouse is released, save the settings
