@@ -135,7 +135,13 @@ class FibonacciGameAI(SnakeGameAI):
             self.score += 1
             
             # Add to Fibonacci score - accumulated Fibonacci values
-            self.fib_score += current_fib_value
+            if self.score == 1:
+                # First food adds nothing (matches player mode)
+                pass
+            else:
+                # Add to total Fibonacci sum - this matches player mode behavior
+                self.total_fibonacci_growth += current_fib_value
+                self.fib_score = self.total_fibonacci_growth
             
             # Reward is proportional to the Fibonacci value
             reward = max(1, current_fib_value) / 10  # Scale down large values

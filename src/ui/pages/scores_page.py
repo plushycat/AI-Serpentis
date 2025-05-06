@@ -358,7 +358,7 @@ def high_scores_page():
         
         # Show message if no scores with menu_font (48pt) - matching old_main.py
         if ((current_mode in ["classic", "ai", "fibonacci", "fibonacci_ai"] and 
-             not high_scores.get(current_mode, {}).get("scores", [])) or 
+            not high_scores.get(current_mode, {}).get("scores", [])) or 
             (current_mode == "vs_mode" and not vs_matches)):
             no_scores_text = menu_font.render("No scores recorded yet!", True, (200, 200, 200))
             no_scores_rect = no_scores_text.get_rect(center=(content_area.width // 2, 150))
@@ -370,7 +370,7 @@ def high_scores_page():
         
         # Draw scrollbar if needed
         has_content = ((current_mode in ["classic", "ai", "fibonacci", "fibonacci_ai"] and 
-                      high_scores.get(current_mode, {}).get("scores", [])) or 
+                    high_scores.get(current_mode, {}).get("scores", [])) or 
                     (current_mode == "vs_mode" and vs_matches))
                     
         if max_scroll_y > 0 and has_content:

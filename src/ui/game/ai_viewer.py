@@ -357,29 +357,33 @@ def watch_fibonacci_ai_play():
     checkpoint_dir = "data/checkpoints"
     
     try:
-        # First try finetuned models
-        model_files = [f for f in os.listdir(model_dir) if f.startswith('fibonacci_transferred_model_finetuned_')]
+        # First try to load base transferred model
+        base_model = os.path.join(model_dir, "fibonacci_transferred_model_finetuned_300_games.pth")
+        if os.path.exists(base_model):
+            model_path = base_model
+            print(f"Using base transferred model: {os.path.basename(model_path)}")
         
-        if model_files:
-            # Get the one with the highest game count
-            try:
-                model_file = max(model_files, key=lambda x: int(x.split('_')[-2]))
-                model_path = os.path.join(model_dir, model_file)
-            except:
-                # If parsing fails, just take the first one
-                model_path = os.path.join(model_dir, model_files[0])
-        
-        # Then try base transferred model
+        # If not found, try finetuned models as fallback
         if not model_path:
-            base_model = os.path.join(model_dir, "fibonacci_transferred_model.pth")
-            if os.path.exists(base_model):
-                model_path = base_model
+            model_files = [f for f in os.listdir(model_dir) if f.startswith('fibonacci_transferred_model_finetuned_')]
+            
+            if model_files:
+                # Get the one with the highest game count
+                try:
+                    model_file = max(model_files, key=lambda x: int(x.split('_')[-2]))
+                    model_path = os.path.join(model_dir, model_file)
+                    print(f"Base model not found, using fine-tuned model: {os.path.basename(model_path)}")
+                except:
+                    # If parsing fails, just take the first one
+                    model_path = os.path.join(model_dir, model_files[0])
+                    print(f"Using fine-tuned model: {os.path.basename(model_path)}")
         
         # Finally try checkpoint model
         if not model_path:
             checkpoint_model = os.path.join(checkpoint_dir, "fibonacci_transferred_checkpoint_model.pth")
             if os.path.exists(checkpoint_model):
                 model_path = checkpoint_model
+                print(f"Using checkpoint model: {os.path.basename(model_path)}")
                 
         if not model_path or not os.path.exists(model_path):
             print("No Fibonacci AI model found. Please train or transfer a model first.")

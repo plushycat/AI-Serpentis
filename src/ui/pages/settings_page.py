@@ -454,17 +454,14 @@ def settings_page():
                         elif col_vs_button.collidepoint(event.pos):
                             play_click()
     
-                            # Get current position, toggle it, and save it
+                            # Get current position and toggle it
                             current_position = get_player_position()
                             new_position = "left" if current_position == "right" else "right"
                             
-                            # Save using the function from player_vs_ai.py
-                            save_player_position(new_position)
-                            
-                            # Don't call save_settings_immediately() as it might overwrite our change
-                            # Instead, explicitly save the config
-                            config["gameplay"]["player_position"] = new_position
-                            save_config(config)
+                            # Use only one save method - the function from player_vs_ai is more robust
+                            success = save_player_position(new_position)
+                            if not success:
+                                print(f"Warning: Failed to save player position: {new_position}")
                             
                             print(f"Player position changed: {current_position} → {new_position}")
                             
