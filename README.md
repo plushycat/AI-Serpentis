@@ -112,9 +112,9 @@ AI-Serpentis/
 
 ## 🛠️ Prerequisites
 
-- Python 3.10+
-- Pygame
-- PyTorch
+- Python 3.11+
+- Pygame 1.10+
+- PyTorch 2.0+
 - Matplotlib
 
 ```bash
