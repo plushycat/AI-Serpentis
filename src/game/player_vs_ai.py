@@ -194,31 +194,18 @@ def save_player_position(position):
     """Save player position preference using the unified config system"""
     # Update the unified configuration system
     try:
-        from src.utils.config import load_config, save_config  # Update this line too
+        from src.utils.config import load_config, save_config
+        import src.ui.shared_globals as globals_module
+        
+        # Set the position in shared_globals for access at program exit
+        globals_module.player_position = position
+        
         config = load_config()
         config["gameplay"]["player_position"] = position
         save_config(config)
         return True
-    except (ImportError, Exception) as e:
-        print(f"Error saving player position to unified config: {e}")
-        
-        # Legacy fallback in case the unified system fails
-        try:
-            config_file = "statics/game_settings.json"
-            if os.path.exists(config_file):
-                with open(config_file, 'r') as f:
-                    data = json.load(f)
-                
-                if "gameplay" not in data:
-                    data["gameplay"] = {}
-                data["gameplay"]["player_position"] = position
-                
-                with open(config_file, 'w') as f:
-                    json.dump(data, f, indent=2)
-                return True
-        except Exception as e:
-            print(f"Error in fallback position saving: {e}")
-        
+    except Exception as e:
+        print(f"Error saving player position: {e}")
         return False
 
 def draw_simple_score(surface, p_score, ai_score, total_width, font):
