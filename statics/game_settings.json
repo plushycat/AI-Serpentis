@@ -4,7 +4,7 @@
         "enhanced_effects": true
     },
     "gameplay": {
-        "player_position": "left",
+        "player_position": "right",
         "debug_mode": false,
         "game_speed": 8,
         "classic_speed": 25,
@@ -14,8 +14,8 @@
         "music_on": true,
         "sound_effects_on": true,
         "click_sounds_on": true,
-        "master_volume": 0.5096852300242131,
-        "music_volume": 0.35472154963680386,
+        "master_volume": 0.5,
+        "music_volume": 0.8583535108958837,
         "sound_effects_volume": 1.0
     }
 }

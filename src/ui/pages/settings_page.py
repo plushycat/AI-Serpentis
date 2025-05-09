@@ -66,7 +66,7 @@ def settings_page():
     def save_settings_immediately():
         """Save settings and synchronize with SoundManager"""
         print(f"Saving audio settings: music={music_on}, sfx={sound_effects_on}, clicks={click_sounds_on}, " +
-              f"volumes: master={master_volume:.2f}, music={music_volume:.2f}, sfx={sound_effects_volume:.2f}")
+            f"volumes: master={master_volume:.2f}, music={music_volume:.2f}, sfx={sound_effects_volume:.2f}")
         
         # Update sound manager settings
         sound_manager.music_on = music_on
@@ -431,26 +431,29 @@ def settings_page():
                     
                     # Gameplay buttons
                     if current_category == 1:
-                        # Check column-specific buttons instead of full-width ones
-                        if col_dark_button.collidepoint(event.pos):
+                        # First check for any button in the gameplay section
+                        if col_dark_button.collidepoint(event.pos):  # Changed from 'elif' to 'if'
                             play_click()
                             background_theme = "dark"
-                            config["appearance"]["background_theme"] = background_theme
-                            save_config(config)  # Make sure this explicit call is here
-                            update_theme("dark")  # Update the global variable
+                            update_theme("dark")
+                            save_settings_immediately()
                             
                         elif col_light_button.collidepoint(event.pos):
                             play_click()
-                            background_theme = "light" 
-                            config["appearance"]["background_theme"] = background_theme
-                            save_config(config)  # Make sure this explicit call is here
-                            update_theme("light")  # Update the global variable
-                            
+                            background_theme = "light"
+                            update_theme("light")
+                            save_settings_immediately()
+                        
                         elif col_debug_button.collidepoint(event.pos):
                             play_click()
                             debug_mode = not debug_mode
-                            save_settings_immediately()
                             
+                            # Update shared_globals module directly
+                            import src.ui.shared_globals
+                            src.ui.shared_globals.debug_mode = debug_mode
+                            
+                            save_settings_immediately()
+                        
                         elif col_vs_button.collidepoint(event.pos):
                             play_click()
     
@@ -464,10 +467,15 @@ def settings_page():
                                 print(f"Warning: Failed to save player position: {new_position}")
                             
                             print(f"Player position changed: {current_position} → {new_position}")
-                            
+                        
                         elif col_effects_button.collidepoint(event.pos):
                             play_click()
                             enhanced_effects = not enhanced_effects
+                            
+                            # Update shared_globals module directly
+                            import src.ui.shared_globals
+                            src.ui.shared_globals.enhanced_effects = enhanced_effects
+                            
                             save_settings_immediately()
                         
                         # Check slider interactions specifically for gameplay category
