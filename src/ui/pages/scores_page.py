@@ -285,11 +285,11 @@ def high_scores_page():
             screen.blit(header_texts["date"], (content_area.left + col_pixels["date"] - header_texts["date"].get_width()//2, 
                                             header_bg.centery - header_texts["date"].get_height()//2))
             
-            # Get data
-            player_scores = high_scores.get("vs", {}).get("player", {}).get("scores", [])
-            player_dates = high_scores.get("vs", {}).get("player", {}).get("dates", [])
-            ai_scores = high_scores.get("vs", {}).get("ai", {}).get("scores", [])
-            ai_dates = high_scores.get("vs", {}).get("ai", {}).get("dates", [])
+            # Get data (update to use vs_mode instead of vs)
+            player_scores = high_scores.get("vs_mode", {}).get("player", {}).get("scores", [])
+            player_dates = high_scores.get("vs_mode", {}).get("player", {}).get("dates", [])
+            ai_scores = high_scores.get("vs_mode", {}).get("ai", {}).get("scores", [])
+            ai_dates = high_scores.get("vs_mode", {}).get("ai", {}).get("dates", [])
             
             # Combine scores
             vs_matches = []

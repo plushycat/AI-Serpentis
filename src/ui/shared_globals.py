@@ -1,7 +1,7 @@
 import pygame
 import os
 import sys
-from src.utils.config import load_config, save_config
+from src.utils.settings_manager import get_config, save_config, get_setting, set_setting
 
 # Global function for late binding
 def play_click():
@@ -195,6 +195,7 @@ def update_theme(theme):
     """Update the global theme variable"""
     global background_theme
     background_theme = theme
+    set_setting("appearance", "background_theme", theme)
     print(f"Theme updated to: {theme}")  # Add logging to verify function execution
 
 def scale_preserving_aspect_ratio(image, target_size):

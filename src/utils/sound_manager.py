@@ -2,7 +2,7 @@ import pygame
 import os
 import datetime
 import json
-from src.utils.config import load_config, save_config, CONFIG_FILE  # Import the path constant
+from src.utils.settings_manager import get_config, save_config, get_setting, set_setting
 
 class SoundManager:
     """Centralized sound management system for the game"""
@@ -79,7 +79,7 @@ class SoundManager:
         """Load sound settings from the unified config file"""
         try:
             # IMPORTANT: Load directly from config - don't rely on cached values
-            config = load_config()
+            config = get_config()
             
             # Always use values from config, with class defaults as fallback
             if "audio" in config:
@@ -93,58 +93,27 @@ class SoundManager:
                 
                 # Debug print to verify loading
                 self._log(f"Loaded settings: master={self.master_volume:.2f}, music={self.music_volume:.2f}, sfx={self.sound_effects_volume:.2f}")
-            else:
-                # This else branch was incomplete - adding proper defaults here
-                self._log("No audio section found in config, using defaults")
-                self.music_on = True
-                self.sound_effects_on = True
-                self.click_sounds_on = True
-                self.master_volume = 0.7
-                self.music_volume = 0.5
-                self.sound_effects_volume = 0.6
+            
+            return True
         except Exception as e:
-            self._log(f"Error loading sound settings: {e}")
-            # Still set defaults even on error
-            self.music_on = True
-            self.sound_effects_on = True
-            self.click_sounds_on = True
-            self.master_volume = 0.7
-            self.music_volume = 0.5
-            self.sound_effects_volume = 0.6
+            self._log(f"Error loading settings: {e}")
+            return False
     
     def save_settings(self):
         """Save sound settings to the unified config file"""
         try:
-            # Load current config using the shared config module
-            config = load_config()
+            # Update audio settings directly with the set_setting function
+            set_setting("audio", "music_on", self.music_on)
+            set_setting("audio", "sound_effects_on", self.sound_effects_on)
+            set_setting("audio", "click_sounds_on", self.click_sounds_on)
+            set_setting("audio", "master_volume", self.master_volume)
+            set_setting("audio", "music_volume", self.music_volume)
+            set_setting("audio", "sound_effects_volume", self.sound_effects_volume)
             
-            # Update or create the audio section
-            if "audio" not in config:
-                config["audio"] = {}
-                
-            # Update sound settings
-            config["audio"]["music_on"] = self.music_on
-            config["audio"]["sound_effects_on"] = self.sound_effects_on
-            config["audio"]["click_sounds_on"] = self.click_sounds_on
-            config["audio"]["master_volume"] = self.master_volume
-            config["audio"]["music_volume"] = self.music_volume
-            config["audio"]["sound_effects_volume"] = self.sound_effects_volume
-            
-            # Save using the config module function
-            save_success = save_config(config)
-            if not save_success:
-                self._log("ERROR: Failed to save config file")
-                return False
-                
-            # Perform complete verification
-            try:
-                verification = load_config()
-                if "audio" not in verification:
-                    self._log("ERROR: Audio section missing from saved config")
-                    return False
-                    
-                # Verify all audio settings, not just master volume
-                audio = verification["audio"]
+            # Verify the settings were saved correctly
+            config = get_config()
+            if "audio" in config:
+                audio = config["audio"]
                 all_match = (
                     audio.get("music_on") == self.music_on and
                     audio.get("sound_effects_on") == self.sound_effects_on and
@@ -161,10 +130,7 @@ class SoundManager:
                     self._log("WARNING: Settings verification failed - values don't match")
                     return False
                     
-            except Exception as e:
-                self._log(f"Error verifying saved settings: {e}")
-                return False
-                
+            return True
         except Exception as e:
             self._log(f"Error saving sound settings: {e}")
             return False

@@ -12,7 +12,7 @@ from src.ai.transfer_fibonacci_ai import TransferredFibonacciAgent
 from src.game.customization import customization
 from src.utils.scores import load_high_scores, save_high_score
 from src.utils.input_utils import is_screenshot_key
-from src.utils.config import load_config, save_config  # Add this import
+from src.utils.settings_manager import get_config, save_config, get_setting, set_setting
 
 # Import shared globals instead of from home_page
 from src.ui.shared_globals import (
@@ -30,9 +30,7 @@ def get_current_debug_mode():
     """Get the current debug mode setting from config file"""
     global debug_mode
     try:
-        config = load_config()
-        if config and "gameplay" in config and "debug_mode" in config["gameplay"]:
-            debug_mode = config["gameplay"]["debug_mode"]
+        debug_mode = get_setting("gameplay", "debug_mode", False)
     except Exception as e:
         print(f"Error loading debug mode setting: {e}")
     return debug_mode
@@ -42,11 +40,8 @@ def save_debug_mode_setting(new_value):
     """Save the debug mode setting to config file"""
     global debug_mode
     try:
-        config = load_config()
-        if config and "gameplay" in config:
-            config["gameplay"]["debug_mode"] = new_value
-            save_config(config)
-            debug_mode = new_value
+        set_setting("gameplay", "debug_mode", new_value)
+        debug_mode = new_value
     except Exception as e:
         print(f"Error saving debug mode setting: {e}")
 
@@ -58,7 +53,7 @@ def watch_ai_play():
     debug_mode = get_current_debug_mode()
     
     # Load theme from config
-    config = load_config()
+    config = get_config()
     background_theme = config.get("appearance", {}).get("background_theme", "dark")
     
     # Initialize the AI agent
@@ -330,7 +325,7 @@ def watch_fibonacci_ai_play():
     debug_mode = get_current_debug_mode()
     
     # Load theme from config
-    config = load_config()
+    config = get_config()
     background_theme = config.get("appearance", {}).get("background_theme", "dark")
     
     # Initialize agent
