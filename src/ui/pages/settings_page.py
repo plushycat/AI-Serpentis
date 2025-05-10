@@ -5,7 +5,7 @@ import json
 import os
 from src.game.customization import customization
 from src.utils.input_utils import is_screenshot_key
-from src.utils.config import load_config, save_config
+from src.utils.settings_manager import get_setting, set_setting, get_config, save_config
 from src.ui.pages.settings_help_page import show_settings_help
 from src.utils.sound_manager import sound_manager, play_click
 
@@ -47,12 +47,11 @@ def settings_page():
     config_file = "statics/game_settings.json"
     
     try:
-        config = load_config()
-        background_theme = config["appearance"]["background_theme"]
-        enhanced_effects = config["appearance"]["enhanced_effects"]
-        debug_mode = config["gameplay"]["debug_mode"]
-        classic_speed = config["gameplay"].get("classic_speed", 10)
-        fibonacci_speed = config["gameplay"].get("fibonacci_speed", 8)
+        background_theme = get_setting("appearance", "background_theme", "dark")
+        enhanced_effects = get_setting("appearance", "enhanced_effects", True)
+        debug_mode = get_setting("gameplay", "debug_mode", False)
+        classic_speed = get_setting("gameplay", "classic_speed", 10)
+        fibonacci_speed = get_setting("gameplay", "fibonacci_speed", 8)
     except Exception as e:
         print(f"Error loading config: {e}")
         # Default values
@@ -79,27 +78,19 @@ def settings_page():
         # Apply settings to hear changes immediately
         sound_manager.apply_settings()
         
-        # Call sound manager's save_settings() and verify it was successful
-        save_success = sound_manager.save_settings()
-        if not save_success:
-            print("WARNING: Failed to save audio settings")
+        # Save all settings at once
+        set_setting("appearance", "background_theme", background_theme)
+        set_setting("appearance", "enhanced_effects", enhanced_effects)
+        set_setting("gameplay", "debug_mode", debug_mode)
+        set_setting("gameplay", "player_position", get_player_position())
+        set_setting("gameplay", "classic_speed", classic_speed)
+        set_setting("gameplay", "fibonacci_speed", fibonacci_speed)
         
-        # Update appearance and gameplay settings in config
-        config = load_config()  # Get fresh config to avoid overwriting sound settings
-        config["appearance"]["background_theme"] = background_theme
-        config["appearance"]["enhanced_effects"] = enhanced_effects
-        config["gameplay"]["debug_mode"] = debug_mode
-        config["gameplay"]["player_position"] = get_player_position()
-        config["gameplay"]["classic_speed"] = classic_speed
-        config["gameplay"]["fibonacci_speed"] = fibonacci_speed
+        # Call sound manager's save_settings() to save audio settings
+        sound_manager.save_settings()
         
-        # Save non-audio settings
-        save_result = save_config(config)
-        
-        if save_result:
-            print("Settings saved successfully")
-        else:
-            print("WARNING: Failed to save settings")
+        print("Settings saved successfully")
+        return True
     
     clock = pygame.time.Clock()
     step = 0
@@ -325,11 +316,11 @@ def settings_page():
     knob_height = 20
     
     # In settings_page function, add a new variable to hold game speed
-    game_speed = config["gameplay"].get("game_speed", 10)  # Default 10 if not found
+    game_speed = get_setting("gameplay", "game_speed", 10)  # Default 10 if not found
 
     # In the initialization section, load both speeds
-    classic_speed = config["gameplay"].get("classic_speed", 10)
-    fibonacci_speed = config["gameplay"].get("fibonacci_speed", 8)
+    classic_speed = get_setting("gameplay", "classic_speed", 10)
+    fibonacci_speed = get_setting("gameplay", "fibonacci_speed", 8)
 
     # Define wider speed range
     min_speed = 5
@@ -546,7 +537,7 @@ def settings_page():
                             click_sounds_on = not click_sounds_on
                             
                             # Update config
-                            config["audio"]["click_sounds_on"] = click_sounds_on
+                            set_setting("audio", "click_sounds_on", click_sounds_on)
                             save_settings_immediately()
                             
                             # Play click sound only if turning ON
@@ -688,10 +679,10 @@ def settings_page():
         # When mouse is released, save the settings
         if prev_mouse_pressed and not mouse_pressed:
             if active_slider == "classic_speed":
-                config["gameplay"]["classic_speed"] = classic_speed
+                set_setting("gameplay", "classic_speed", classic_speed)
                 save_settings_immediately()
             elif active_slider == "fibonacci_speed":
-                config["gameplay"]["fibonacci_speed"] = fibonacci_speed
+                set_setting("gameplay", "fibonacci_speed", fibonacci_speed)
                 save_settings_immediately()
             active_slider = None
 
@@ -830,7 +821,7 @@ def settings_page():
                 game_speed = max(5, min(20, game_speed))  # Clamp between 5-20
                 
                 # Save immediately
-                config["gameplay"]["game_speed"] = game_speed
+                set_setting("gameplay", "game_speed", game_speed)
                 save_settings_immediately()
             
             # Draw both speed groups

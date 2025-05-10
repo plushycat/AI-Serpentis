@@ -58,6 +58,45 @@ class SnakeTheme:
         return (r, g, b)
 
 @dataclass
+class PastelRainbowTheme(SnakeTheme):
+    """A special theme that creates a pastel rainbow effect for the snake."""
+    
+    def get_segment_color(self, segment_index: int) -> Tuple[int, int, int]:
+        """Generate vibrant pastel rainbow colors based on segment index."""
+        # Create a cycling pattern through rainbow colors
+        hue = (segment_index * 20) % 360  # Cycle through hues
+        
+        # Convert HSV to RGB with adjusted saturation and value for more vibrant pastels
+        h = hue / 360.0
+        s = 0.7  # Higher saturation for more vibrant colors (was 0.5)
+        v = 0.9  # Slightly lower value to make colors less light (was 0.95)
+        
+        # HSV to RGB conversion
+        if s == 0.0:
+            return (int(v * 255), int(v * 255), int(v * 255))
+            
+        i = int(h * 6.0)
+        f = (h * 6.0) - i
+        p = v * (1.0 - s)
+        q = v * (1.0 - s * f)
+        t = v * (1.0 - s * (1.0 - f))
+        
+        if i % 6 == 0:
+            rgb = (v, t, p)
+        elif i % 6 == 1:
+            rgb = (q, v, p)
+        elif i % 6 == 2:
+            rgb = (p, v, t)
+        elif i % 6 == 3:
+            rgb = (p, q, v)
+        elif i % 6 == 4:
+            rgb = (t, p, v)
+        else:
+            rgb = (v, p, q)
+            
+        return (int(rgb[0] * 255), int(rgb[1] * 255), int(rgb[2] * 255))
+
+@dataclass
 class FoodTheme:
     """A class to store food appearance customization."""
     name: str
@@ -94,19 +133,22 @@ class FoodTheme:
         self.color = random.choice(self.color_options)
         return self.color
 
+# Replace file loading/saving with settings_manager
+from src.utils.settings_manager import get_setting, set_setting, get_config
+
 class GameCustomization:
     """Manages all customization settings for the game."""
     
     def __init__(self):
         self.config_file = "statics/customization.json"
         
-        # Enhanced snake themes with two-color gradients
+        # Define snake themes
         self.snake_themes = {
-            "classic": SnakeTheme("Classic Green", GREEN, (0, 100, 0)),
-            "blue": SnakeTheme("Cool Blue", (0, 100, 255), (0, 0, 150)),
+            "classic": SnakeTheme("Classic", (0, 255, 0)),
+            "sky_blue": SnakeTheme("Sky Blue", (135, 206, 250), BLUE),
+            "rainbow": PastelRainbowTheme("Rainbow", (255, 183, 197), (171, 222, 255)),
             "fire": SnakeTheme("Fire", (255, 100, 0), (200, 0, 0)),
             "purple": SnakeTheme("Royal Purple", PURPLE, (100, 0, 100)),
-            "sky": SnakeTheme("Sky Blue", (135, 206, 250), BLUE),
         }
         
         # Default food themes
@@ -127,23 +169,21 @@ class GameCustomization:
     def load_settings(self):
         """Load customization settings from file."""
         try:
-            if os.path.exists(self.config_file):
-                with open(self.config_file, 'r') as f:
-                    data = json.load(f)
-                    self.current_snake_theme = data.get("snake_theme", "classic")
-                    self.current_food_theme = data.get("food_theme", "apple")
+            # Use settings_manager instead of direct file access
+            from src.utils.settings_manager import get_config
+            customization_config = get_config()["customization"]
+            self.current_snake_theme = customization_config.get("snake_theme", "classic")
+            self.current_food_theme = customization_config.get("food_theme", "apple")
         except Exception as e:
             print(f"Error loading customization settings: {e}")
     
     def save_settings(self):
         """Save current customization settings to file."""
         try:
-            os.makedirs(os.path.dirname(self.config_file), exist_ok=True)
-            with open(self.config_file, 'w') as f:
-                json.dump({
-                    "snake_theme": self.current_snake_theme,
-                    "food_theme": self.current_food_theme
-                }, f)
+            # Use settings_manager instead of direct file access
+            from src.utils.settings_manager import set_setting
+            set_setting("customization", "snake_theme", self.current_snake_theme)
+            set_setting("customization", "food_theme", self.current_food_theme)
         except Exception as e:
             print(f"Error saving customization settings: {e}")
     

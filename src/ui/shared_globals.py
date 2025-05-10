@@ -1,7 +1,7 @@
 import pygame
 import os
 import sys
-from src.utils.config import load_config, save_config
+from src.utils.settings_manager import get_config, save_config, get_setting, set_setting
 
 # Global function for late binding
 def play_click():
@@ -66,6 +66,20 @@ def init_globals():
     global title_font, menu_font, footer_font, screen
     global music_on_icon, music_off_icon, click_sound, music_loaded
     global help_icon, scores_icon, settings_icon, quit_icon
+    
+    # Set custom application icon
+    try:
+        app_icon_path = get_asset_path("assets/images/app_icon.png")
+        if os.path.exists(app_icon_path):
+            app_icon = pygame.image.load(app_icon_path)
+            # Optional: scale icon to appropriate size if needed
+            # app_icon = pygame.transform.scale(app_icon, (64, 64))
+            pygame.display.set_icon(app_icon)
+            print("Successfully loaded application icon")
+        else:
+            print("Warning: App icon not found at", app_icon_path)
+    except Exception as e:
+        print(f"Error loading app icon: {e}")
     
     # Initialize screen
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -195,6 +209,7 @@ def update_theme(theme):
     """Update the global theme variable"""
     global background_theme
     background_theme = theme
+    set_setting("appearance", "background_theme", theme)
     print(f"Theme updated to: {theme}")  # Add logging to verify function execution
 
 def scale_preserving_aspect_ratio(image, target_size):
@@ -237,3 +252,35 @@ def scale_preserving_aspect_ratio(image, target_size):
     result_surface.blit(scaled_image, (x_offset, y_offset))
     
     return result_surface
+
+class AssetManager:
+    """Centralized asset cache to improve performance"""
+    _instance = None
+    _fonts = {}
+    _images = {}
+    _sounds = {}
+    
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+    
+    def get_font(self, name, size):
+        key = f"{name}_{size}"
+        if key not in self._fonts:
+            self._fonts[key] = pygame.font.Font(f"assets/fonts/{name}.ttf", size)
+        return self._fonts[key]
+    
+    def get_image(self, path):
+        if path not in self._images:
+            self._images[path] = pygame.image.load(path).convert_alpha()
+        return self._images[path]
+    
+    def get_sound(self, path):
+        if path not in self._sounds:
+            self._sounds[path] = pygame.mixer.Sound(path)
+        return self._sounds[path]
+
+# Create a global instance
+asset_manager = AssetManager.get_instance()

@@ -5,7 +5,10 @@ from src.game.snake_game import SnakeGame
 from src.game.customization import customization
 from src.utils.scores import load_high_scores, save_high_score
 from src.utils.input_utils import is_screenshot_key
-from src.utils.config import load_config  
+
+# updated settings manager
+from src.utils.settings_manager import get_setting
+game_speed = get_setting("gameplay", "classic_speed", 10)  # Default 10
 # Import shared globals instead of from home_page
 from src.ui.shared_globals import (
     SCREEN_WIDTH, SCREEN_HEIGHT, snake_color, background_theme,
@@ -18,10 +21,9 @@ def play_classic_game():
     from src.utils.sound_manager import sound_manager
     sound_manager.refresh_settings()
     
-    # Get config to access game speed and background theme directly
-    config = load_config()
-    game_speed = config["gameplay"].get("classic_speed", 10)
-    current_theme = config["appearance"].get("background_theme", "dark")  # Get theme directly from config
+    from src.utils.settings_manager import get_setting
+    game_speed = get_setting("gameplay", "classic_speed", 10)
+    current_theme = get_setting("appearance", "background_theme", "dark")
     
     # Initialize game with customized settings
     game = SnakeGame(speed=game_speed)

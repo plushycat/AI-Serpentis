@@ -1,1 +1,4 @@
-{"snake_theme": "random", "food_theme": "rainbow"}
+{
+    "snake_theme": "random",
+    "food_theme": "rainbow"
+}

@@ -6,7 +6,7 @@ from src.game.fibonacci_snake import FibonacciSnakeGame
 from src.game.customization import customization
 from src.utils.scores import load_high_scores, save_fibonacci_high_score
 from src.utils.input_utils import is_screenshot_key
-from src.utils.config import load_config
+from src.utils.settings_manager import get_config, get_setting
 
 # Import shared globals (without SPEED which doesn't exist)
 from src.ui.shared_globals import (
@@ -19,16 +19,15 @@ SPEED = 10  # Default value, adjust as needed
 
 def play_fibonacci_game():
     # Get config
-    config = load_config()
-    background_theme = config["appearance"]["background_theme"]
-    game_speed = config["gameplay"].get("fibonacci_speed", 8)  # Use fibonacci_speed setting
+    background_theme = get_setting("appearance", "background_theme", "dark")
+    game_speed = get_setting("gameplay", "fibonacci_speed", 8)  # Use fibonacci_speed setting with fallback
     
     # Initialize game with customized settings and configured speed
     game = FibonacciSnakeGame(speed=game_speed)
     
     # Apply the background theme and other settings
     game.background_theme = background_theme
-    game.enhanced_effects = enhanced_effects
+    game.enhanced_effects = get_setting("appearance", "enhanced_effects", True)
     game.snake_theme = customization.get_current_snake_theme()
     game.food_theme = customization.get_current_food_theme()
     

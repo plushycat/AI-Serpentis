@@ -2,12 +2,24 @@ import os
 import json
 import datetime
 
+# Add at the top of the file
+_high_scores_cache = None
+_last_updated = 0
+
 # Define file paths as constants for better maintainability
 HIGHSCORE_FILE = "data/stats/highscores.json"
 
 # Enhanced high score functions
 def load_high_scores():
-    """Load high scores with history from file or create default if it doesn't exist"""
+    """Load high scores with caching for better performance"""
+    global _high_scores_cache, _last_updated
+    current_time = datetime.datetime.now().timestamp()
+    
+    # Use cache if available and recent (less than 5 seconds old)
+    if _high_scores_cache and current_time - _last_updated < 5:
+        return _high_scores_cache
+        
+    # Otherwise load from file
     try:
         print(f"Attempting to load high scores from {HIGHSCORE_FILE}")
         if os.path.exists(HIGHSCORE_FILE):
@@ -32,6 +44,9 @@ def load_high_scores():
                 if category == "fibonacci" or category == "fibonacci_ai":
                     high_scores[category]["fib_values"] = []
                     
+        # Update cache
+        _high_scores_cache = high_scores
+        _last_updated = current_time
         return high_scores
     except Exception as e:
         print(f"Error loading high scores: {e}")
@@ -192,6 +207,14 @@ def resort_all_high_scores():
         high_scores = load_high_scores()
         modified = False
         
+        # Add a flag to check if data has already been resorted
+        if high_scores.get("_resorted"):
+            return high_scores
+            
+        # Mark as resorted
+        high_scores["_resorted"] = True
+        modified = True
+        
         # Resort classic mode and AI mode scores
         for mode in ["classic", "ai"]:
             if mode in high_scores:
@@ -331,16 +354,15 @@ def resort_all_high_scores():
             modified = True
         
         # Create backward compatibility by copying vs_mode back to vs
+        # Fix VS mode duplication - only copy if destination is empty
         if "vs_mode" in high_scores and "vs" not in high_scores:
-            # Recreate the vs structure for compatibility with old UI code
             high_scores["vs"] = {
                 "player": {"scores": [], "dates": []},
                 "ai": {"scores": [], "dates": []}
             }
             
-            # Copy data from vs_mode to vs
             for player_type in ["player", "ai"]:
-                if player_type in high_scores["vs_mode"]:
+                if player_type in high_scores["vs_mode"] and not high_scores["vs"][player_type].get("scores", []):
                     high_scores["vs"][player_type]["scores"] = high_scores["vs_mode"][player_type].get("scores", [])
                     high_scores["vs"][player_type]["dates"] = high_scores["vs_mode"][player_type].get("dates", [])
             

@@ -167,42 +167,23 @@ def load_high_scores():
 
 # Function to load player position preference
 def get_player_position():
-    """Get player position preference (left or right) from the unified config system"""
-    # Use the unified configuration system
-    try:
-        from src.utils.config import load_config  # Update this line - import from src.utils.config, not src.ui.main
-        config = load_config()
-        return config.get("gameplay", {}).get("player_position", "left")
-    except (ImportError, Exception) as e:
-        print(f"Error loading player position from unified config: {e}")
-        
-        # Legacy fallback in case the unified system fails
-        try:
-            config_file = "statics/game_settings.json"
-            if os.path.exists(config_file):
-                with open(config_file, 'r') as f:
-                    data = json.load(f)
-                    return data.get("gameplay", {}).get("player_position", "left")
-        except Exception as e:
-            print(f"Error in fallback position loading: {e}")
-        
-        # Default to left if all else fails
-        return "left"
+    from src.utils.settings_manager import get_setting
+    return get_setting("gameplay", "player_position", "right")
 
-# Function to save player position preference
+
+from src.utils.settings_manager import set_setting
+
 def save_player_position(position):
     """Save player position preference using the unified config system"""
     # Update the unified configuration system
     try:
-        from src.utils.config import load_config, save_config
         import src.ui.shared_globals as globals_module
         
         # Set the position in shared_globals for access at program exit
         globals_module.player_position = position
         
-        config = load_config()
-        config["gameplay"]["player_position"] = position
-        save_config(config)
+        # Use the settings manager to save directly
+        set_setting("gameplay", "player_position", position)
         return True
     except Exception as e:
         print(f"Error saving player position: {e}")
@@ -369,9 +350,8 @@ def player_vs_ai():
     ai_game = VSAIGameNoFlip(width=game_w, height=game_h, display_surface=ai_surf)
     
     # Get background theme from unified config system
-    from src.utils.config import load_config
-    config = load_config()
-    background_theme = config["appearance"]["background_theme"]
+    from src.utils.settings_manager import get_setting
+    background_theme = get_setting("appearance", "background_theme", "dark")
     
     # Apply the background theme to both games
     player_game.background_theme = background_theme

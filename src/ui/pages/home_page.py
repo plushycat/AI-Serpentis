@@ -139,7 +139,7 @@ def home_page():
     center_x = SCREEN_WIDTH // 2
     center_y = SCREEN_HEIGHT // 2
     
-    # Pre-render static elements
+    # Prerender static elements
     footer_surf = footer_font.render("The Snake Game Reimagined v2.0", True, (200, 200, 200))
     footer_rect = footer_surf.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT - 30))
     
@@ -174,6 +174,82 @@ def home_page():
             print(f"Could not load image {image_path}: {e}")
             # Add None as placeholder if image can't be loaded
             card_images.append(None)
+    
+    # Prerender all card surfaces at load time
+    card_surfaces = []
+    shadow_surfaces = []
+    for i in range(len(buttons)):
+        # Create card surface
+        card_surface = pygame.Surface((card_size, card_size), pygame.SRCALPHA)
+        # Fill with enhanced gradient (existing code)
+        for x in range(card_size):
+            ratio = x / card_size
+            cubic_ratio = ratio * ratio * (3 - 2 * ratio)  # Smooth interpolation
+            r = int(BUTTON_BASE_LEFT[0] * (1 - cubic_ratio) + BUTTON_BASE_RIGHT[0] * cubic_ratio)
+            g = int(BUTTON_BASE_LEFT[1] * (1 - cubic_ratio) + BUTTON_BASE_RIGHT[1] * cubic_ratio)
+            b = int(BUTTON_BASE_LEFT[2] * (1 - cubic_ratio) + BUTTON_BASE_RIGHT[2] * cubic_ratio)
+            pygame.draw.line(card_surface, (r, g, b), (x, 0), (x, card_size))
+        
+        # If we have a valid image for this card, use it as background
+        if i < len(card_images) and card_images[i] is not None:
+            card_img = card_images[i]
+            
+            # Scale image to fit card while maintaining aspect ratio
+            img_rect = card_img.get_rect()
+            scale_factor = max(card_size / img_rect.width, card_size / img_rect.height)
+            new_width = int(img_rect.width * scale_factor)
+            new_height = int(img_rect.height * scale_factor)
+            
+            # Scale image to be slightly larger than card
+            scaled_img = pygame.transform.smoothscale(card_img, (new_width, new_height))
+            
+            # Center image in card
+            img_rect = scaled_img.get_rect(center=(card_size//2, card_size//2))
+            
+            # Create a new surface with a semi-transparent gradient overlay
+            overlay = pygame.Surface((card_size, card_size), pygame.SRCALPHA)
+            for x in range(card_size):
+                ratio = x / card_size
+                cubic_ratio = ratio * ratio * (3 - 2 * ratio)
+                r = int(BUTTON_BASE_LEFT[0] * (1 - cubic_ratio) + BUTTON_BASE_RIGHT[0] * cubic_ratio)
+                g = int(BUTTON_BASE_LEFT[1] * (1 - cubic_ratio) + BUTTON_BASE_RIGHT[1] * cubic_ratio)
+                b = int(BUTTON_BASE_LEFT[2] * (1 - cubic_ratio) + BUTTON_BASE_RIGHT[2] * cubic_ratio)
+                pygame.draw.line(overlay, (r, g, b, 100), (x, 0), (x, card_size))
+            
+            # Blit the image then overlay the gradient
+            card_surface.blit(scaled_img, img_rect)
+            card_surface.blit(overlay, (0, 0))
+        
+        # Add stronger inner border highlight
+        pygame.draw.rect(card_surface, (255, 255, 255, 40), 
+                    (5, 5, card_size-10, card_size-10), 2, border_radius=15)
+        
+        # Make it rounded
+        rounded_rect = pygame.Surface((card_size, card_size), pygame.SRCALPHA)
+        pygame.draw.rect(rounded_rect, (255, 255, 255), (0, 0, card_size, card_size), border_radius=20)
+        card_surface.blit(rounded_rect, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+        
+        card_surfaces.append(card_surface)
+        
+        # Create enhanced shadow for depth effect - using multiple layers
+        shadow = pygame.Surface((card_size+30, card_size+30), pygame.SRCALPHA)
+        # Outer softer shadow
+        pygame.draw.rect(shadow, (0, 0, 0, 20), (5, 5, card_size+20, card_size+20), border_radius=28)
+        # Inner stronger shadow
+        pygame.draw.rect(shadow, (0, 0, 0, 40), (0, 0, card_size+20, card_size+20), border_radius=25)
+        shadow_surfaces.append(shadow)
+    
+    # Precompute scales for different positions
+    position_scales = {}
+    for offset in range(-2, 3):
+        effective_offset = offset
+        if abs(effective_offset) < 0.1:
+            scale = focused_scale
+        else:
+            distance_factor = min(1.0, abs(effective_offset))
+            cubic_factor = distance_factor * distance_factor * (3 - 2 * distance_factor)
+            scale = focused_scale - ((focused_scale - unfocused_scale) * cubic_factor)
+        position_scales[offset] = scale
     
     # Main loop
     while True:
