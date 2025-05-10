@@ -67,6 +67,20 @@ def init_globals():
     global music_on_icon, music_off_icon, click_sound, music_loaded
     global help_icon, scores_icon, settings_icon, quit_icon
     
+    # Set custom application icon
+    try:
+        app_icon_path = get_asset_path("assets/images/app_icon.png")
+        if os.path.exists(app_icon_path):
+            app_icon = pygame.image.load(app_icon_path)
+            # Optional: scale icon to appropriate size if needed
+            # app_icon = pygame.transform.scale(app_icon, (64, 64))
+            pygame.display.set_icon(app_icon)
+            print("Successfully loaded application icon")
+        else:
+            print("Warning: App icon not found at", app_icon_path)
+    except Exception as e:
+        print(f"Error loading app icon: {e}")
+    
     # Initialize screen
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("AI Serpentis")
