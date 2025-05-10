@@ -24,8 +24,9 @@ def high_scores_page():
     global screen
     clock = pygame.time.Clock()
     
-    # Load high scores
-    high_scores = load_high_scores()
+    # Resort scores only when viewing the page
+    from src.utils.scores import resort_all_high_scores
+    high_scores = resort_all_high_scores()
     
     # More compact UI elements
     button_width = 250
@@ -285,7 +286,7 @@ def high_scores_page():
             screen.blit(header_texts["date"], (content_area.left + col_pixels["date"] - header_texts["date"].get_width()//2, 
                                             header_bg.centery - header_texts["date"].get_height()//2))
             
-            # Get data (update to use vs_mode instead of vs)
+            # Only get vs_mode data, not vs (which is deprecated)
             player_scores = high_scores.get("vs_mode", {}).get("player", {}).get("scores", [])
             player_dates = high_scores.get("vs_mode", {}).get("player", {}).get("dates", [])
             ai_scores = high_scores.get("vs_mode", {}).get("ai", {}).get("scores", [])

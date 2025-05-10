@@ -51,13 +51,12 @@ def main():
         # Make sure settings are loaded at startup
         settings_manager.load_all_settings()
         
-        # Resort all high scores at startup to fix existing data
-        resort_all_high_scores()
+        # REMOVE THIS LINE: Don't resort scores at startup - do it lazily
+        # resort_all_high_scores()  
         
-        # Add refresh settings call before starting the UI
         sound_manager.refresh_settings()
-        
         home_page()
+        
     except Exception as e:
         print(f"Error in main application: {e}")
         import traceback

@@ -19,7 +19,7 @@
         "sound_effects_volume": 1.0
     },
     "customization": {
-        "snake_theme": "rainbow",
+        "snake_theme": "random",
         "food_theme": "rainbow"
     }
 }

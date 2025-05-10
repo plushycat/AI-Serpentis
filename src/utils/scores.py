@@ -354,16 +354,15 @@ def resort_all_high_scores():
             modified = True
         
         # Create backward compatibility by copying vs_mode back to vs
+        # Fix VS mode duplication - only copy if destination is empty
         if "vs_mode" in high_scores and "vs" not in high_scores:
-            # Recreate the vs structure for compatibility with old UI code
             high_scores["vs"] = {
                 "player": {"scores": [], "dates": []},
                 "ai": {"scores": [], "dates": []}
             }
             
-            # Copy data from vs_mode to vs
             for player_type in ["player", "ai"]:
-                if player_type in high_scores["vs_mode"]:
+                if player_type in high_scores["vs_mode"] and not high_scores["vs"][player_type].get("scores", []):
                     high_scores["vs"][player_type]["scores"] = high_scores["vs_mode"][player_type].get("scores", [])
                     high_scores["vs"][player_type]["dates"] = high_scores["vs_mode"][player_type].get("dates", [])
             
