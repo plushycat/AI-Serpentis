@@ -16,8 +16,10 @@ from src.ui.shared_globals import (
 )
 
 def play_classic_game():
-    """Play the classic snake game"""
-    # Add near the top of the function
+    """Play the classic Snake Game"""
+        # Set window title at the beginning
+    pygame.display.set_caption("AI Serpentis: Classic Mode")
+
     from src.utils.sound_manager import sound_manager
     sound_manager.refresh_settings()
     
@@ -180,3 +182,5 @@ def play_classic_game():
     # Return to main menu
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("AI Serpentis")
+    pygame.display.set_caption("AI Serpentis")
+    return

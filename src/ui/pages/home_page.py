@@ -46,7 +46,9 @@ def get_game_modules():
     }
 
 def home_page():
-    """Main home page/menu function with mobile-style card animation"""
+    """Main home page/menu function"""
+    # Set default window title for main menu
+    pygame.display.set_caption("AI Serpentis")
     global music_on, background_theme, enhanced_effects, debug_mode
     global current_gradient, next_gradient, gradient_blend
     global settings_icon, quit_icon

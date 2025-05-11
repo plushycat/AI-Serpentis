@@ -83,7 +83,7 @@ class SnakeGame:
         self.background_theme = config.get("appearance", {}).get("background_theme", "dark")
         
         # Init display
-        pygame.display.set_caption('Snake Game - Classic Mode')
+        pygame.display.set_caption('AI Serpentis - Classic Mode')
         self.clock = pygame.time.Clock()
         self.frame_iteration = 0  # Track frame count for animations
         

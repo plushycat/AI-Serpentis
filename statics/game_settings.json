@@ -6,16 +6,16 @@
     "gameplay": {
         "player_position": "right",
         "debug_mode": false,
-        "game_speed": 8,
-        "classic_speed": 25,
-        "fibonacci_speed": 16
+        "game_speed": 16,
+        "classic_speed": 20,
+        "fibonacci_speed": 10
     },
     "audio": {
         "music_on": true,
         "sound_effects_on": true,
         "click_sounds_on": true,
         "master_volume": 0.5024213075060533,
-        "music_volume": 0.8583535108958837,
+        "music_volume": 0.400726392251816,
         "sound_effects_volume": 1.0
     },
     "customization": {

@@ -18,6 +18,9 @@ from src.ui.shared_globals import (
 SPEED = 10  # Default value, adjust as needed
 
 def play_fibonacci_game():
+    """Play the Fibonacci Snake Game"""
+    # Add window title at the start
+    pygame.display.set_caption("AI Serpentis: Fibonacci Mode")
     # Get config
     background_theme = get_setting("appearance", "background_theme", "dark")
     game_speed = get_setting("gameplay", "fibonacci_speed", 8)  # Use fibonacci_speed setting with fallback
