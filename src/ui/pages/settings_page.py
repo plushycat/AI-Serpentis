@@ -32,6 +32,8 @@ from src.ui.pages.scores_page import high_scores_page
 
 def settings_page():
     """Display and manage game settings with sidebar navigation"""
+    # Set window title
+    pygame.display.set_caption("AI Serpentis: Settings")
     global background_theme, debug_mode, enhanced_effects
     
     # UPDATED: Always use sound manager as source of truth
@@ -589,12 +591,13 @@ def settings_page():
                     # Food theme selection  
                     if current_category == 0 and appearance_subtab == 1:
                         handle_food_theme_selection(event.pos, food_themes, preview_size, preview_margin, 
-                                                 preview_cols, content_start_x, content_start_y + 70)
+                                                preview_cols, content_start_x, content_start_y + 70)
                     
                     # Back and Help buttons
                     if back_button.collidepoint(event.pos):
                         play_click()
                         save_settings_immediately()
+                        pygame.display.set_caption("AI Serpentis")
                         return
                     
                     elif help_button.collidepoint(event.pos):
@@ -674,6 +677,7 @@ def settings_page():
             
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 save_settings_immediately()
+                pygame.display.set_caption("AI Serpentis")
                 return
         
         # When mouse is released, save the settings

@@ -21,6 +21,9 @@ from src.ui.components import (
 )
 
 def high_scores_page():
+    """Display high scores page"""
+    # Set window title
+    pygame.display.set_caption("AI Serpentis: High Scores")
     global screen
     clock = pygame.time.Clock()
     
@@ -404,6 +407,7 @@ def high_scores_page():
                 # Back button
                 if back_button.collidepoint(e.pos):
                     if click_sound: click_sound.play()
+                    pygame.display.set_caption("AI Serpentis")
                     return
                 
                 # Mode selection buttons
@@ -423,6 +427,7 @@ def high_scores_page():
             if e.type == pygame.KEYDOWN:
                 if e.key == pygame.K_ESCAPE:
                     if click_sound: click_sound.play()
+                    pygame.display.set_caption("AI Serpentis")
                     return
                 # Add keyboard scrolling
                 elif e.key == pygame.K_UP:

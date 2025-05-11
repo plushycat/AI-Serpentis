@@ -1,4 +1,5 @@
 import pygame
+import sys
 import random
 import os
 import json
@@ -200,7 +201,7 @@ def draw_simple_score(surface, p_score, ai_score, total_width, font):
     surface.blit(ai_txt, (total_width*3//4 - ai_txt.get_width()//2, 20))
 
 def player_vs_ai():
-    """Main function for the split-screen player vs AI mode"""
+    """Play against the trained AI in a split-screen mode"""
     pygame.init()
     
     # 1) Set up window dimensions that maintain the grid alignment
@@ -209,7 +210,10 @@ def player_vs_ai():
     screen_width = game_w * 2   # 1280px
     screen_height = game_h + 80 # 720px total (640 for game + 80 for header/footer)
     screen = pygame.display.set_mode((screen_width, screen_height))
-    pygame.display.set_caption("AI Serpentis - Player vs AI")
+    
+    # Set title AFTER setting display mode
+    title = "AI Serpentis: Player vs AI"
+    pygame.display.set_caption(title)
     
     # Header is now 60px and footer is 20px (total 80px non-game area)
     header_height = 60
@@ -466,6 +470,9 @@ def player_vs_ai():
         def cleanup_sounds():
             # Stop all currently playing sound effects
             pygame.mixer.stop()  # This stops all playing channels
+        
+        # Ensure the title is set correctly during countdown
+        pygame.display.set_caption(title)
             
         # Create semi-transparent overlay for the countdown
         overlay = pygame.Surface((screen_width, screen_height), pygame.SRCALPHA)
@@ -488,10 +495,12 @@ def player_vs_ai():
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     cleanup_sounds()  # Stop sounds before quitting
+                    pygame.display.set_caption("AI Serpentis")  # Only reset when returning to menu
                     pygame.quit()
                     sys.exit()
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                     cleanup_sounds()  # Stop sounds before returning
+                    pygame.display.set_caption("AI Serpentis")  # Only reset when returning to menu
                     return False  # Player wants to exit
             pygame.time.delay(50)  # Small delay to prevent CPU hogging
         
@@ -515,10 +524,12 @@ def player_vs_ai():
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         cleanup_sounds()  # Stop sounds before quitting
+                        pygame.display.set_caption("AI Serpentis")  # Only reset when returning to menu
                         pygame.quit()
                         sys.exit()
                     if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                         cleanup_sounds()  # Stop sounds before returning
+                        pygame.display.set_caption("AI Serpentis")  # Only reset when returning to menu
                         return False  # Player wants to exit
                 pygame.time.delay(50)  # Small delay to prevent CPU hogging
         
@@ -539,10 +550,12 @@ def player_vs_ai():
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     cleanup_sounds()  # Stop sounds before quitting
+                    pygame.display.set_caption("AI Serpentis")  # Only reset when returning to menu
                     pygame.quit()
                     sys.exit()
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                     cleanup_sounds()  # Stop sounds before returning
+                    pygame.display.set_caption("AI Serpentis")  # Only reset when returning to menu
                     return False  # Player wants to exit
             pygame.time.delay(50)  # Small delay to prevent CPU hogging
         
@@ -550,14 +563,21 @@ def player_vs_ai():
     
     # Show countdown before starting the game
     if not show_countdown():
+        pygame.display.set_caption("AI Serpentis")  # Reset title
         return
     
     # Game loop
     running = True
+    
+    # Set the window title once at the beginning and store it
+    title = "AI Serpentis: Player vs AI"
+    pygame.display.set_caption(title)
+    
     while running:
         # a) Handle shared events and player movement
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                pygame.display.set_caption("AI Serpentis")  # Reset title
                 pygame.quit()
                 return
             
@@ -584,6 +604,7 @@ def player_vs_ai():
                     while paused:
                         for pause_event in pygame.event.get():
                             if pause_event.type == pygame.QUIT:
+                                pygame.display.set_caption("AI Serpentis")  # Reset title
                                 pygame.quit()
                                 return
                             
@@ -653,6 +674,7 @@ def player_vs_ai():
             while waiting_for_key:
                 for wait_event in pygame.event.get():
                     if wait_event.type == pygame.QUIT:
+                        pygame.display.set_caption("AI Serpentis")  # Reset title
                         pygame.quit()
                         return
                     
@@ -754,6 +776,9 @@ def player_vs_ai():
     # Reset display mode for returning to main menu
     pygame.display.set_mode((1280, 720))
     pygame.display.set_caption("AI Serpentis")
+    # Add this before any return statements
+    pygame.display.set_caption("AI Serpentis")
+    return
 
 if __name__ == "__main__":
     player_vs_ai()

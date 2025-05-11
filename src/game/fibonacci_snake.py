@@ -28,7 +28,7 @@ class FibonacciSnakeGame(SnakeGame):
         self.total_fibonacci_growth = 0
         
         # Update caption for this game mode
-        pygame.display.set_caption('Snake Game - Fibonacci Mode')
+        pygame.display.set_caption('AI Serpentis - Fibonacci Mode')
     
     def play_step(self):
         self.frame_iteration += 1

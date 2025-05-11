@@ -14,6 +14,8 @@ from src.ui.shared_globals import (
 
 def show_info_page():
     """Display an information page with game instructions and credits"""
+    # Set window title
+    pygame.display.set_caption("AI Serpentis: Info")
     clock = pygame.time.Clock()
     step = 0
     
@@ -183,6 +185,7 @@ def show_info_page():
                 if e.button == 1:  # Left click
                     if back_button.collidepoint(e.pos):
                         if click_sound: click_sound.play()
+                        pygame.display.set_caption("AI Serpentis")
                         return
                 
                 # Mouse wheel scrolling
@@ -194,6 +197,7 @@ def show_info_page():
             if e.type == pygame.KEYDOWN:
                 if e.key == pygame.K_ESCAPE:
                     if click_sound: click_sound.play()
+                    pygame.display.set_caption("AI Serpentis")
                     return
                 # Keyboard scrolling
                 elif e.key == pygame.K_UP:

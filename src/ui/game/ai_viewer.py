@@ -47,6 +47,8 @@ def save_debug_mode_setting(new_value):
 
 def watch_ai_play():
     """Watch the trained AI play classic Snake"""
+    # Set window title at the beginning
+    pygame.display.set_caption("AI Serpentis: Classic AI Mode")
     global background_theme, screen, debug_mode, enhanced_effects
     
     # Get latest debug mode setting from config
@@ -316,9 +318,12 @@ def watch_ai_play():
     # Return to menu
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("AI Serpentis")
+    return
 
 def watch_fibonacci_ai_play():
     """Watch the transferred Fibonacci AI play"""
+    # Set window title at the beginning
+    pygame.display.set_caption("AI Serpentis: Fibonacci AI")
     global snake_color, background_theme, screen, debug_mode, enhanced_effects
     
     # Get latest debug mode setting from config
@@ -353,7 +358,7 @@ def watch_fibonacci_ai_play():
     
     try:
         # First try to load base transferred model
-        base_model = os.path.join(model_dir, "fibonacci_transferred_model_finetuned_300_games.pth")
+        base_model = os.path.join(model_dir, "fibonacci_transferred_model_finetuned_200_games.pth")
         if os.path.exists(base_model):
             model_path = base_model
             print(f"Using base transferred model: {os.path.basename(model_path)}")
@@ -630,3 +635,4 @@ def watch_fibonacci_ai_play():
     # Return to menu
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("AI Serpentis")
+    return

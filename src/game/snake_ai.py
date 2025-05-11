@@ -81,7 +81,7 @@ class SnakeGameAI:
             self.display = pygame.display.set_mode((width, height))
         else:
             self.display = display_surface
-        pygame.display.set_caption('Snake Game - AI Mode')
+        pygame.display.set_caption('AI Serpentis - AI Mode')
         self.clock = pygame.time.Clock()
         
         # Add standardized fonts with proper error handling

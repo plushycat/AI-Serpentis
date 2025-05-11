@@ -14,6 +14,8 @@ from src.ui.shared_globals import (
 
 def show_settings_help(current_page=0):
     """Display help information about settings options"""
+    # Set window title
+    pygame.display.set_caption("AI Serpentis: Help")
     clock = pygame.time.Clock()
     step = 0
     
@@ -221,6 +223,7 @@ def show_settings_help(current_page=0):
                 if e.button == 1:  # Left click
                     if back_button.collidepoint(e.pos):
                         if click_sound: click_sound.play()
+                        pygame.display.set_caption("AI Serpentis: Settings")
                         return
                 
                 # Mouse wheel scrolling
@@ -232,6 +235,7 @@ def show_settings_help(current_page=0):
             if e.type == pygame.KEYDOWN:
                 if e.key == pygame.K_ESCAPE:
                     if click_sound: click_sound.play()
+                    pygame.display.set_caption("AI Serpentis: Settings")
                     return
                 # Keyboard scrolling
                 elif e.key == pygame.K_UP:
