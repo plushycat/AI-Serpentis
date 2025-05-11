@@ -24,7 +24,6 @@ https://github.com/user-attachments/assets/1b68bf50-60f1-4c06-9df4-b9c3b067056d
 - [Getting Started](#-getting-started)
 - [Sample Results](#-sample-results)
 - [Credits](#-credits)
-- [About](#about)
 
 ## ✨ Features
 
@@ -101,7 +100,9 @@ AI-Serpentis/
 │       ├── plotter.py                # Classic training plot
 │       ├── fibonacci_plotter.py      # Fibonacci training plot
 │       ├── input_utils.py            # Input handling helpers
-│       └── scores.py                 # Score tracking utilities
+│       ├── scores.py                 # Score tracking utilities
+│       ├── settings_manager.py       # Handles settings i/o
+│       └── sound_manager.py          # Handles all sound-related matters
 ├── main.py                  # Game launcher
 ├── requirements.txt         # Python dependencies
 ├── training_plot.png        # Example Classic training result plot
@@ -182,8 +183,5 @@ python src/ai/watch_fibonacci_ai.py # Fibonacci Mode
 
 ---
 
-> **Tip**: Tweak your game style in the Settings page—preferences are saved and applied automatically. Classic meets cutting-edge with AI Serpentis!
+> **Tip**: Tweak your game style in the Settings page—preferences are saved and applied automatically.
 
-## About
-
-With a self-learning AI at the core and a polished GUI, **AI Serpentis** offers both classic and cutting-edge Snake gameplay. Enjoy the blend of nostalgia and innovation!
