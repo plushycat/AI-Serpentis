@@ -1,6 +1,6 @@
 {
     "appearance": {
-        "background_theme": "dark",
+        "background_theme": "light",
         "enhanced_effects": true
     },
     "gameplay": {
@@ -19,7 +19,7 @@
         "sound_effects_volume": 1.0
     },
     "customization": {
-        "snake_theme": "random",
+        "snake_theme": "rainbow",
         "food_theme": "rainbow"
     }
 }

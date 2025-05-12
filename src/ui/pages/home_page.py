@@ -750,7 +750,7 @@ def home_page():
                 elif e.key == pygame.K_RETURN or e.key == pygame.K_SPACE:
                     if click_sound: click_sound.play()
                     buttons[current_page]["action"]()
-        
+                
         # Update animation pulses
         selection_pulse += 0.08
         glow_pulse += 0.03

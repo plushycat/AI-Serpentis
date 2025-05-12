@@ -212,7 +212,7 @@ def show_info_page():
                     content_scroll_y = 0  # Jump to top
                 elif e.key == pygame.K_END:
                     content_scroll_y = max_scroll_y  # Jump to bottom
-                elif is_screenshot_key(e):
+                elif e.type == pygame.KEYDOWN and is_screenshot_key(e.key):
                     # Take screenshot
                     timestamp = pygame.time.get_ticks()
                     pygame.image.save(screen, f"screenshot_{timestamp}.png")
