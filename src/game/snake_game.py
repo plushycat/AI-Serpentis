@@ -112,6 +112,11 @@ class SnakeGame:
         # Add a toggle for enhanced level-up effects
         self.enhanced_effects = True  # Default to enhanced effects
 
+        # Add to your existing initialization
+        self.direction_buffer = None
+        self.last_direction_change = 0
+        self.min_direction_change_interval = 50  # milliseconds
+
     def _place_food(self):
         """
         Places food at a random location on the grid.
@@ -172,6 +177,7 @@ class SnakeGame:
         
     def play_step(self):
         self.frame_iteration += 1
+        current_time = pygame.time.get_ticks()
         
         # Handle user input
         for event in pygame.event.get():
@@ -210,19 +216,23 @@ class SnakeGame:
                                 quit()
                         pygame.time.wait(100)
                 
-                # Continue with direction handling
-                elif event.key in (pygame.K_LEFT, pygame.K_a):  # Left arrow or 'A'
-                    if self.direction != RIGHT:  # Prevent 180-degree turns
-                        self.direction = LEFT
-                elif event.key in (pygame.K_RIGHT, pygame.K_d):  # Right arrow or 'D'
-                    if self.direction != LEFT:  # Prevent 180-degree turns
-                        self.direction = RIGHT
-                elif event.key in (pygame.K_UP, pygame.K_w):  # Up arrow or 'W'
-                    if self.direction != DOWN:  # Prevent 180-degree turns
-                        self.direction = UP
-                elif event.key in (pygame.K_DOWN, pygame.K_s):  # Down arrow or 'S'
-                    if self.direction != UP:  # Prevent 180-degree turns
-                        self.direction = DOWN
+                # Handle direction inputs with buffering
+                elif event.key in (pygame.K_LEFT, pygame.K_a) and self.direction != RIGHT:
+                    # Don't change immediately, store in buffer
+                    self.direction_buffer = LEFT
+                elif event.key in (pygame.K_RIGHT, pygame.K_d) and self.direction != LEFT:
+                    self.direction_buffer = RIGHT
+                elif event.key in (pygame.K_UP, pygame.K_w) and self.direction != DOWN:
+                    self.direction_buffer = UP
+                elif event.key in (pygame.K_DOWN, pygame.K_s) and self.direction != UP:
+                    self.direction_buffer = DOWN
+        
+        # Apply buffered direction change if enough time has passed
+        if self.direction_buffer is not None:
+            if current_time - self.last_direction_change >= self.min_direction_change_interval:
+                self.direction = self.direction_buffer
+                self.direction_buffer = None
+                self.last_direction_change = current_time
 
         # Move the snake
         self._move(self.direction)
@@ -256,10 +266,13 @@ class SnakeGame:
         return False, self.score
     
     def _is_collision(self):
-        # If collision detected, use sound manager instead of direct sound
         if self.head in self.snake[1:]:
+            # Log more details about the collision
+            collision_index = self.snake[1:].index(self.head) + 1
+            print(f"Game Over: Snake collision with segment {collision_index}. "
+                f"Direction: {self.direction}, Head: {self.head}, "
+                f"Collided segment: {self.snake[collision_index]}")
             play_sound("game_over")
-            print(f"Game Over: Snake collision")
             return True
         return False
         
