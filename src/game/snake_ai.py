@@ -421,7 +421,9 @@ class SnakeGameAI:
         Args:
         theme: String indicating the theme ("dark" or "light").
         """
+        from src.ui.shared_globals import update_theme
         self.background_theme = theme
+        update_theme(theme)  # Sync with global state
 
     def _show_level_up(self):
         """Show an enhanced level up animation with colored translucent overlay"""

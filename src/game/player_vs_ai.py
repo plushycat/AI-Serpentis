@@ -21,6 +21,12 @@ class VSPlayerGame(SnakeGame):
         """Initialize with speed parameter"""
         super().__init__(width, height, display_surface, speed)
         
+    def set_theme(self, theme):
+        """Update the background theme"""
+        from src.ui.shared_globals import update_theme
+        self.background_theme = theme
+        update_theme(theme)  # Sync with global state
+        
     def play_step(self, direction=None):
         """Modified play_step that accepts external direction input"""
         # Save current direction
@@ -98,7 +104,13 @@ class VSAIGame(SnakeGameAI):
     
     def __init__(self, width=640, height=480, display_surface=None):
         super().__init__(width=width, height=height, display_surface=display_surface)
-    
+            
+    def set_theme(self, theme):
+        """Update the background theme"""
+        from src.ui.shared_globals import update_theme
+        self.background_theme = theme
+        update_theme(theme)  # Sync with global state
+        
     def _update_ui(self):
         """Override to provide minimal UI"""
         # Apply background based on theme

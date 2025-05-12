@@ -4,6 +4,7 @@ import math
 import json
 import os
 from src.game.customization import customization
+from src.utils.config import load_config
 from src.utils.input_utils import is_screenshot_key
 from src.utils.settings_manager import get_setting, set_setting, get_config, save_config
 from src.ui.pages.settings_help_page import show_settings_help
@@ -428,13 +429,13 @@ def settings_page():
                         if col_dark_button.collidepoint(event.pos):  # Changed from 'elif' to 'if'
                             play_click()
                             background_theme = "dark"
-                            update_theme("dark")
+                            update_theme(background_theme)
                             save_settings_immediately()
                             
                         elif col_light_button.collidepoint(event.pos):
                             play_click()
                             background_theme = "light"
-                            update_theme("light")
+                            update_theme(background_theme)
                             save_settings_immediately()
                         
                         elif col_debug_button.collidepoint(event.pos):

@@ -11,6 +11,12 @@ class FibonacciSnakeGame(SnakeGame):
         
         # Pass speed to parent constructor
         super().__init__(width, height, display_surface, speed=speed)
+            # Add this method to set the theme directly
+        def set_theme(self, theme):
+            """Update the background theme"""
+            from src.ui.shared_globals import update_theme
+            self.background_theme = theme
+            update_theme(theme)  # Sync with global state
         
         # Also set it on this instance for clarity
         self.speed = speed if speed is not None else SPEED

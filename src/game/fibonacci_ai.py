@@ -19,6 +19,11 @@ class FibonacciGameAI(SnakeGameAI):
         # Initialize the parent class
         super().__init__(width, height, record, avg, iteration, display_surface)
         
+        # Import and initialize theme at startup
+        from src.ui.shared_globals import get_theme, update_theme
+        self.background_theme = get_theme()  # Get current theme from globals
+        update_theme(self.background_theme)  # Ensure it's properly synced
+        
         # Fibonacci-specific attributes - match player mode
         # Start with 0 to match player mode (0-indexed growth)
         self.fibonacci_sequence = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144]
@@ -26,11 +31,6 @@ class FibonacciGameAI(SnakeGameAI):
         self.total_fibonacci_growth = 0
         self.fib_score = 0  # Total Fibonacci value collected
         self.viewing_mode = False  # Flag for viewer mode UI
-        
-    # Add this method to set the theme directly
-    def set_theme(self, theme):
-        """Update the background theme"""
-        self.background_theme = theme
         
     def reset(self):
         """Override reset to include Fibonacci-specific reset logic"""
