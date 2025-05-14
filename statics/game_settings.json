@@ -1,12 +1,14 @@
 {
     "appearance": {
-        "background_theme": "light",
-        "enhanced_effects": true
+        "background_theme": "custom",
+        "enhanced_effects": true,
+        "custom_top": "#451f4b",
+        "custom_bottom": "#003467"
     },
     "gameplay": {
         "player_position": "right",
         "debug_mode": false,
-        "game_speed": 16,
+        "game_speed": 9,
         "classic_speed": 20,
         "fibonacci_speed": 10
     },

@@ -3,6 +3,7 @@ import sys
 import math
 import json
 import os
+import random
 from src.game.customization import customization
 from src.utils.config import load_config
 from src.utils.input_utils import is_screenshot_key
@@ -30,6 +31,36 @@ from src.game.player_vs_ai import get_player_position, save_player_position
 
 # Add import for high scores page navigation
 from src.ui.pages.scores_page import high_scores_page
+
+def save_settings_immediately():
+    """Save settings and synchronize with SoundManager"""
+    from src.ui.shared_globals import (
+        background_theme, enhanced_effects, debug_mode
+    )
+    
+    # Use the already imported sound_manager (from module imports)
+    # Get audio settings directly from sound_manager
+    music_on = sound_manager.music_on
+    sound_effects_on = sound_manager.sound_effects_on
+    click_sounds_on = sound_manager.click_sounds_on
+    master_volume = sound_manager.master_volume
+    music_volume = sound_manager.music_volume
+    sound_effects_volume = sound_manager.sound_effects_volume
+    
+    print(f"Saving audio settings: music={music_on}, sfx={sound_effects_on}, clicks={click_sounds_on}, " +
+        f"volumes: master={master_volume:.2f}, music={music_volume:.2f}, sfx={sound_effects_volume:.2f}")
+    
+    # The audio settings are already in sound_manager, so we don't need to update them
+    
+    # Apply settings to hear changes immediately
+    sound_manager.apply_settings()
+    
+    # Save all settings at once
+    set_setting("appearance", "background_theme", background_theme)
+    set_setting("appearance", "enhanced_effects", enhanced_effects)
+    set_setting("gameplay", "debug_mode", debug_mode)
+    # Use get_player_position directly (already imported at module level)
+    set_setting("gameplay", "player_position", get_player_position())
 
 def settings_page():
     """Display and manage game settings with sidebar navigation"""
@@ -63,37 +94,6 @@ def settings_page():
         debug_mode = False
         classic_speed = 10
         fibonacci_speed = 8
-    
-    # Define save_settings_immediately to use the sound manager for audio settings
-    def save_settings_immediately():
-        """Save settings and synchronize with SoundManager"""
-        print(f"Saving audio settings: music={music_on}, sfx={sound_effects_on}, clicks={click_sounds_on}, " +
-            f"volumes: master={master_volume:.2f}, music={music_volume:.2f}, sfx={sound_effects_volume:.2f}")
-        
-        # Update sound manager settings
-        sound_manager.music_on = music_on
-        sound_manager.sound_effects_on = sound_effects_on
-        sound_manager.click_sounds_on = click_sounds_on
-        sound_manager.master_volume = master_volume
-        sound_manager.music_volume = music_volume
-        sound_manager.sound_effects_volume = sound_effects_volume
-        
-        # Apply settings to hear changes immediately
-        sound_manager.apply_settings()
-        
-        # Save all settings at once
-        set_setting("appearance", "background_theme", background_theme)
-        set_setting("appearance", "enhanced_effects", enhanced_effects)
-        set_setting("gameplay", "debug_mode", debug_mode)
-        set_setting("gameplay", "player_position", get_player_position())
-        set_setting("gameplay", "classic_speed", classic_speed)
-        set_setting("gameplay", "fibonacci_speed", fibonacci_speed)
-        
-        # Call sound manager's save_settings() to save audio settings
-        sound_manager.save_settings()
-        
-        print("Settings saved successfully")
-        return True
     
     clock = pygame.time.Clock()
     step = 0
@@ -172,6 +172,7 @@ def settings_page():
     col_button_x = left_col_x + (col_width - col_button_width) // 2
     col_dark_button = pygame.Rect(col_button_x, content_start_y + 60, col_button_width, button_height)  # From 80 to 60
     col_light_button = pygame.Rect(col_button_x, content_start_y + 60 + button_height + 15, col_button_width, button_height)  # Spacing reduced from 20 to 15
+    col_custom_button = pygame.Rect(col_button_x, content_start_y + 60 + (button_height + 15) * 2, col_button_width, button_height)
     
     # Right column buttons - DEFINE BEFORE EVENT HANDLING  
     col_button_x = right_col_x + (col_width - col_button_width) // 2
@@ -437,6 +438,14 @@ def settings_page():
                             background_theme = "light"
                             update_theme(background_theme)
                             save_settings_immediately()
+                        
+                        elif col_custom_button.collidepoint(event.pos):
+                            play_click()
+                            # Show custom theme dialog
+                            if show_custom_theme_dialog():
+                                # Dialog returned successfully, theme is already updated
+                                print("Custom theme applied successfully")
+                            # No need to update here - dialog handles the update
                         
                         elif col_debug_button.collidepoint(event.pos):
                             play_click()
@@ -755,6 +764,28 @@ def settings_page():
             text = menu_font.render("Theme: Light", True, (20, 20, 30))
             text_rect = text.get_rect(center=col_light_button.center)
             screen.blit(text, text_rect)
+            
+            # Custom theme button - after light theme button drawing code
+            custom_theme_color = (60, 70, 120)
+            custom_theme_hover = (80, 100, 160)
+            is_hover = col_custom_button.collidepoint(mouse_pos)
+            color = custom_theme_hover if is_hover else custom_theme_color
+            pygame.draw.rect(screen, color, col_custom_button, border_radius=12)
+            text = menu_font.render("Custom Theme", True, WHITE)
+            text_rect = text.get_rect(center=col_custom_button.center)
+            screen.blit(text, text_rect)
+
+            # Draw green border around the selected theme
+            selected_border = pygame.Rect(0, 0, col_button_width + 8, button_height + 8)
+            if background_theme == "dark":
+                selected_border.center = col_dark_button.center
+                pygame.draw.rect(screen, (80, 200, 120), selected_border, 3, border_radius=14)
+            elif background_theme == "light":
+                selected_border.center = col_light_button.center
+                pygame.draw.rect(screen, (80, 200, 120), selected_border, 3, border_radius=14)
+            elif background_theme == "custom":
+                selected_border.center = col_custom_button.center
+                pygame.draw.rect(screen, (80, 200, 120), selected_border, 3, border_radius=14)
             
             # Right column - Other gameplay settings
             section_title = menu_font.render("Gameplay Settings", True, (200, 200, 200))
@@ -1288,3 +1319,312 @@ def get_current_theme():
     except Exception as e:
         print(f"Error loading theme setting: {e}")
     return "dark"  # Default fallback
+
+
+def show_custom_theme_dialog():
+    """Display dialog for entering custom theme hex codes"""
+    # Set window caption
+    pygame.display.set_caption("AI Serpentis: Custom Theme")
+    
+    # Get existing custom theme if any
+    custom_top = get_setting("appearance", "custom_top", "#191932")
+    custom_bottom = get_setting("appearance", "custom_bottom", "#0f0f23")
+    
+    # Initialize text inputs (at first with existing values)
+    top_input = custom_top.lstrip('#')
+    bottom_input = custom_bottom.lstrip('#')
+    active_input = "top"  # which input field is active
+    
+    # Define dialog layout - LARGER DIALOG
+    dialog_width = 700
+    dialog_height = 500
+    dialog_x = (SCREEN_WIDTH - dialog_width) // 2
+    dialog_y = (SCREEN_HEIGHT - dialog_height) // 2
+    dialog_rect = pygame.Rect(dialog_x, dialog_y, dialog_width, dialog_height)
+    
+    # Input fields - WIDER FIELDS
+    input_width = 250
+    input_height = 50
+    top_input_rect = pygame.Rect(dialog_x + 240, 
+                                dialog_y + 120, input_width, input_height)
+    bottom_input_rect = pygame.Rect(dialog_x + 240, 
+                                dialog_y + 220, input_width, input_height)
+    
+    # Buttons - LARGER BUTTONS
+    button_width = 160
+    button_height = 50
+    save_button = pygame.Rect(dialog_x + dialog_width//2 - button_width - 20, 
+                            dialog_y + dialog_height - 90, button_width, button_height)
+    random_button = pygame.Rect(dialog_x + dialog_width//2 + 20, 
+                              dialog_y + dialog_height - 90, button_width, button_height)
+    
+    # Preview square - LARGER PREVIEW
+    preview_size = 150
+    preview_rect = pygame.Rect(dialog_x + dialog_width - 200, dialog_y + 70, preview_size, preview_size)
+    
+    # Error message state
+    error_message = ""
+    error_timer = 0
+    
+    # Input validation helper
+    def is_valid_hex(hex_str):
+        if not hex_str:
+            return False
+        try:
+            int(hex_str, 16)
+            return len(hex_str) in [3, 6]  # Valid hex can be 3 or 6 chars
+        except ValueError:
+            return False
+    
+    # Hex to RGB conversion
+    def hex_to_rgb(hex_str):
+        hex_str = hex_str.lstrip('#')
+        if len(hex_str) == 3:
+            return tuple(int(c + c, 16) for c in hex_str)
+        return tuple(int(hex_str[i:i+2], 16) for i in (0, 2, 4))
+    
+    # Random hex generator
+    def generate_random_hex():
+        """Generate a random hex color suitable for gradients"""
+        # Create more visually appealing colors
+        if active_input == "top":
+            # For top gradient, use more saturated, vibrant colors
+            r = random.randint(20, 100)
+            g = random.randint(20, 100)
+            b = random.randint(50, 150)
+        else:
+            # For bottom gradient, use darker colors that complement the top
+            # If we have a top input already, relate to it
+            if is_valid_hex(top_input):
+                try:
+                    top_rgb = hex_to_rgb(top_input)
+                    # Create a darker variant of the top color
+                    r = max(0, top_rgb[0] - random.randint(10, 30))
+                    g = max(0, top_rgb[1] - random.randint(10, 30))
+                    b = max(0, top_rgb[2] - random.randint(10, 30))
+                except:
+                    r = random.randint(10, 40)
+                    g = random.randint(10, 40)
+                    b = random.randint(30, 80)
+            else:
+                # Default darker colors
+                r = random.randint(10, 40)
+                g = random.randint(10, 40) 
+                b = random.randint(30, 80)
+        
+        return f"{r:02x}{g:02x}{b:02x}"
+    
+    clock = pygame.time.Clock()
+    
+    while True:
+        mouse_pos = pygame.mouse.get_pos()
+        
+        # Process events
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+                
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:  # Left click
+                    # Check which input is active
+                    if top_input_rect.collidepoint(event.pos):
+                        active_input = "top"
+                    elif bottom_input_rect.collidepoint(event.pos):
+                        active_input = "bottom"
+                    # Check buttons
+                    elif save_button.collidepoint(event.pos):
+                        play_click()
+                        # Validate inputs
+                        if is_valid_hex(top_input) and is_valid_hex(bottom_input):
+                            # Save custom theme
+                            set_setting("appearance", "custom_top", f"#{top_input}")
+                            set_setting("appearance", "custom_bottom", f"#{bottom_input}")
+                            # Set theme to custom
+                            background_theme = "custom"
+                            update_theme(background_theme)
+                            save_settings_immediately()
+                            return True
+                        else:
+                            error_message = "Invalid hex code! Use format: RRGGBB"
+                            error_timer = 120  # display for ~2 seconds
+                    elif random_button.collidepoint(event.pos):
+                        play_click()
+                        if active_input == "top":
+                            top_input = generate_random_hex()
+                        else:
+                            bottom_input = generate_random_hex()
+                    elif dialog_rect.collidepoint(event.pos) == False:
+                        # Clicked outside dialog - cancel
+                        play_click()
+                        return False
+            
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    # Cancel and return to settings
+                    return False
+                elif event.key == pygame.K_TAB:
+                    # Switch between inputs
+                    active_input = "bottom" if active_input == "top" else "top"
+                    play_click()
+                elif event.key == pygame.K_RETURN:
+                    # Try to save
+                    if is_valid_hex(top_input) and is_valid_hex(bottom_input):
+                        set_setting("appearance", "custom_top", f"#{top_input}")
+                        set_setting("appearance", "custom_bottom", f"#{bottom_input}")
+                        background_theme = "custom"
+                        update_theme(background_theme)
+                        save_settings_immediately()
+                        play_click()
+                        return True
+                    else:
+                        error_message = "Invalid hex code! Use format: RRGGBB"
+                        error_timer = 120
+                elif event.key == pygame.K_BACKSPACE:
+                    # Handle backspace
+                    if active_input == "top":
+                        top_input = top_input[:-1]
+                    else:
+                        bottom_input = bottom_input[:-1]
+                else:
+                    # Add character if it's a valid hex character (0-9, a-f)
+                    if event.unicode.lower() in "0123456789abcdef":
+                        if active_input == "top" and len(top_input) < 6:
+                            top_input += event.unicode.lower()
+                        elif active_input == "bottom" and len(bottom_input) < 6:
+                            bottom_input += event.unicode.lower()
+        
+        # Draw background (partially transparent)
+        screen.fill((0, 0, 0, 128), special_flags=pygame.BLEND_RGBA_MULT)
+        
+        # Draw dialog background with improved look
+        pygame.draw.rect(screen, (30, 30, 50), dialog_rect, border_radius=20)
+        pygame.draw.rect(screen, (80, 80, 120), dialog_rect, 3, border_radius=20)
+        
+        # Draw title
+        title_text = title_font.render("Custom Theme Creator", True, (220, 220, 220))
+        title_rect = title_text.get_rect(center=(dialog_x + dialog_width//2, dialog_y + 40))
+        screen.blit(title_text, title_rect)
+        
+        # Draw explanation text
+        help_text1 = footer_font.render("Enter hex color codes (e.g. FF0088) or use Random button", True, (200, 200, 200))
+        help_text1_rect = help_text1.get_rect(center=(dialog_x + dialog_width//2, dialog_y + 80))
+        screen.blit(help_text1, help_text1_rect)
+        
+        # Draw active indicator
+        active_text = footer_font.render(f"Currently editing: {'Top' if active_input == 'top' else 'Bottom'} gradient", True, (180, 255, 180))
+        active_rect = active_text.get_rect(center=(dialog_x + dialog_width//2, dialog_y + 290))
+        screen.blit(active_text, active_rect)
+        
+        # Draw input labels - clearer positioning
+        top_label = menu_font.render("Top Gradient:", True, (200, 200, 200))
+        screen.blit(top_label, (top_input_rect.left - 180, top_input_rect.centery - 20))
+        
+        bottom_label = menu_font.render("Bottom Gradient:", True, (200, 200, 200))
+        screen.blit(bottom_label, (bottom_input_rect.left - 220, bottom_input_rect.centery - 20))
+        
+        # Draw input fields - more attractive styling
+        pygame.draw.rect(screen, (20, 20, 35), top_input_rect, border_radius=10)
+        border_color_top = (120, 180, 255) if active_input == "top" else (60, 60, 90)
+        pygame.draw.rect(screen, border_color_top, top_input_rect, 3, border_radius=10)
+        
+        pygame.draw.rect(screen, (20, 20, 35), bottom_input_rect, border_radius=10)
+        border_color_bottom = (120, 180, 255) if active_input == "bottom" else (60, 60, 90)
+        pygame.draw.rect(screen, border_color_bottom, bottom_input_rect, 3, border_radius=10)
+        
+        # Draw input text with # prefix - larger text
+        top_text_color = (255, 255, 255) if is_valid_hex(top_input) else (255, 100, 100)
+        top_text = menu_font.render(f"#{top_input}", True, top_text_color)
+        screen.blit(top_text, (top_input_rect.left + 20, top_input_rect.centery - 20))
+        
+        bottom_text_color = (255, 255, 255) if is_valid_hex(bottom_input) else (255, 100, 100)
+        bottom_text = menu_font.render(f"#{bottom_input}", True, bottom_text_color)
+        screen.blit(bottom_text, (bottom_input_rect.left + 20, bottom_input_rect.centery - 20))
+        
+        # Draw hint for empty fields
+        if not top_input:
+            hint_text = footer_font.render("Enter 6-digit hex code", True, (150, 150, 150))
+            screen.blit(hint_text, (top_input_rect.left + 15, top_input_rect.centery + 10))
+        
+        if not bottom_input:
+            hint_text = footer_font.render("Enter 6-digit hex code", True, (150, 150, 150))
+            screen.blit(hint_text, (bottom_input_rect.left + 15, bottom_input_rect.centery + 10))
+        
+        # Draw keyboard shortcut hints
+        shortcut_text = footer_font.render("TAB: Switch fields | ENTER: Save | ESC: Cancel", True, (180, 180, 180))
+        shortcut_rect = shortcut_text.get_rect(center=(dialog_x + dialog_width//2, dialog_y + dialog_height - 30))
+        screen.blit(shortcut_text, shortcut_rect)
+        
+        # Draw buttons with improved styling
+        save_color = (80, 180, 80) if save_button.collidepoint(mouse_pos) else (60, 120, 60)
+        pygame.draw.rect(screen, save_color, save_button, border_radius=12)
+        pygame.draw.rect(screen, (100, 220, 100) if save_button.collidepoint(mouse_pos) else save_color, 
+                      save_button, 2, border_radius=12)
+        save_text = menu_font.render("Save", True, WHITE)
+        save_text_rect = save_text.get_rect(center=save_button.center)
+        screen.blit(save_text, save_text_rect)
+        
+        random_color = (80, 120, 180) if random_button.collidepoint(mouse_pos) else (60, 90, 140)
+        pygame.draw.rect(screen, random_color, random_button, border_radius=12)
+        pygame.draw.rect(screen, (120, 180, 255) if random_button.collidepoint(mouse_pos) else random_color, 
+                      random_button, 2, border_radius=12)
+        random_text = menu_font.render("Random", True, WHITE)
+        random_text_rect = random_text.get_rect(center=random_button.center)
+        screen.blit(random_text, random_text_rect)
+        
+        # Draw preview with better label
+        preview_label = menu_font.render("Preview", True, (200, 200, 200))
+        preview_label_rect = preview_label.get_rect(centerx=preview_rect.centerx, 
+                                                 bottom=preview_rect.top - 10)
+        screen.blit(preview_label, preview_label_rect)
+        
+        # Draw gradient preview
+        try:
+            if is_valid_hex(top_input) and is_valid_hex(bottom_input):
+                top_rgb = hex_to_rgb(top_input)
+                bottom_rgb = hex_to_rgb(bottom_input)
+                
+                # Draw gradient preview with border
+                for y in range(preview_size):
+                    ratio = y / preview_size
+                    color = (
+                        int(top_rgb[0] * (1-ratio) + bottom_rgb[0] * ratio),
+                        int(top_rgb[1] * (1-ratio) + bottom_rgb[1] * ratio),
+                        int(top_rgb[2] * (1-ratio) + bottom_rgb[2] * ratio)
+                    )
+                    pygame.draw.line(screen, color, 
+                                  (preview_rect.left, preview_rect.top + y),
+                                  (preview_rect.right, preview_rect.top + y))
+                
+                # Draw labels for top/bottom inside preview
+                t_label = footer_font.render("Top", True, (255, 255, 255))
+                b_label = footer_font.render("Bottom", True, (255, 255, 255))
+                screen.blit(t_label, (preview_rect.centerx - t_label.get_width() // 2, preview_rect.top + 10))
+                screen.blit(b_label, (preview_rect.centerx - b_label.get_width() // 2, preview_rect.bottom - 30))
+            else:
+                # Draw placeholder with instruction
+                pygame.draw.rect(screen, (40, 40, 60), preview_rect, border_radius=8)
+                no_preview = footer_font.render("Enter valid", True, (150, 150, 150))
+                no_preview2 = footer_font.render("hex codes", True, (150, 150, 150))
+                screen.blit(no_preview, (preview_rect.centerx - no_preview.get_width() // 2, 
+                                      preview_rect.centery - 20))
+                screen.blit(no_preview2, (preview_rect.centerx - no_preview2.get_width() // 2, 
+                                       preview_rect.centery + 10))
+                
+        except (ValueError, IndexError):
+            # Fallback for invalid inputs
+            pygame.draw.rect(screen, (40, 40, 60), preview_rect, border_radius=8)
+        
+        # Draw preview border
+        pygame.draw.rect(screen, (100, 100, 140), preview_rect, 3, border_radius=8)
+        
+        # Draw error message if needed
+        if error_timer > 0:
+            error_text = menu_font.render(error_message, True, (255, 100, 100))
+            error_rect = error_text.get_rect(centerx=dialog_x + dialog_width//2, 
+                                          bottom=dialog_y + dialog_height - 120)
+            screen.blit(error_text, error_rect)
+            error_timer -= 1
+        
+        pygame.display.update()
+        clock.tick(60)

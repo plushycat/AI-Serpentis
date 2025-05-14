@@ -55,6 +55,17 @@ dark_gradients = [
     [(40, 20, 40), (20, 10, 30)]    # Burgundy
 ]
 
+# Add after dark_gradients definition
+
+# Custom theme gradient
+custom_gradient_top = "#191932"  # Default dark blue
+custom_gradient_bottom = "#0f0f23"  # Default darker blue
+custom_gradient = ((25, 25, 45), (10, 10, 35))  # Default RGB values
+
+# Custom theme gradients (default to a nice dark blue)
+custom_gradient_top = "#191932"
+custom_gradient_bottom = "#0f0f23"
+
 # Initialize these later
 title_font = None
 menu_font = None
@@ -205,12 +216,32 @@ def init_globals():
     from src.utils.sound_manager import sound_manager
     # Now safe to use sound_manager
 
+# Modify the update_theme function to handle custom themes properly
+
 def update_theme(theme):
     """Update the global theme variable"""
-    global background_theme
+    global background_theme, custom_gradient_top, custom_gradient_bottom, custom_gradient
     background_theme = theme
     set_setting("appearance", "background_theme", theme)
-    print(f"Theme updated to: {theme}")  # Add logging to verify function execution
+    
+    # If custom theme, load custom gradients but don't modify the dark_gradients
+    if theme == "custom":
+        custom_gradient_top = get_setting("appearance", "custom_top", "#191932")
+        custom_gradient_bottom = get_setting("appearance", "custom_bottom", "#0f0f23")
+        
+        # Convert hex to RGB tuples
+        try:
+            top_rgb = tuple(int(custom_gradient_top.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+            bottom_rgb = tuple(int(custom_gradient_bottom.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+            
+            # Store custom gradient separately instead of modifying dark_gradients
+            custom_gradient = (top_rgb, bottom_rgb)
+        except Exception as e:
+            print(f"Error setting custom theme: {e}")
+            # Use a default dark gradient as fallback
+            custom_gradient = ((25, 25, 45), (10, 10, 35))
+    
+    print(f"Theme updated to: {theme}")
 
 def scale_preserving_aspect_ratio(image, target_size):
     """

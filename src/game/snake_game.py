@@ -284,7 +284,17 @@ class SnakeGame:
             main_text_color = WHITE
             high_score_color = YELLOW
             controls_color = (180, 180, 180)  # Light gray
-        else:
+        elif self.background_theme == "custom":
+            # Get custom gradient colors from globals
+            from src.ui.shared_globals import custom_gradient
+            # Use the dedicated custom gradient
+            top_color, bottom_color = custom_gradient
+            draw_gradient(self.display, top_color, bottom_color, self.width, self.height)
+            # Use dark theme text colors for custom theme
+            main_text_color = WHITE
+            high_score_color = YELLOW
+            controls_color = (180, 180, 180)  # Light gray
+        else:  # light theme
             draw_gradient(self.display, (200, 200, 200), (255, 255, 255), self.width, self.height)
             # Light theme colors
             main_text_color = (0, 0, 100)  # Dark blue
