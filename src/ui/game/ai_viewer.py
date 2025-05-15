@@ -322,20 +322,203 @@ def watch_ai_play():
 
 def watch_fibonacci_ai_play():
     """Watch the transferred Fibonacci AI play"""
-    # Set window title at the beginning
+    # Setup screen for potential error display
+    screen = pygame.display.set_mode((1280, 720))
     pygame.display.set_caption("AI Serpentis: Fibonacci AI")
-    global snake_color, background_theme, screen, debug_mode, enhanced_effects
+    global snake_color, background_theme, debug_mode, enhanced_effects
     
-    # Get latest debug mode setting from config
+    # Initialize fonts for error display
+    try:
+        error_font = pygame.font.Font("assets/fonts/game_over.ttf", 36)
+    except:
+        error_font = pygame.font.SysFont("Arial", 36)
+    
+    # Get latest settings
     debug_mode = get_current_debug_mode()
-    
-    # Load theme from config
     config = get_config()
     background_theme = config.get("appearance", {}).get("background_theme", "dark")
     
     # Initialize agent
     agent = TransferredFibonacciAgent()
     
+    # Find the correct model paths
+    # Check both relative and absolute paths
+    script_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    
+    # Try multiple possible paths for models
+    possible_model_dirs = [
+        os.path.join(script_dir, "data", "models"),  # From script root
+        "data/models",                               # Relative to working dir
+        os.path.join(os.getcwd(), "data", "models")  # Absolute from working dir
+    ]
+    
+    possible_checkpoint_dirs = [
+        os.path.join(script_dir, "data", "checkpoints"),
+        "data/checkpoints",
+        os.path.join(os.getcwd(), "data", "checkpoints")
+    ]
+    
+    # Find working model directories
+    model_dir = None
+    checkpoint_dir = None
+    
+    for dir_path in possible_model_dirs:
+        if os.path.exists(dir_path):
+            model_dir = dir_path
+            print(f"Found model directory: {model_dir}")
+            break
+    
+    for dir_path in possible_checkpoint_dirs:
+        if os.path.exists(dir_path):
+            checkpoint_dir = dir_path
+            print(f"Found checkpoint directory: {checkpoint_dir}")
+            break
+    
+    # Find and load the best available model
+    model_path = ""
+    found_model_files = []
+    
+    try:
+        # Look for specific model first
+        if model_dir:
+            base_model = os.path.join(model_dir, "fibonacci_transferred_model_finetuned_93_games.pth")
+            if os.path.exists(base_model):
+                model_path = base_model
+                print(f"Found base model: {os.path.basename(model_path)}")
+            
+            # Look for any finetuned models
+            model_files = []
+            try:
+                model_files = [f for f in os.listdir(model_dir) 
+                             if f.startswith('fibonacci_transferred_model_finetuned_')]
+                found_model_files = model_files
+                
+                if model_files and not model_path:
+                    # Get the one with the highest game count
+                    model_file = model_files[0]  # Default to first
+                    try:
+                        model_file = max(model_files, key=lambda x: int(x.split('_')[-2]))
+                    except:
+                        pass  # Just use the first one if parsing fails
+                    
+                    model_path = os.path.join(model_dir, model_file)
+                    print(f"Using fine-tuned model: {os.path.basename(model_path)}")
+            except Exception as e:
+                print(f"Error searching for models: {e}")
+        
+        # Check checkpoint as last resort
+        if not model_path and checkpoint_dir:
+            checkpoint_model = os.path.join(checkpoint_dir, "fibonacci_transferred_checkpoint_model.pth")
+            if os.path.exists(checkpoint_model):
+                model_path = checkpoint_model
+                print(f"Using checkpoint model: {os.path.basename(model_path)}")
+        
+        # If no model found, show error message
+        if not model_path or not os.path.exists(model_path):
+            print("No Fibonacci AI model found.")
+            
+            # Display error to user
+            running = True
+            clock = pygame.time.Clock()
+            while running:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and 
+                                                   (event.key == pygame.K_ESCAPE or event.key == pygame.K_RETURN)):
+                        running = False
+                
+                # Draw error screen
+                if background_theme == "dark":
+                    screen.fill((20, 20, 35))
+                else:
+                    screen.fill((230, 230, 240))
+                
+                # Draw error message
+                error_text = error_font.render("No Fibonacci AI model found!", True, (255, 70, 70))
+                error_rect = error_text.get_rect(center=(640, 280))
+                screen.blit(error_text, error_rect)
+                
+                # Show paths searched
+                path_text = error_font.render(f"Searched in: {model_dir}", True, (180, 180, 180))
+                path_rect = path_text.get_rect(center=(640, 330))
+                screen.blit(path_text, path_rect)
+                
+                # Show what files were found (if any)
+                if found_model_files:
+                    files_text = error_font.render(f"Found files: {', '.join(found_model_files[:2])}" + 
+                                                ("..." if len(found_model_files) > 2 else ""), 
+                                                True, (180, 180, 180))
+                    files_rect = files_text.get_rect(center=(640, 380))
+                    screen.blit(files_text, files_rect)
+                else:
+                    files_text = error_font.render("No model files found in directory", True, (180, 180, 180))
+                    files_rect = files_text.get_rect(center=(640, 380))
+                    screen.blit(files_text, files_rect)
+                
+                # Show instruction
+                instruction = error_font.render("Press ENTER/ESC to return to menu", True, (180, 180, 220))
+                instruction_rect = instruction.get_rect(center=(640, 480))
+                screen.blit(instruction, instruction_rect)
+                
+                pygame.display.flip()
+                clock.tick(30)
+            
+            # Reset screen and return to menu
+            screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+            pygame.display.set_caption("AI Serpentis")
+            return
+        
+        # Load the model
+        print(f"Loading Fibonacci AI model: {os.path.basename(model_path)}")
+        agent.model.load_state_dict(torch.load(model_path))
+        agent.epsilon = 0  # No random moves when watching
+        
+    except Exception as e:
+        print(f"Error loading Fibonacci AI model: {e}")
+        # Display error to user
+        running = True
+        clock = pygame.time.Clock()
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and 
+                                               (event.key == pygame.K_ESCAPE or event.key == pygame.K_RETURN)):
+                    running = False
+            
+            # Draw error screen
+            if background_theme == "dark":
+                screen.fill((20, 20, 35))
+            else:
+                screen.fill((230, 230, 240))
+            
+            # Draw error message
+            error_text = error_font.render("Error loading AI model!", True, (255, 70, 70))
+            error_rect = error_text.get_rect(center=(640, 280))
+            screen.blit(error_text, error_rect)
+            
+            # Show error details
+            details_text = error_font.render(f"Details: {str(e)[:50]}{'...' if len(str(e)) > 50 else ''}", 
+                                           True, (180, 180, 180))
+            details_rect = details_text.get_rect(center=(640, 330))
+            screen.blit(details_text, details_rect)
+            
+            # Show model path
+            path_text = error_font.render(f"Model: {os.path.basename(model_path)}", True, (180, 180, 180))
+            path_rect = path_text.get_rect(center=(640, 380))
+            screen.blit(path_text, path_rect)
+            
+            # Show instruction
+            instruction = error_font.render("Press ENTER/ESC to return to menu", True, (180, 180, 220))
+            instruction_rect = instruction.get_rect(center=(640, 480))
+            screen.blit(instruction, instruction_rect)
+            
+            pygame.display.flip()
+            clock.tick(30)
+        
+        # Reset screen and return to menu
+        screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        pygame.display.set_caption("AI Serpentis")
+        return
+    
+    # Continue with game initialization if model loaded successfully
     # Initialize game with 1280x720 resolution for better viewing
     game = FibonacciGameAI(width=1280, height=720)
     game.viewing_mode = True  # Enable viewer mode UI
@@ -350,52 +533,6 @@ def watch_fibonacci_ai_play():
     
     # For compatibility
     game.snake_color = game.snake_theme.head_color
-    
-    # Find and load the best available model
-    model_path = ""
-    model_dir = "data/models"
-    checkpoint_dir = "data/checkpoints"
-    
-    try:
-        # First try to load base transferred model
-        base_model = os.path.join(model_dir, "fibonacci_transferred_model_finetuned_200_games.pth")
-        if os.path.exists(base_model):
-            model_path = base_model
-            print(f"Using base transferred model: {os.path.basename(model_path)}")
-        
-        # If not found, try finetuned models as fallback
-        if not model_path:
-            model_files = [f for f in os.listdir(model_dir) if f.startswith('fibonacci_transferred_model_finetuned_')]
-            
-            if model_files:
-                # Get the one with the highest game count
-                try:
-                    model_file = max(model_files, key=lambda x: int(x.split('_')[-2]))
-                    model_path = os.path.join(model_dir, model_file)
-                    print(f"Base model not found, using fine-tuned model: {os.path.basename(model_path)}")
-                except:
-                    # If parsing fails, just take the first one
-                    model_path = os.path.join(model_dir, model_files[0])
-                    print(f"Using fine-tuned model: {os.path.basename(model_path)}")
-        
-        # Finally try checkpoint model
-        if not model_path:
-            checkpoint_model = os.path.join(checkpoint_dir, "fibonacci_transferred_checkpoint_model.pth")
-            if os.path.exists(checkpoint_model):
-                model_path = checkpoint_model
-                print(f"Using checkpoint model: {os.path.basename(model_path)}")
-                
-        if not model_path or not os.path.exists(model_path):
-            print("No Fibonacci AI model found. Please train or transfer a model first.")
-            return
-            
-        print(f"Loading Fibonacci AI model: {os.path.basename(model_path)}")
-        agent.model.load_state_dict(torch.load(model_path))
-        agent.epsilon = 0  # No random moves when watching
-        
-    except Exception as e:
-        print(f"Error loading Fibonacci AI model: {e}")
-        return
     
     # Load high scores
     high_scores = load_high_scores()

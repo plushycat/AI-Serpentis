@@ -20,8 +20,8 @@ class FibonacciGameAI(SnakeGameAI):
         super().__init__(width, height, record, avg, iteration, display_surface)
         
         # Import and initialize theme at startup
-        from src.ui.shared_globals import get_theme, update_theme
-        self.background_theme = get_theme()  # Get current theme from globals
+        from src.ui.shared_globals import background_theme, update_theme
+        self.background_theme = background_theme  # Get current theme from globals
         update_theme(self.background_theme)  # Ensure it's properly synced
         
         # Fibonacci-specific attributes - match player mode

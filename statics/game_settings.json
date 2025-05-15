@@ -1,6 +1,6 @@
 {
     "appearance": {
-        "background_theme": "custom",
+        "background_theme": "dark",
         "enhanced_effects": true,
         "custom_top": "#451f4b",
         "custom_bottom": "#003467"
