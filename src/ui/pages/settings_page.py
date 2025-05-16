@@ -21,6 +21,9 @@ from src.ui.shared_globals import (
     music_on_icon, music_off_icon, scores_icon  # Add these icons
 )
 
+# Add this line to load the edit icon
+edit_icon = pygame.image.load("assets/images/edit.png")
+
 # Import UI components
 from src.ui.components import (
     draw_smooth_gradient, draw_fancy_button, draw_button, glowing_text,
@@ -31,6 +34,12 @@ from src.game.player_vs_ai import get_player_position, save_player_position
 
 # Add import for high scores page navigation
 from src.ui.pages.scores_page import high_scores_page
+
+# Add this import at the top of the file, with other imports
+from src.utils.color_randomizer import (
+    is_valid_hex, hex_to_rgb, generate_random_hex, 
+    generate_random_gradient_color, draw_gradient_preview
+)
 
 def save_settings_immediately():
     """Save settings and synchronize with SoundManager"""
@@ -174,6 +183,9 @@ def settings_page():
     col_light_button = pygame.Rect(col_button_x, content_start_y + 60 + button_height + 15, col_button_width, button_height)  # Spacing reduced from 20 to 15
     col_custom_button = pygame.Rect(col_button_x, content_start_y + 60 + (button_height + 15) * 2, col_button_width, button_height)
     
+    # Define custom theme rectangle 
+    custom_theme_rect = pygame.Rect(0, 0, col_button_width, button_height)  # Initial placeholder
+
     # Right column buttons - DEFINE BEFORE EVENT HANDLING  
     col_button_x = right_col_x + (col_width - col_button_width) // 2
     col_debug_button = pygame.Rect(col_button_x, content_start_y + 60, col_button_width, button_height)  # From 80 to 60
@@ -441,11 +453,20 @@ def settings_page():
                         
                         elif col_custom_button.collidepoint(event.pos):
                             play_click()
-                            # Show custom theme dialog
-                            if show_custom_theme_dialog():
-                                # Dialog returned successfully, theme is already updated
-                                print("Custom theme applied successfully")
-                            # No need to update here - dialog handles the update
+                            
+                            # Check if custom theme is already configured
+                            custom_top = get_setting("appearance", "custom_top", None)
+                            custom_bottom = get_setting("appearance", "custom_bottom", None)
+                            
+                            if custom_top and custom_bottom:
+                                # Custom theme already exists, just switch to it directly
+                                background_theme = "custom"
+                                update_theme(background_theme)
+                                save_settings_immediately()
+                            else:
+                                # No custom theme yet, show the dialog
+                                if show_custom_theme_dialog():
+                                    print("Custom theme applied successfully")
                         
                         elif col_debug_button.collidepoint(event.pos):
                             play_click()
@@ -631,6 +652,17 @@ def settings_page():
                     if scores_button.collidepoint(event.pos):
                         play_click()
                         high_scores_page()  # Navigate to scores page
+                    
+                    # Add edit button handler            
+                    elif background_theme == "custom" and pygame.Rect(
+                            custom_theme_rect.right + 16,  # Match the new position 
+                            custom_theme_rect.centery - 16,  # Half of edit_button_size
+                            28,  # New edit_button_size
+                            28   # New edit_button_size
+                        ).collidepoint(event.pos):
+                        play_click()
+                        if show_custom_theme_dialog():
+                            print("Custom theme updated successfully")
             
             if event.type == pygame.MOUSEMOTION:
                 if pygame.mouse.get_pressed()[0] and active_slider:  # Left button pressed
@@ -738,11 +770,17 @@ def settings_page():
             
             # Draw selected theme indicator
             selected_border = pygame.Rect(0, 0, col_button_width + 8, button_height + 8)
+            selected_theme_button = None
+
             if background_theme == "dark":
-                selected_border.center = col_dark_button.center
-                pygame.draw.rect(screen, (80, 200, 120), selected_border, 3, border_radius=14)
-            else:
-                selected_border.center = col_light_button.center
+                selected_theme_button = col_dark_button
+            elif background_theme == "light":
+                selected_theme_button = col_light_button
+            elif background_theme == "custom":
+                selected_theme_button = custom_theme_rect
+
+            if selected_theme_button:
+                selected_border.center = selected_theme_button.center
                 pygame.draw.rect(screen, (80, 200, 120), selected_border, 3, border_radius=14)
             
             # Dark theme button
@@ -765,28 +803,51 @@ def settings_page():
             text_rect = text.get_rect(center=col_light_button.center)
             screen.blit(text, text_rect)
             
-            # Custom theme button - after light theme button drawing code
-            custom_theme_color = (60, 70, 120)
-            custom_theme_hover = (80, 100, 160)
-            is_hover = col_custom_button.collidepoint(mouse_pos)
+            # Custom theme button - make it more distinctive but consistent
+            custom_theme_color = (70, 80, 140)  # Bluer base color 
+            custom_theme_hover = (90, 110, 180)  # Hover state
+
+            # UPDATE POSITION FIRST - moved from below
+            custom_theme_rect.x = col_custom_button.x
+            custom_theme_rect.y = col_custom_button.y
+
+            is_hover = custom_theme_rect.collidepoint(mouse_pos)
             color = custom_theme_hover if is_hover else custom_theme_color
-            pygame.draw.rect(screen, color, col_custom_button, border_radius=12)
-            text = menu_font.render("Custom Theme", True, WHITE)
-            text_rect = text.get_rect(center=col_custom_button.center)
+
+            # Draw the button with simple solid color (like dark theme button)
+            pygame.draw.rect(screen, color, custom_theme_rect, border_radius=12)
+
+            # Draw button text
+            text = menu_font.render("Theme: Custom", True, WHITE)
+            text_rect = text.get_rect(center=custom_theme_rect.center)
             screen.blit(text, text_rect)
 
-            # Draw green border around the selected theme
-            selected_border = pygame.Rect(0, 0, col_button_width + 8, button_height + 8)
-            if background_theme == "dark":
-                selected_border.center = col_dark_button.center
-                pygame.draw.rect(screen, (80, 200, 120), selected_border, 3, border_radius=14)
-            elif background_theme == "light":
-                selected_border.center = col_light_button.center
-                pygame.draw.rect(screen, (80, 200, 120), selected_border, 3, border_radius=14)
-            elif background_theme == "custom":
-                selected_border.center = col_custom_button.center
-                pygame.draw.rect(screen, (80, 200, 120), selected_border, 3, border_radius=14)
-            
+            # Add edit button when custom theme is selected
+            if background_theme == "custom":
+                edit_button_size = 28  # Button size remains the same
+                edit_button = pygame.Rect(
+                    custom_theme_rect.right + 8,
+                    custom_theme_rect.centery - edit_button_size//2,
+                    edit_button_size, 
+                    edit_button_size
+                )
+                edit_hover = edit_button.collidepoint(mouse_pos)
+                pygame.draw.rect(
+                    screen, 
+                    (100, 160, 220) if edit_hover else (70, 120, 180), 
+                    edit_button, 
+                    border_radius=4
+                )
+                
+                # Increase icon size - make it bigger
+                small_icon = pygame.transform.scale(edit_icon, (22, 22))  # Increased from 18×18 to 22×22
+                edit_icon_rect = small_icon.get_rect(center=edit_button.center)
+                screen.blit(small_icon, edit_icon_rect)
+                
+                # Add subtle highlight when hovered
+                if edit_hover:
+                    pygame.draw.rect(screen, (180, 220, 255), edit_button, 1, border_radius=4)
+
             # Right column - Other gameplay settings
             section_title = menu_font.render("Gameplay Settings", True, (200, 200, 200))
             screen.blit(section_title, (right_col_x, content_start_y + 20))  # From 30 to 20
@@ -1366,54 +1427,6 @@ def show_custom_theme_dialog():
     error_message = ""
     error_timer = 0
     
-    # Input validation helper
-    def is_valid_hex(hex_str):
-        if not hex_str:
-            return False
-        try:
-            int(hex_str, 16)
-            return len(hex_str) in [3, 6]  # Valid hex can be 3 or 6 chars
-        except ValueError:
-            return False
-    
-    # Hex to RGB conversion
-    def hex_to_rgb(hex_str):
-        hex_str = hex_str.lstrip('#')
-        if len(hex_str) == 3:
-            return tuple(int(c + c, 16) for c in hex_str)
-        return tuple(int(hex_str[i:i+2], 16) for i in (0, 2, 4))
-    
-    # Random hex generator
-    def generate_random_hex():
-        """Generate a random hex color suitable for gradients"""
-        # Create more visually appealing colors
-        if active_input == "top":
-            # For top gradient, use more saturated, vibrant colors
-            r = random.randint(20, 100)
-            g = random.randint(20, 100)
-            b = random.randint(50, 150)
-        else:
-            # For bottom gradient, use darker colors that complement the top
-            # If we have a top input already, relate to it
-            if is_valid_hex(top_input):
-                try:
-                    top_rgb = hex_to_rgb(top_input)
-                    # Create a darker variant of the top color
-                    r = max(0, top_rgb[0] - random.randint(10, 30))
-                    g = max(0, top_rgb[1] - random.randint(10, 30))
-                    b = max(0, top_rgb[2] - random.randint(10, 30))
-                except:
-                    r = random.randint(10, 40)
-                    g = random.randint(10, 40)
-                    b = random.randint(30, 80)
-            else:
-                # Default darker colors
-                r = random.randint(10, 40)
-                g = random.randint(10, 40) 
-                b = random.randint(30, 80)
-        
-        return f"{r:02x}{g:02x}{b:02x}"
-    
     clock = pygame.time.Clock()
     
     while True:
@@ -1451,9 +1464,9 @@ def show_custom_theme_dialog():
                     elif random_button.collidepoint(event.pos):
                         play_click()
                         if active_input == "top":
-                            top_input = generate_random_hex()
+                            top_input = generate_random_hex(is_top=True)
                         else:
-                            bottom_input = generate_random_hex()
+                            bottom_input = generate_random_hex(is_top=False, complement_hex=top_input)
                     elif dialog_rect.collidepoint(event.pos) == False:
                         # Clicked outside dialog - cancel
                         play_click()
@@ -1575,26 +1588,13 @@ def show_custom_theme_dialog():
         # Draw preview with better label
         preview_label = menu_font.render("Preview", True, (200, 200, 200))
         preview_label_rect = preview_label.get_rect(centerx=preview_rect.centerx, 
-                                                 bottom=preview_rect.top - 10)
+                                                    bottom=preview_rect.top - 10)
         screen.blit(preview_label, preview_label_rect)
         
         # Draw gradient preview
         try:
             if is_valid_hex(top_input) and is_valid_hex(bottom_input):
-                top_rgb = hex_to_rgb(top_input)
-                bottom_rgb = hex_to_rgb(bottom_input)
-                
-                # Draw gradient preview with border
-                for y in range(preview_size):
-                    ratio = y / preview_size
-                    color = (
-                        int(top_rgb[0] * (1-ratio) + bottom_rgb[0] * ratio),
-                        int(top_rgb[1] * (1-ratio) + bottom_rgb[1] * ratio),
-                        int(top_rgb[2] * (1-ratio) + bottom_rgb[2] * ratio)
-                    )
-                    pygame.draw.line(screen, color, 
-                                  (preview_rect.left, preview_rect.top + y),
-                                  (preview_rect.right, preview_rect.top + y))
+                draw_gradient_preview(screen, top_input, bottom_input, preview_rect)
                 
                 # Draw labels for top/bottom inside preview
                 t_label = footer_font.render("Top", True, (255, 255, 255))

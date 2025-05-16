@@ -1,8 +1,8 @@
 {
     "appearance": {
-        "background_theme": "dark",
+        "background_theme": "custom",
         "enhanced_effects": true,
-        "custom_top": "#451f4b",
+        "custom_top": "#5b4840",
         "custom_bottom": "#003467"
     },
     "gameplay": {
